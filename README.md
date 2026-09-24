@@ -26,6 +26,7 @@ con ayuda contextual (ⓘ) en cada encabezado técnico.
 - [Alcance y límites](#alcance-y-límites)
 - [Estructura del repositorio](#estructura-del-repositorio)
 - [Cómo ejecutar el proyecto](#cómo-ejecutar-el-proyecto)
+- [Despliegue en Vercel](#despliegue-en-vercel)
 - [Referencia de la API](#referencia-de-la-api)
 - [Pruebas](#pruebas)
 - [Decisiones de diseño](#decisiones-de-diseño)
@@ -226,7 +227,8 @@ plataforma-embalses/
 │   │   ├── data_generation/      # Fuente sintética opcional (catálogo + generador)
 │   │   ├── ingesta/              # CLI de sincronización
 │   │   └── ml/                   # Adaptador de pronóstico Holt-Winters
-│   ├── presentation/api/         # FastAPI: main, dependencies (composition root), routers
+│   ├── presentation/api/         # FastAPI: main, dependencies (composition root), routers, arranque_vercel
+│   ├── index.py, vercel.json     # Punto de entrada y configuración del despliegue en Vercel
 │   ├── tests/                    # Pruebas (pytest)
 │   └── requirements*.txt
 ├── frontend/
@@ -240,6 +242,7 @@ plataforma-embalses/
 │       ├── api/                    # client.ts, types.ts (espejo de los DTOs del backend)
 │       ├── hooks/                  # useAsyncResource, useResumenNacional, useEmbalseDetalle, usePrediccion, useSendaVolumen, useFuenteDatos
 │       └── utils/                  # formatters.ts, dates.ts
+├── scripts/                       # desplegar-vercel.sh
 ├── data/                          # hidrologia.duckdb (generado por la sincronización, no versionado)
 └── README.md
 ```
@@ -312,6 +315,48 @@ cd plataforma-embalses/backend && source .venv/bin/activate && python -m pytest 
 cd plataforma-embalses/frontend && npm test          # una corrida; `npm run test:watch` para desarrollo
 ```
 
+## Despliegue en Vercel
+
+En producción: **https://plataforma-embalses.vercel.app**
+
+Son dos proyectos de Vercel, publicados con la CLI:
+
+| Proyecto | Carpeta | Qué es | URL |
+|---|---|---|---|
+| `plataforma-embalses` | `frontend/` | Sitio Next.js | https://plataforma-embalses.vercel.app |
+| `plataforma-embalses-api` | `backend/` | FastAPI como función Python ([`index.py`](backend/index.py), [`vercel.json`](backend/vercel.json)) | https://plataforma-embalses-api.vercel.app |
+
+El sitio **reenvía** `/api/v1/*` a la API con un *rewrite*
+([`next.config.ts`](frontend/next.config.ts)), así que el navegador solo habla con
+el dominio del sitio (sin CORS). Variables del proyecto `plataforma-embalses`
+(Production): `NEXT_PUBLIC_API_BASE_URL=/` y `API_URL=https://plataforma-embalses-api.vercel.app`.
+
+```bash
+scripts/desplegar-vercel.sh          # API + sitio (también: api | web)
+```
+
+Cómo funciona la API en Vercel:
+
+- **La base viaja con el despliegue.** `data/hidrologia.duckdb` (~7 MB) se copia a
+  `backend/data/` (ignorado por git) y se empaqueta. El disco de la función es de
+  solo lectura, así que al arrancar se copia a `/tmp`
+  ([`arranque_vercel.py`](backend/presentation/api/arranque_vercel.py)).
+- **Los datos no se actualizan solos.** La sincronización con XM no corre en
+  Vercel. Para actualizar: sincronizar en local y volver a publicar la API.
+
+  ```bash
+  cd backend && source .venv/bin/activate
+  python -m infrastructure.ingesta.sincronizar --fuente simem    # con la API local detenida
+  cd .. && scripts/desplegar-vercel.sh api
+  ```
+- **Arranque en frío.** La primera consulta tras un rato de inactividad tarda unos
+  segundos más (importar statsmodels y copiar la base). El paquete pesa ~310 MB
+  descomprimidos y cupo en el límite del plan; si crece (dependencias nuevas)
+  puede dejar de caber.
+- **Despliegue por CLI, no por Git.** Como la base no está en el repositorio, un
+  despliegue automático desde GitHub de la API no tendría datos. El sitio sí podría
+  conectarse a Git.
+
 ## Referencia de la API
 
 Prefijo base: `/api/v1`
@@ -367,9 +412,9 @@ gh pr create --fill                # abrir el pull request
 gh pr merge --squash --delete-branch   # cuando los checks estén en verde
 ```
 
-### Backend — 171 pruebas (pytest)
+### Backend — 175 pruebas (pytest)
 
-171 pruebas con pytest, sin red ni base de datos externa (repositorios,
+175 pruebas con pytest, sin red ni base de datos externa (repositorios,
 fuente y pronóstico en memoria —ver [`tests/fakes.py`](backend/tests/fakes.py)—, y
 DuckDB sobre archivos temporales). Las pruebas HTTP usan `TestClient` de FastAPI
 (requiere `httpx`, incluido en `requirements-dev.txt`):
@@ -382,6 +427,7 @@ DuckDB sobre archivos temporales). Las pruebas HTTP usan `TestClient` de FastAPI
 | `test_holt_winters_estacional.py` | 7 | Ciclo anual, fallback con <24 meses, pasos de fecha, acotamiento 0–100 |
 | `test_fuente_simem_xm.py` | 26 | Conversión de unidades (m³→Mm³, m³/día→m³/s, kWh→GWh), mapeo río→embalse, agregado Bogotá y `AGREGADO_SIN`, datos faltantes como `None`, imputación del peso, región desconocida, cliente XM en bloques de 30 días, errores de red |
 | `test_api_http.py` | 56 | Contrato HTTP sobre la app real con los casos de uso reales y repositorios en memoria: los 9 endpoints, códigos 404/405/422 y su `detalle`, filtros y validación de parámetros, `null` en datos no publicados, CSV/JSON descargable (celdas vacías, no ceros), la ruta `/resumen` frente a `/{id}`, forma del JSON de la senda, OpenAPI y CORS (origen permitido, otros rechazados, preflight solo GET) |
+| `test_arranque_vercel.py` | 4 | Copia de la base empaquetada a `/tmp` (no pisa copias existentes, error claro si falta) |
 | `test_sincronizacion_y_persistencia.py` | 19 | Sincronización completa/incremental/idempotente, procedencia, ida y vuelta en DuckDB con nulos, upsert, esquema heredado (rechazo y `--reiniciar`) |
 
 Se comprobó además que las pruebas detectan fallos: al introducir a propósito
@@ -396,7 +442,7 @@ repositorios en memoria; DuckDB se prueba aparte). La descarga real de SIMEM/XM
 se verificó manualmente (carga completa e incremental) y contra el agregado
 oficial de XM, pero no en las pruebas automáticas, que no usan red.
 
-### Frontend — 173 pruebas (Vitest + React Testing Library + jsdom)
+### Frontend — 177 pruebas (Vitest + React Testing Library + jsdom)
 
 Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 ([`tests/mocks/fetch.ts`](frontend/tests/mocks/fetch.ts)) con datos de ejemplo
@@ -406,7 +452,7 @@ Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 |---|---|---|
 | `utils/formatters.test.ts` | 12 | Formato es-CO, "—" para datos no publicados (y el cero real como cero), deltas con signo, fechas sin corrimiento, etiquetas y paleta de riesgo |
 | `utils/dates.test.ts` | 6 | Fechas en calendario **local** (hora de Bogotá): no se adelanta un día de noche |
-| `api/client.test.ts` | 15 | Construcción de URLs y query strings (parámetros repetibles, vacíos omitidos), `urlReporte`, cancelación, errores (`detalle` de dominio y `detail` de FastAPI, fallos de red) |
+| `api/client.test.ts` | 19 | Construcción de URLs y query strings (parámetros repetibles, vacíos omitidos), `urlReporte`, cancelación, errores (`detalle` de dominio y `detail` de FastAPI, fallos de red) y URL base según el entorno (local vs. `/` en producción) |
 | `hooks/useAsyncResource.test.tsx` | 10 | Estados cargando/datos/error, cancelación al desmontar y al cambiar dependencias, gana la última respuesta, sin peticiones repetidas |
 | `components/InfoButton.test.tsx` | 12 | Botón ⓘ: aria, abrir/cerrar (clic, Escape, fuera, scroll, resize), no propaga el clic, un solo panel, posición dentro de la pantalla |
 | `components/tarjetas.test.tsx` | 15 | KpiCard, RiskBadge y SistemaRiesgoCard (color del delta, niveles de riesgo, ayuda) |

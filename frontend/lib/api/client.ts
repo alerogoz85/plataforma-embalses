@@ -7,7 +7,9 @@ import type {
   SendaVolumen,
 } from "./types";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+// En desarrollo apunta al backend local. En produccion se define "/" para llamar
+// a la misma URL del sitio (Next reescribe /api/v1/* hacia la API, ver next.config.ts).
+export const BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000").replace(/\/+$/, "");
 
 export class ApiError extends Error {
   constructor(

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   ApiError,
@@ -127,5 +127,44 @@ describe("errores", () => {
   it("no oculta los fallos de red", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("Failed to fetch"); }));
     await expect(obtenerRegiones()).rejects.toThrow("Failed to fetch");
+  });
+});
+
+describe("URL base segun el entorno", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  async function cargarCliente(valor?: string) {
+    if (valor === undefined) vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", undefined as unknown as string);
+    else vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", valor);
+    vi.resetModules();
+    return import("@/lib/api/client");
+  }
+
+  it("sin variable apunta al backend local", async () => {
+    delete process.env.NEXT_PUBLIC_API_BASE_URL;
+    vi.resetModules();
+    const { BASE_URL } = await import("@/lib/api/client");
+    expect(BASE_URL).toBe("http://localhost:8000");
+  });
+
+  it("con '/' usa rutas relativas al mismo sitio (produccion en Vercel)", async () => {
+    const { BASE_URL, urlReporte } = await cargarCliente("/");
+    expect(BASE_URL).toBe("");
+    expect(urlReporte("GUAVIO", "csv")).toMatch(/^\/api\/v1\/embalses\/GUAVIO\/reporte\?/);
+  });
+
+  it("y las peticiones salen como rutas relativas", async () => {
+    const { fetch } = simularFetch({ "/api/v1/regiones": () => [] });
+    const { obtenerRegiones } = await cargarCliente("/");
+    await obtenerRegiones().catch(() => {});
+    expect(fetch.mock.calls[0][0]).toBe("/api/v1/regiones");
+  });
+
+  it("quita las barras finales de una URL absoluta", async () => {
+    const { BASE_URL } = await cargarCliente("https://api.ejemplo.com//");
+    expect(BASE_URL).toBe("https://api.ejemplo.com");
   });
 });

@@ -10,3 +10,11 @@ data/*.duckdb.wal
 
 # Sistema
 .DS_Store
+
+# Despliegue en Vercel
+.vercel/
+backend/data/
+
+# Variables de entorno locales (`vercel link` crea .env.local con un token temporal)
+.env*
+!.env.example
