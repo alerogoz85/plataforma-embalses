@@ -158,11 +158,31 @@ describe("DashboardPage filtro de region", () => {
     expect(opciones).not.toContain("Guavio");
   });
 
-  it("elegir 'Todos los embalses' se mantiene (no vuelve al primero) y el grafico pide elegir uno", async () => {
-    await pagina();
+  it("'Todas las regiones' + 'Todos los embalses' dibuja el grafico del total nacional", async () => {
+    const { llamadas } = await pagina();
     await userEvent.selectOptions(selectorEmbalse(), "Todos los embalses");
     expect(selectorEmbalse()).toHaveValue("");
-    expect(await screen.findByText(/Selecciona un embalse en los filtros/)).toBeInTheDocument();
+    await waitFor(() => expect(tituloGrafico()).toHaveTextContent("Total nacional"));
+    expect(screen.queryByText(/Selecciona un embalse en los filtros/)).not.toBeInTheDocument();
+    await waitFor(() => expect(llamadas.some((u) => u.pathname === "/api/v1/embalses/TOTAL")).toBe(true));
+    expect(llamadas.some((u) => u.pathname === "/api/v1/embalses/TOTAL/prediccion")).toBe(true);
+    expect(screen.getAllByTestId("composed-chart")).toHaveLength(2); // el principal y la senda
+  });
+
+  it("con una region elegida, 'Todos los embalses' dibuja el agregado de esa region", async () => {
+    const { llamadas } = await pagina();
+    await userEvent.selectOptions(selectorRegion(), "Centro");
+    await waitFor(() => expect(selectorEmbalse()).toHaveValue("PRADO"));
+    await userEvent.selectOptions(selectorEmbalse(), "Todos los embalses");
+    await waitFor(() => expect(tituloGrafico()).toHaveTextContent("Región Centro"));
+    await waitFor(() =>
+      expect(llamadas.some((u) => u.pathname === "/api/v1/embalses/REGION%3ACentro")).toBe(true),
+    );
+  });
+
+  it("mientras carga la lista no pide el total: espera a elegir el primer embalse", async () => {
+    const { llamadas } = await pagina();
+    expect(llamadas.some((u) => u.pathname === "/api/v1/embalses/TOTAL")).toBe(false);
   });
 
   it("'Restablecer filtros' devuelve region, embalse y fechas a Todos / valores por defecto", async () => {

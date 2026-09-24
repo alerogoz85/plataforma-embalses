@@ -77,7 +77,7 @@ export function obtenerDetalleEmbalse(
   signal?: AbortSignal,
 ): Promise<EmbalseDetalle> {
   const query = construirQuery({ fecha_inicio: rango.fechaInicio, fecha_fin: rango.fechaFin });
-  return obtenerJSON<EmbalseDetalle>(`/api/v1/embalses/${embalseId}${query}`, signal);
+  return obtenerJSON<EmbalseDetalle>(`/api/v1/embalses/${encodeURIComponent(embalseId)}${query}`, signal);
 }
 
 export function obtenerPrediccion(
@@ -86,7 +86,7 @@ export function obtenerPrediccion(
   signal?: AbortSignal,
 ): Promise<Prediccion> {
   return obtenerJSON<Prediccion>(
-    `/api/v1/embalses/${embalseId}/prediccion?horizonte=${horizonte}`,
+    `/api/v1/embalses/${encodeURIComponent(embalseId)}/prediccion?horizonte=${horizonte}`,
     signal,
   );
 }

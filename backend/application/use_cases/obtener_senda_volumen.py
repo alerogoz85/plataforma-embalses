@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import defaultdict
 from datetime import date, datetime, timezone
 from typing import Optional
 
@@ -11,6 +10,7 @@ from application.dtos.senda_volumen_dto import (
     SendaVolumenDTO,
 )
 from application.ports.input.use_case_ports import ObtenerSendaVolumenPort
+from application.series_agregadas import ID_TOTAL_NACIONAL, SeriesAgregadas
 from application.ports.output.forecasting_port import ForecastingPort
 from domain.exceptions import (
     DatosHistoricosInsuficientesError,
@@ -22,7 +22,6 @@ from domain.repositories.medicion_repository import MedicionRepository
 from domain.repositories.proyeccion_senda_repository import ProyeccionSendaRepository
 from domain.services.calculo_hidrico_service import CalculoHidricoService
 
-ID_TOTAL_NACIONAL = "TOTAL"
 PASO_DIAS_MENSUAL = 30
 MESES_VALIDACION = 6
 MINIMO_MESES_HISTORICO = 9
@@ -53,6 +52,7 @@ class ObtenerSendaVolumenUseCase(ObtenerSendaVolumenPort):
         self._forecasting = forecasting_service
         self._proyecciones = proyeccion_repository
         self._calculo = CalculoHidricoService()
+        self._agregadas = SeriesAgregadas(embalse_repository, medicion_repository)
 
     def ejecutar(
         self, embalse_id: str = ID_TOTAL_NACIONAL, horizonte_meses: int = 12
@@ -144,20 +144,7 @@ class ObtenerSendaVolumenUseCase(ObtenerSendaVolumenPort):
     def _serie_diaria_nacional(self) -> list[tuple[date, float]]:
         """%V_util nacional diario: promedio ponderado por la capacidad util
         en energia de cada embalse ese dia (metodo de XM)."""
-        por_fecha: dict[date, list[tuple[float, float]]] = defaultdict(list)
-        for embalse in self._embalses_repo.listar():
-            for medicion in self._mediciones_repo.obtener_serie(embalse.id):
-                pct = self._calculo.calcular_porcentaje_volumen_util(medicion).valor
-                peso = self._calculo.calcular_peso_energetico_agregacion(medicion)
-                por_fecha[medicion.fecha].append((pct, peso))
-
-        serie = []
-        for fecha in sorted(por_fecha):
-            valores_pesos = por_fecha[fecha]
-            peso_total = sum(peso for _, peso in valores_pesos) or 1.0
-            pct_ponderado = sum(pct * peso for pct, peso in valores_pesos) / peso_total
-            serie.append((fecha, round(pct_ponderado, 2)))
-        return serie
+        return self._agregadas.serie_pct_diaria(self._agregadas.resolver(ID_TOTAL_NACIONAL))
 
     def _validar_walk_forward(
         self, valores: list[float], fechas: list[date]

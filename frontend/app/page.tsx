@@ -24,6 +24,7 @@ import {
   formatearPorcentajeOpcional,
 } from "@/lib/utils/formatters";
 import { fechaHaceDias, hoyISO } from "@/lib/utils/dates";
+import { ID_TOTAL_NACIONAL, idAgregadoRegion } from "@/lib/api/types";
 
 const ICONO_GOTA = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -158,8 +159,14 @@ export default function DashboardPage() {
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-3">
           <div className="xl:col-span-2">
             <MainChart
-              embalseId={embalseId}
-              nombreEmbalse={embalseActual?.nombre ?? ""}
+              embalseId={todosLosEmbalses ? (region ? idAgregadoRegion(region) : ID_TOTAL_NACIONAL) : embalseId}
+              nombreEmbalse={
+                todosLosEmbalses
+                  ? region
+                    ? `Región ${region}`
+                    : "Total nacional"
+                  : (embalseActual?.nombre ?? "")
+              }
               fechaInicio={fechaInicio}
               fechaFin={fechaFin}
             />

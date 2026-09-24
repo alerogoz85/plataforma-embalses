@@ -427,7 +427,7 @@ Prefijo base: `/api/v1`
 |---|---|---|
 | GET | `/embalses/resumen` | KPIs nacionales agregados + corte por región + listado de embalses. Filtros: `region` (repetible), `embalse` (repetible), `fecha` |
 | GET | `/embalses` | Listado de embalses con ficha resumida. Filtros: `region`, `fecha_inicio`, `fecha_fin` (incluye serie histórica si se pasan fechas) |
-| GET | `/embalses/{id}` | Último dato + serie histórica de un embalse (id = código XM, p. ej. `GUAVIO`) |
+| GET | `/embalses/{id}` | Último dato + serie histórica de un embalse (id = código XM, p. ej. `GUAVIO`). También acepta los agregados de «Todos los embalses»: `TOTAL` (nacional) y `REGION:<nombre>` (p. ej. `REGION:Centro`), ponderados por energía como el KPI; `/prediccion` los acepta igual |
 | GET | `/embalses/{id}/prediccion` | Pronóstico diario de %V. útil: la proyección de Outputs interpolada (`origen = outputs`, banda P10–P90, `nivel_confianza = null`) o el respaldo Holt-Winters (`holt_winters`). Query: `horizonte` en días = 30, 90, 180 o 360 (1, 3, 6 o 12 meses) |
 | GET | `/embalses/{id}/reporte` | Descarga CSV o JSON de la serie histórica. Query: `formato`, `fecha_inicio`, `fecha_fin` |
 | GET | `/regiones` | Agregado por región hidrológica |
@@ -474,9 +474,9 @@ gh pr create --fill                # abrir el pull request
 gh pr merge --squash --delete-branch   # cuando los checks estén en verde
 ```
 
-### Backend — 236 pruebas (pytest)
+### Backend — 261 pruebas (pytest)
 
-236 pruebas con pytest, sin red ni base de datos externa (repositorios,
+261 pruebas con pytest, sin red ni base de datos externa (repositorios,
 fuente y pronóstico en memoria —ver [`tests/fakes.py`](backend/tests/fakes.py)—, y
 DuckDB sobre archivos temporales). Las pruebas HTTP usan `TestClient` de FastAPI
 (requiere `httpx`, incluido en `requirements-dev.txt`):
@@ -486,11 +486,12 @@ DuckDB sobre archivos temporales). Las pruebas HTTP usan `TestClient` de FastAPI
 | `test_domain_calculos.py` | 28 | %V. útil con la capacidad del día, sin acotar en 100%, umbrales de riesgo, aportes % media, energía y peso, autonomía (incluye turbinada y datos faltantes), value objects |
 | `test_agregacion.py` | 15 | Agregación mensual; KPI y regiones ponderados por energía (no volumen); agregados en el total; energía no publicada; aportes como total/total |
 | `test_senda_volumen.py` | 34 | Senda por embalse y "Total nacional", horizontes, mínimo proyectado, errores de dominio, MAE/R² con valores calculados a mano, sin fuga de datos futuros; **proyección de Outputs**: la usa en lugar del modelo estadístico, limita el horizonte a lo publicado, sin walk-forward, respaldo cuando no hay proyección |
+| `test_series_agregadas.py` | 20 | Agregados «Todos los embalses»: ids `TOTAL` y `REGION:<nombre>`, %V. útil ponderado por energía (no promedio simple), aportes total/total sin contar ceros, suma de volumen y capacidad, rango de fechas, ficha con deltas, pronóstico del total (Outputs) y de una región (respaldo) |
 | `test_proyeccion_diaria.py` | 18 | Interpolación lineal mensual→diaria (pasa por cada valor mensual, banda que nace sin incertidumbre, no extrapola, ignora anclas vencidas, acotado 0–100) y el pronóstico diario con Outputs: cuatro horizontes, coincide con la senda en las fechas mensuales, respaldo si no hay proyección o está vencida |
 | `test_proyeccion_outputs.py` | 18 | Importación de la proyección: conversión de fracciones a %, P10/P50/P90, validaciones del archivo (columnas, fechas, repetidos, bandas desordenadas, porcentajes ya multiplicados), lectura de un `.xlsx` real, repositorio DuckDB (orden, reemplazo, `--reiniciar` no la borra) |
 | `test_holt_winters_estacional.py` | 7 | Ciclo anual, fallback con <24 meses, pasos de fecha, acotamiento 0–100 |
 | `test_fuente_simem_xm.py` | 26 | Conversión de unidades (m³→Mm³, m³/día→m³/s, kWh→GWh), mapeo río→embalse, agregado Bogotá y `AGREGADO_SIN`, datos faltantes como `None`, imputación del peso, región desconocida, cliente XM en bloques de 30 días, errores de red |
-| `test_api_http.py` | 67 | Contrato HTTP sobre la app real con los casos de uso reales y repositorios en memoria: los 9 endpoints, códigos 404/405/422 y su `detalle`, filtros y validación de parámetros, `null` en datos no publicados, CSV/JSON descargable (celdas vacías, no ceros), la ruta `/resumen` frente a `/{id}`, forma del JSON de la senda (origen de la proyección y horizonte efectivo), OpenAPI y CORS (origen permitido, otros rechazados, preflight solo GET) |
+| `test_api_http.py` | 72 | Contrato HTTP sobre la app real con los casos de uso reales y repositorios en memoria: los 9 endpoints, códigos 404/405/422 y su `detalle`, filtros y validación de parámetros, `null` en datos no publicados, CSV/JSON descargable (celdas vacías, no ceros), la ruta `/resumen` frente a `/{id}`, forma del JSON de la senda (origen de la proyección y horizonte efectivo), OpenAPI y CORS (origen permitido, otros rechazados, preflight solo GET) |
 | `test_arranque_vercel.py` | 4 | Copia de la base empaquetada a `/tmp` (no pisa copias existentes, error claro si falta) |
 | `test_sincronizacion_y_persistencia.py` | 19 | Sincronización completa/incremental/idempotente, procedencia, ida y vuelta en DuckDB con nulos, upsert, esquema heredado (rechazo y `--reiniciar`) |
 
@@ -506,7 +507,7 @@ repositorios en memoria; DuckDB se prueba aparte). La descarga real de SIMEM/XM
 se verificó manualmente (carga completa e incremental) y contra el agregado
 oficial de XM, pero no en las pruebas automáticas, que no usan red.
 
-### Frontend — 192 pruebas (Vitest + React Testing Library + jsdom)
+### Frontend — 195 pruebas (Vitest + React Testing Library + jsdom)
 
 Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 ([`tests/mocks/fetch.ts`](frontend/tests/mocks/fetch.ts)) con datos de ejemplo
@@ -516,7 +517,7 @@ Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 |---|---|---|
 | `utils/formatters.test.ts` | 12 | Formato es-CO, "—" para datos no publicados (y el cero real como cero), deltas con signo, fechas sin corrimiento, etiquetas y paleta de riesgo |
 | `utils/dates.test.ts` | 6 | Fechas en calendario **local** (hora de Bogotá): no se adelanta un día de noche |
-| `api/client.test.ts` | 19 | Construcción de URLs y query strings (parámetros repetibles, vacíos omitidos), `urlReporte`, cancelación, errores (`detalle` de dominio y `detail` de FastAPI, fallos de red) y URL base según el entorno (local vs. `/` en producción) |
+| `api/client.test.ts` | 20 | Construcción de URLs y query strings (parámetros repetibles, vacíos omitidos), `urlReporte`, cancelación, errores (`detalle` de dominio y `detail` de FastAPI, fallos de red) y URL base según el entorno (local vs. `/` en producción) |
 | `hooks/useAsyncResource.test.tsx` | 10 | Estados cargando/datos/error, cancelación al desmontar y al cambiar dependencias, gana la última respuesta, sin peticiones repetidas |
 | `components/InfoButton.test.tsx` | 13 | Botón ⓘ: aria, mostrar al pasar el cursor/enfocar y ocultar al salir, clic táctil, Escape, fuera, scroll, resize, no propaga el clic, un solo panel, posición dentro de la pantalla |
 | `components/tarjetas.test.tsx` | 15 | KpiCard, RiskBadge y SistemaRiesgoCard (color del delta, niveles de riesgo, ayuda) |
@@ -525,7 +526,7 @@ Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 | `components/graficos.test.tsx` | 23 | Regiones (orden, color por riesgo, eje sobre 100%) y gráfico principal (punto puente histórico→proyección, huecos `null`, series, horizonte 1/3/6/12, errores parciales, banda y subtítulo según sea Outputs u Holt-Winters) |
 | `components/SendaVolumenPanel.test.tsx` | 29 | Semáforo del mínimo proyectado en los umbrales exactos, datos del gráfico, tabla de validación, selectores, estados de carga y error; proyección de Outputs (banda P10–P90, nota en lugar de la tabla, aviso si la corrida publica menos meses de los pedidos); horizontes 1/3/6/12 |
 | `components/ThemeToggle.test.tsx` | 6 | Preferencia guardada vs. del sistema, clase `dark`, sincronía entre botones |
-| `app/page.test.tsx` | 20 | Página completa con la API simulada: KPIs, procedencia real/no real, selección automática, rango de 180 días, **cambio de región sin dejar un embalse de otra región seleccionado**, «Todos los embalses» que se mantiene, restablecer filtros (región, embalse y fechas), error de API |
+| `app/page.test.tsx` | 22 | Página completa con la API simulada: KPIs, procedencia real/no real, selección automática, rango de 180 días, **cambio de región sin dejar un embalse de otra región seleccionado**, «Todos los embalses» que dibuja el total nacional o el agregado de la región, restablecer filtros (región, embalse y fechas), error de API |
 | `app/ayudas.test.tsx` | 6 | Catálogo de ayudas (títulos únicos, sin textos obsoletos) y auditoría: todo encabezado, columna, filtro y tarjeta tiene su ⓘ y todos abren y cierran |
 
 Recharts se sustituye por un doble
@@ -616,9 +617,13 @@ Las pruebas encontraron **tres defectos reales**, ya corregidos:
   <65%), distintos de los del estado diario.
 - **Filtros y «Todos los embalses»**: elegir «Todos los embalses» (o pulsar
   «Restablecer filtros», que además vuelve a Todas las regiones y al rango de
-  180 días) es una elección explícita y se mantiene; el gráfico principal pide
-  entonces escoger un embalse. Sin esa elección, un embalse nulo se
-  auto-corrige al primero de la lista (carga inicial y cambio de región).
+  180 días) es una elección explícita y se mantiene. El gráfico principal
+  muestra entonces el **agregado**: el total nacional (`TOTAL`) o el de la región
+  elegida (`REGION:<nombre>`), con %V. útil ponderado por energía, aportes como
+  total/total y la proyección (Outputs para el total nacional; respaldo
+  Holt-Winters sobre la serie agregada para una región). Sin esa elección, un
+  embalse nulo se auto-corrige al primero de la lista (carga inicial y cambio de
+  región), y el gráfico espera a que eso ocurra en lugar de pedir el total.
 - **Ayuda contextual (ⓘ)**: cada encabezado técnico, filtro, selector de
   horizonte y columna de tabla tiene un botón
   [`InfoButton`](frontend/components/ui/InfoButton.tsx) con una explicación

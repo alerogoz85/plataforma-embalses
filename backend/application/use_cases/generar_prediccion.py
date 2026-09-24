@@ -6,6 +6,7 @@ from typing import Optional
 from application.dtos.prediccion_dto import PrediccionDTO, PrediccionPuntoDTO
 from application.ports.input.use_case_ports import GenerarPrediccionPort
 from application.ports.output.forecasting_port import ForecastingPort
+from application.series_agregadas import SeriesAgregadas
 from domain.exceptions import DatosHistoricosInsuficientesError, EmbalseNoEncontradoError
 from domain.repositories.embalse_repository import EmbalseRepository
 from domain.repositories.medicion_repository import MedicionRepository
@@ -39,22 +40,32 @@ class GenerarPrediccionUseCase(GenerarPrediccionPort):
         self._forecasting = forecasting_service
         self._proyecciones = proyeccion_repository
         self._calculo = CalculoHidricoService()
+        self._agregadas = SeriesAgregadas(embalse_repository, medicion_repository)
 
     def ejecutar(self, embalse_id: str, horizonte_dias: int) -> PrediccionDTO:
-        embalse = self._embalses_repo.obtener_por_id(embalse_id)
-        if embalse is None:
-            raise EmbalseNoEncontradoError(embalse_id)
+        grupo = self._agregadas.resolver(embalse_id)
+        if grupo is not None:
+            serie_pct = self._agregadas.serie_pct_diaria(grupo)
+            if len(serie_pct) < MINIMO_REGISTROS_HISTORICOS:
+                raise DatosHistoricosInsuficientesError(
+                    embalse_id, MINIMO_REGISTROS_HISTORICOS, len(serie_pct)
+                )
+            fechas = [f for f, _ in serie_pct]
+            valores_pct = [v for _, v in serie_pct]
+        else:
+            embalse = self._embalses_repo.obtener_por_id(embalse_id)
+            if embalse is None:
+                raise EmbalseNoEncontradoError(embalse_id)
 
-        serie = self._mediciones_repo.obtener_serie(embalse_id)
-        if len(serie) < MINIMO_REGISTROS_HISTORICOS:
-            raise DatosHistoricosInsuficientesError(
-                embalse_id, MINIMO_REGISTROS_HISTORICOS, len(serie)
-            )
-
-        valores_pct = [
-            self._calculo.calcular_porcentaje_volumen_util(m).valor for m in serie
-        ]
-        fechas = [m.fecha for m in serie]
+            serie = self._mediciones_repo.obtener_serie(embalse_id)
+            if len(serie) < MINIMO_REGISTROS_HISTORICOS:
+                raise DatosHistoricosInsuficientesError(
+                    embalse_id, MINIMO_REGISTROS_HISTORICOS, len(serie)
+                )
+            valores_pct = [
+                self._calculo.calcular_porcentaje_volumen_util(m).valor for m in serie
+            ]
+            fechas = [m.fecha for m in serie]
 
         publicada = self._proyecciones.obtener(embalse_id) if self._proyecciones else []
         puntos_outputs = ProyeccionDiariaService.interpolar(

@@ -1,4 +1,4 @@
-import type { EmbalseResumen, FuenteDatos, ResumenNacional } from "@/lib/api/types";
+import { REGIONES, type EmbalseResumen, type FuenteDatos, type ResumenNacional } from "@/lib/api/types";
 import {
   EMBALSES_EJEMPLO,
   FUENTE_REAL,
@@ -32,6 +32,18 @@ export function simularApi({ embalses = EMBALSES_EJEMPLO, fuente = FUENTE_REAL, 
       } satisfies ResumenNacional;
     },
   };
+  // "Todos los embalses": el total nacional y el agregado de cada region.
+  const agregados = [
+    { id: "TOTAL", nombre: "Total nacional" },
+    ...REGIONES.map((region) => ({ id: encodeURIComponent(`REGION:${region}`), nombre: `Región ${region}` })),
+  ];
+  for (const { id, nombre } of agregados) {
+    rutas[`/api/v1/embalses/${id}`] = () => ({
+      ...crearDetalle(5),
+      resumen: crearEmbalse({ id: decodeURIComponent(id), nombre, es_agregado: true }),
+    });
+    rutas[`/api/v1/embalses/${id}/prediccion`] = () => ({ ...crearPrediccion(3), embalse_id: decodeURIComponent(id) });
+  }
   for (const embalse of embalses) {
     rutas[`/api/v1/embalses/${embalse.id}`] = () => ({ ...crearDetalle(5), resumen: crearEmbalse(embalse) });
     rutas[`/api/v1/embalses/${embalse.id}/prediccion`] = () => ({ ...crearPrediccion(3), embalse_id: embalse.id });

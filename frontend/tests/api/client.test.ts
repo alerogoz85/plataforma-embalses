@@ -44,6 +44,19 @@ describe("construccion de URLs", () => {
     expect(llamadas[0].searchParams.get("fecha_fin")).toBe("2026-02-01");
   });
 
+  it("codifica el id de un agregado regional (REGION:Centro) en la ruta", async () => {
+    const { llamadas } = simularFetch({
+      "/api/v1/embalses/REGION%3ACentro": () => crearDetalle(2),
+      "/api/v1/embalses/REGION%3ACentro/prediccion": () => crearPrediccion(2),
+    });
+    await obtenerDetalleEmbalse("REGION:Centro");
+    await obtenerPrediccion("REGION:Centro", 30);
+    expect(llamadas.map((u) => u.pathname)).toEqual([
+      "/api/v1/embalses/REGION%3ACentro",
+      "/api/v1/embalses/REGION%3ACentro/prediccion",
+    ]);
+  });
+
   it("la prediccion lleva el horizonte", async () => {
     const { llamadas } = simularFetch({ "/api/v1/embalses/GUAVIO/prediccion": () => crearPrediccion() });
     await obtenerPrediccion("GUAVIO", 180);
