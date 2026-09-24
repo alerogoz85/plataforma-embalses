@@ -1,32 +1,48 @@
+import Image from "next/image";
+
 import { ThemeToggle } from "./ThemeToggle";
 
 export function Header({ fechaCorte }: { fechaCorte?: string }) {
   return (
-    <header className="sticky top-0 z-10 border-b-[3px] bg-background-elevated/95 backdrop-blur" style={{ borderBottomColor: "var(--color-institucional)" }}>
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-        <div className="flex items-center gap-2.5">
-          <span
-            className="flex h-9 w-9 items-center justify-center rounded-xl text-white"
-            style={{ backgroundColor: "var(--color-marca)" }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 16c1.5-2 3-2 4.5 0s3 2 4.5 0 3-2 4.5 0 3 2 4.5 0" />
-              <path d="M3 21h18" />
-              <path d="M12 3v9" strokeLinecap="round" />
-              <path d="M8 7l4-4 4 4" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </span>
-          <div>
-            <h1 className="text-sm font-bold leading-tight sm:text-base"
-              style={{ color: "var(--color-marca-oscuro)" }}>
-              Plataforma de Monitoreo y Predicción de Embalses
-            </h1>
-            <p className="text-xs text-foreground-muted">
-              {fechaCorte ? `Corte al ${fechaCorte}` : "Cargando corte de información…"}
-            </p>
-          </div>
+    <header className="sticky top-0 z-10">
+      {/* Franja superior GOV.CO, como en minenergia.gov.co */}
+      <div style={{ backgroundColor: "var(--color-marca)" }}>
+        <div className="mx-auto flex max-w-7xl items-center px-4 py-1.5 sm:px-6">
+          <Image src="/marca/govco.webp" alt="GOV.CO" width={200} height={61} className="h-6 w-auto" priority />
         </div>
-        <ThemeToggle />
+      </div>
+      <div
+        className="border-b-[3px] bg-background-elevated/95 backdrop-blur"
+        style={{ borderBottomColor: "var(--color-institucional)" }}
+      >
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-2 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+            {/* El logo es de fondo claro: va sobre una pastilla blanca tambien en modo oscuro */}
+            <span className="shrink-0 rounded-lg bg-white px-2 py-1">
+              <Image
+                src="/marca/logo-mme.png"
+                alt="Ministerio de Minas y Energía"
+                width={600}
+                height={407}
+                className="h-11 w-auto sm:h-14"
+                priority
+              />
+            </span>
+            <span className="hidden h-10 w-px shrink-0 bg-border-strong sm:block" aria-hidden="true" />
+            <div className="min-w-0">
+              <h1
+                className="text-sm font-bold leading-tight sm:text-base"
+                style={{ color: "var(--color-marca-oscuro)" }}
+              >
+                Plataforma de Monitoreo y Predicción de Embalses
+              </h1>
+              <p className="text-xs text-foreground-muted">
+                {fechaCorte ? `Corte al ${fechaCorte}` : "Cargando corte de información…"}
+              </p>
+            </div>
+          </div>
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );
