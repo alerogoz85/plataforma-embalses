@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from typing import Optional
 
 from pydantic import BaseModel
 
@@ -19,7 +20,12 @@ class PrediccionDTO(BaseModel):
 
     embalse_id: str
     horizonte_dias: int
-    nivel_confianza: float
+    # Solo el respaldo estadistico tiene intervalo de confianza; la proyeccion de
+    # Outputs trae escenarios P10/P90 y no lo tiene (null).
+    nivel_confianza: Optional[float]
     generado_en: datetime
     metodo: str
     puntos: list[PrediccionPuntoDTO]
+    # "outputs": proyeccion del modelo de largo plazo interpolada a diario;
+    # "holt_winters": respaldo estadistico.
+    origen: str = "holt_winters"

@@ -28,9 +28,11 @@ from tests.fakes import (
     ForecastingPersistencia,
     MedicionRepositoryEnMemoria,
     MetadatosRepositoryEnMemoria,
+    ProyeccionSendaRepositoryEnMemoria,
     caudal,
     crear_embalse,
     crear_medicion,
+    crear_proyeccion_publicada,
 )
 
 FIN = date(2026, 9, 22)
@@ -224,7 +226,7 @@ class TestListado:
 
 
 class TestPrediccion:
-    @pytest.mark.parametrize("horizonte", [30, 60, 90])
+    @pytest.mark.parametrize("horizonte", [30, 90, 180, 360])  # 1, 3, 6 y 12 meses
     def test_devuelve_tantos_puntos_como_el_horizonte(self, cliente, horizonte):
         respuesta = cliente.get("/api/v1/embalses/AAA/prediccion", params={"horizonte": horizonte})
         assert respuesta.status_code == 200
@@ -234,14 +236,34 @@ class TestPrediccion:
         assert cuerpo["metodo"] == "Persistencia de prueba"
         assert cuerpo["puntos"][0]["fecha"] == (FIN + timedelta(days=1)).isoformat()
 
+    def test_la_forma_del_json_incluye_origen_y_confianza(self, cliente):
+        cuerpo = cliente.get("/api/v1/embalses/AAA/prediccion").json()
+        assert set(cuerpo) == {
+            "embalse_id", "horizonte_dias", "nivel_confianza", "generado_en", "metodo", "puntos", "origen",
+        }
+        assert cuerpo["origen"] == "holt_winters" and cuerpo["nivel_confianza"] == 0.95
+
+    def test_con_proyeccion_de_outputs_el_pronostico_diario_la_usa_y_no_tiene_ic(self, cliente, datos):
+        embalses, mediciones = datos
+        caso = GenerarPrediccionUseCase(
+            EmbalseRepositoryEnMemoria(embalses),
+            MedicionRepositoryEnMemoria(mediciones),
+            ForecastingPersistencia(),
+            ProyeccionSendaRepositoryEnMemoria(crear_proyeccion_publicada("AAA", inicio=date(2026, 10, 1))),
+        )
+        app.dependency_overrides[dep.obtener_generar_prediccion_use_case] = lambda: caso
+        cuerpo = cliente.get("/api/v1/embalses/AAA/prediccion", params={"horizonte": 90}).json()
+        assert cuerpo["origen"] == "outputs" and cuerpo["nivel_confianza"] is None
+        assert len(cuerpo["puntos"]) == 90 and "interpolación diaria" in cuerpo["metodo"]
+
     def test_por_defecto_proyecta_30_dias(self, cliente):
         assert len(cliente.get("/api/v1/embalses/AAA/prediccion").json()["puntos"]) == 30
 
-    @pytest.mark.parametrize("horizonte", [0, 15, 45, 365])
+    @pytest.mark.parametrize("horizonte", [0, 15, 45, 60, 365])
     def test_un_horizonte_no_permitido_da_422(self, cliente, horizonte):
         respuesta = cliente.get("/api/v1/embalses/AAA/prediccion", params={"horizonte": horizonte})
         assert respuesta.status_code == 422
-        assert "30, 60 o 90" in respuesta.json()["detail"]
+        assert "30, 90, 180 o 360" in respuesta.json()["detail"]
 
     def test_un_horizonte_no_numerico_da_422(self, cliente):
         assert cliente.get("/api/v1/embalses/AAA/prediccion", params={"horizonte": "x"}).status_code == 422
@@ -254,16 +276,17 @@ class TestPrediccion:
         assert respuesta.status_code == 422
         assert "30" in respuesta.json()["detalle"] and "20" in respuesta.json()["detalle"]
 
-    def test_con_el_modelo_real_el_intervalo_es_coherente_y_esta_acotado(self, datos):
+    @pytest.mark.parametrize("horizonte", [30, 90, 180, 360])
+    def test_con_el_modelo_real_el_intervalo_es_coherente_y_esta_acotado(self, datos, horizonte):
         embalses, mediciones = datos
         repo_e, repo_m = EmbalseRepositoryEnMemoria(embalses), MedicionRepositoryEnMemoria(mediciones)
         caso = GenerarPrediccionUseCase(repo_e, repo_m, HoltWintersForecastingService())
         app.dependency_overrides[dep.obtener_generar_prediccion_use_case] = lambda: caso
         try:
-            puntos = TestClient(app).get("/api/v1/embalses/AAA/prediccion", params={"horizonte": 60}).json()["puntos"]
+            puntos = TestClient(app).get("/api/v1/embalses/AAA/prediccion", params={"horizonte": horizonte}).json()["puntos"]
         finally:
             app.dependency_overrides.clear()
-        assert len(puntos) == 60
+        assert len(puntos) == horizonte
         for p in puntos:
             assert 0 <= p["limite_inferior"] <= p["valor_esperado"] <= p["limite_superior"] <= 100
 
@@ -314,28 +337,49 @@ class TestSendaVolumen:
         assert len(cuerpo["proyeccion"]) == 12
         assert len(cuerpo["validacion"]) == 2
 
-    @pytest.mark.parametrize("meses", [6, 12, 18])
+    @pytest.mark.parametrize("meses", [1, 3, 6, 12])
     def test_horizontes_permitidos(self, cliente, meses):
         respuesta = cliente.get("/api/v1/senda-volumen", params={"embalse": "AAA", "horizonte_meses": meses})
         assert respuesta.status_code == 200
         assert len(respuesta.json()["proyeccion"]) == meses
 
-    @pytest.mark.parametrize("meses", [0, 3, 24])
+    @pytest.mark.parametrize("meses", [0, 2, 18, 24])
     def test_horizontes_no_permitidos_dan_422(self, cliente, meses):
         respuesta = cliente.get("/api/v1/senda-volumen", params={"horizonte_meses": meses})
         assert respuesta.status_code == 422
-        assert "6, 12 o 18" in respuesta.json()["detail"]
+        assert "1, 3, 6 o 12" in respuesta.json()["detail"]
 
     def test_la_forma_del_json_incluye_todo_lo_que_consume_el_frontend(self, cliente):
         cuerpo = cliente.get("/api/v1/senda-volumen", params={"embalse": "AAA"}).json()
         assert set(cuerpo) == {
             "embalse_id", "nombre", "metodo", "generado_en", "ultimo_observado",
             "minimo_proyectado", "historico", "proyeccion", "validacion",
+            "origen_proyeccion", "horizonte_efectivo_meses",
         }
         assert set(cuerpo["ultimo_observado"]) == {"mes", "pct_volumen_util"}
         assert set(cuerpo["proyeccion"][0]) == {"mes", "valor_esperado", "limite_inferior", "limite_superior"}
         assert set(cuerpo["validacion"][0]) == {"modelo", "mae", "r2"}
         assert cuerpo["ultimo_observado"]["mes"] == FIN.strftime("%Y-%m")
+
+    def test_con_proyeccion_de_outputs_lo_informa_y_limita_el_horizonte_a_lo_publicado(self, cliente, datos):
+        embalses, mediciones = datos
+        caso = ObtenerSendaVolumenUseCase(
+            EmbalseRepositoryEnMemoria(embalses),
+            MedicionRepositoryEnMemoria(mediciones),
+            ForecastingPersistencia(),
+            ProyeccionSendaRepositoryEnMemoria(crear_proyeccion_publicada("AAA", meses=6)),
+        )
+        app.dependency_overrides[dep.obtener_senda_volumen_use_case] = lambda: caso
+        cuerpo = cliente.get("/api/v1/senda-volumen", params={"embalse": "AAA", "horizonte_meses": 12}).json()
+        assert cuerpo["origen_proyeccion"] == "outputs"
+        assert cuerpo["horizonte_efectivo_meses"] == 6 and len(cuerpo["proyeccion"]) == 6
+        assert cuerpo["validacion"] == []
+        assert cuerpo["metodo"] == "Modelo de prueba"
+
+    def test_sin_proyeccion_de_outputs_informa_el_respaldo(self, cliente):
+        cuerpo = cliente.get("/api/v1/senda-volumen", params={"embalse": "AAA"}).json()
+        assert cuerpo["origen_proyeccion"] == "holt_winters"
+        assert cuerpo["horizonte_efectivo_meses"] == 12
 
     def test_embalse_inexistente_da_404(self, cliente):
         assert cliente.get("/api/v1/senda-volumen", params={"embalse": "NOPE"}).status_code == 404

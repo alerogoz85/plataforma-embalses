@@ -151,18 +151,60 @@ describe("MainChart", () => {
     expect(screen.getByRole("heading", { name: /Guavio — %V\. útil vs\. aportes/ })).toBeInTheDocument();
   });
 
+  describe("proyeccion del modelo de Outputs", () => {
+    const outputs = () =>
+      crearPrediccion(3, {
+        origen: "outputs",
+        nivel_confianza: null,
+        metodo: "Prophet + XGBoost de prueba · interpolación diaria",
+      });
+
+    it("la subtitula como escenarios P10-P90 y no como intervalo de confianza", async () => {
+      rutasMainChart({ prediccion: outputs });
+      montarChart();
+      expect(await screen.findByText("Prophet + XGBoost de prueba · interpolación diaria · escenarios P10–P90")).toBeInTheDocument();
+      expect(screen.queryByText(/IC \d+%/)).not.toBeInTheDocument();
+    });
+
+    it("nombra la banda como escenarios y no como intervalo de confianza 95%", async () => {
+      rutasMainChart({ prediccion: outputs });
+      montarChart();
+      await screen.findByTestId("composed-chart");
+      await waitFor(() =>
+        expect(screen.getAllByTestId("area").map((a) => a.dataset.name)).toContain("Escenarios P10–P90 (ENSO)"),
+      );
+      expect(screen.getAllByTestId("area").map((a) => a.dataset.name)).not.toContain("Intervalo de confianza 95%");
+    });
+
+    it("con el respaldo Holt-Winters mantiene el intervalo de confianza 95%", async () => {
+      rutasMainChart();
+      montarChart();
+      await screen.findByTestId("composed-chart");
+      expect(screen.getAllByTestId("area").map((a) => a.dataset.name)).toContain("Intervalo de confianza 95%");
+    });
+
+    it("ofrece los horizontes 1, 3, 6 y 12 meses", async () => {
+      rutasMainChart();
+      montarChart();
+      await screen.findByTestId("composed-chart");
+      for (const h of ["1m", "3m", "6m", "12m"]) expect(screen.getByRole("button", { name: h })).toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: "12m" }));
+      await waitFor(() => expect(screen.getByRole("button", { name: "12m" })).toHaveStyle({ backgroundColor: "var(--color-marca)" }));
+    });
+  });
+
   it("cambiar el horizonte vuelve a pedir la prediccion y marca el boton", async () => {
     const { llamadas } = rutasMainChart();
     montarChart();
     await screen.findByTestId("composed-chart");
 
-    await userEvent.click(screen.getByRole("button", { name: "60d" }));
+    await userEvent.click(screen.getByRole("button", { name: "3m" }));
 
     await waitFor(() =>
-      expect(llamadas.some((u) => u.pathname.endsWith("/prediccion") && u.searchParams.get("horizonte") === "60")).toBe(true),
+      expect(llamadas.some((u) => u.pathname.endsWith("/prediccion") && u.searchParams.get("horizonte") === "90")).toBe(true),
     );
-    expect(screen.getByRole("button", { name: "60d" })).toHaveStyle({ backgroundColor: "var(--color-marca)" });
-    expect(screen.getByRole("button", { name: "30d" })).not.toHaveStyle({ backgroundColor: "var(--color-marca)" });
+    expect(screen.getByRole("button", { name: "3m" })).toHaveStyle({ backgroundColor: "var(--color-marca)" });
+    expect(screen.getByRole("button", { name: "1m" })).not.toHaveStyle({ backgroundColor: "var(--color-marca)" });
   });
 
   it("si falla la prediccion igual muestra la serie historica", async () => {
@@ -184,6 +226,6 @@ describe("MainChart", () => {
     montarChart();
     await screen.findByTestId("composed-chart");
     await userEvent.click(screen.getByRole("button", { name: "Ayuda: Horizonte del pronóstico" }));
-    expect(within(screen.getByRole("note")).getByText(/30, 60 o 90/)).toBeInTheDocument();
+    expect(within(screen.getByRole("note")).getByText(/1, 3, 6 o 12/)).toBeInTheDocument();
   });
 });

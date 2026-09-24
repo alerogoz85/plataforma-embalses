@@ -44,3 +44,9 @@ class SendaVolumenDTO(BaseModel):
     historico: list[PuntoMensualDTO]
     proyeccion: list[PuntoProyeccionMensualDTO]
     validacion: list[MetricaValidacionDTO]
+    # "outputs": proyeccion del modelo de largo plazo (limites = escenarios P10/P90);
+    # "holt_winters": respaldo estadistico (limites = intervalo de confianza 95%).
+    origen_proyeccion: str = "holt_winters"
+    # Meses efectivamente proyectados: puede ser menor que el horizonte pedido si la
+    # corrida de Outputs publica menos meses.
+    horizonte_efectivo_meses: int = 0

@@ -71,14 +71,18 @@ export interface PrediccionPunto {
 export interface Prediccion {
   embalse_id: string;
   horizonte_dias: number;
-  nivel_confianza: number;
+  /** null cuando la proyección es la de Outputs: sus límites son escenarios P10/P90, no un IC. */
+  nivel_confianza: number | null;
   generado_en: string;
   metodo: string;
   puntos: PrediccionPunto[];
+  /** "outputs": modelo de largo plazo interpolado a diario; "holt_winters": respaldo estadístico. */
+  origen: OrigenProyeccion;
 }
 
 export const REGIONES: string[] = ["Antioquia", "Caldas", "Caribe", "Centro", "Oriente", "Valle"];
-export const HORIZONTES_PREDICCION = [30, 60, 90] as const;
+// 1, 3, 6 y 12 meses, con el mes comercial de 30 dias (lo que espera la API).
+export const HORIZONTES_PREDICCION = [30, 90, 180, 360] as const;
 export type HorizontePrediccion = (typeof HORIZONTES_PREDICCION)[number];
 
 export interface PuntoMensual {
@@ -109,10 +113,16 @@ export interface SendaVolumen {
   historico: PuntoMensual[];
   proyeccion: PuntoProyeccionMensual[];
   validacion: MetricaValidacion[];
+  /** "outputs": modelo de largo plazo (limites = escenarios P10/P90); "holt_winters": respaldo estadístico (IC 95%). */
+  origen_proyeccion: OrigenProyeccion;
+  /** Meses proyectados de verdad: una corrida de Outputs puede publicar menos de los pedidos. */
+  horizonte_efectivo_meses: number;
 }
 
+export type OrigenProyeccion = "outputs" | "holt_winters";
+
 export const ID_TOTAL_NACIONAL = "TOTAL";
-export const HORIZONTES_SENDA_VOLUMEN = [6, 12, 18] as const;
+export const HORIZONTES_SENDA_VOLUMEN = [1, 3, 6, 12] as const;
 export type HorizonteSendaVolumen = (typeof HORIZONTES_SENDA_VOLUMEN)[number];
 
 export interface FuenteDatos {

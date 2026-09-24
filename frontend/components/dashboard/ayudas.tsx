@@ -109,9 +109,16 @@ export const AYUDAS = {
           aportes como % de la media histórica (puede superar 100%).
         </p>
         <p>
-          La línea punteada es el pronóstico a 30, 60 o 90 días con Holt-Winters (tendencia
-          amortiguada). La banda sombreada es el intervalo de confianza del 95%, obtenido por
-          simulación Monte Carlo: el valor real debería caer dentro de ella el 95% de las veces.
+          La línea punteada es la proyección a 1, 3, 6 o 12 meses. Es la del modelo de largo plazo
+          (Prophet + XGBoost con escenarios climáticos ENSO), la misma de la senda, con sus valores
+          mensuales unidos por interpolación lineal (cada valor es el promedio de su mes, situado
+          a mitad de mes); la banda son los escenarios P10–P90, angosta al inicio. Nace en el
+          último dato y llega hasta donde publica el modelo (unos 12 meses).
+        </p>
+        <p>
+          Si el embalse no tiene proyección publicada (Agregado Bogotá), se usa Holt-Winters
+          (tendencia amortiguada, solo ve la serie histórica); su banda es un intervalo de
+          confianza del 95% por simulación Monte Carlo.
         </p>
       </>
     ),
@@ -132,13 +139,15 @@ export const AYUDAS = {
       <>
         <p>
           Trayectoria mensual (promedio de los valores diarios de cada mes) del %V. útil observado y
-          su proyección a 6, 12 o 18 meses. &quot;Total nacional&quot; es el agregado ponderado por
+          su proyección a 1, 3, 6 o 12 meses. &quot;Total nacional&quot; es el agregado ponderado por
           energía, igual al oficial de XM.
         </p>
         <p>
-          Es un modelo estadístico (Holt-Winters con estacionalidad anual de 12 meses) que solo ve la
-          serie histórica: no incorpora clima (El Niño/La Niña), demanda ni operación futura.
-          Léela como la forma estacional esperada, no como un pronóstico oficial.
+          La proyección es la del modelo de largo plazo (Prophet + XGBoost) que incorpora los
+          escenarios climáticos ENSO (El Niño/La Niña) simulados por Monte Carlo; cubre 12 meses. La
+          banda muestra los escenarios P10–P90. Para un embalse sin proyección publicada (Agregado
+          Bogotá) se usa un respaldo estadístico, Holt-Winters de 12 periodos, que solo ve la serie
+          histórica y no incorpora clima: léelo como la forma estacional esperada.
         </p>
       </>
     ),
@@ -161,8 +170,8 @@ export const AYUDAS = {
     contenido: (
       <>
         <p>
-          Backtest honesto: para cada uno de los últimos 6 meses se entrena solo con datos previos y
-          se predice ese mes, sin usar información futura.
+          Solo aplica al respaldo Holt-Winters. Backtest honesto: para cada uno de los últimos 6
+          meses se entrena solo con datos previos y se predice ese mes, sin usar información futura.
         </p>
         <p>
           MAE: error absoluto medio en puntos porcentuales (menor es mejor). R²: proporción de la
@@ -186,8 +195,9 @@ export const AYUDAS = {
     titulo: "Horizonte del pronóstico",
     contenido: (
       <p>
-        Días hacia adelante que proyecta el modelo desde el último dato: 30, 60 o 90. A mayor
-        horizonte, más se ensancha la banda de confianza porque crece la incertidumbre.
+        Meses hacia adelante que proyecta el modelo desde el último dato: 1, 3, 6 o 12 (meses de
+        30 días). A mayor horizonte, más se ensancha la banda de confianza porque crece la
+        incertidumbre y, con la tendencia amortiguada, la curva se aplana.
       </p>
     ),
   },
@@ -205,8 +215,9 @@ export const AYUDAS = {
     titulo: "Horizonte de la senda",
     contenido: (
       <p>
-        Meses hacia adelante que proyecta la senda: 6, 12 o 18. La proyección arranca en el mes
-        siguiente al último mes observado.
+        Meses hacia adelante que proyecta la senda: 1, 3, 6 o 12. La proyección arranca en el mes
+        siguiente al último mes observado. Si la corrida del modelo de largo plazo publica menos
+        meses de los pedidos, se muestran los publicados y se avisa.
       </p>
     ),
   },

@@ -148,16 +148,16 @@ describe("SendaVolumenPanel", () => {
     it("cambiar el horizonte consulta con esos meses y marca el boton", async () => {
       const { llamadas } = montar();
       await esperarDatos();
-      await userEvent.click(screen.getByRole("button", { name: "18m" }));
-      await waitFor(() => expect(llamadas.at(-1)!.searchParams.get("horizonte_meses")).toBe("18"));
-      expect(screen.getByRole("button", { name: "18m" })).toHaveStyle({ backgroundColor: "var(--color-marca)" });
+      await userEvent.click(screen.getByRole("button", { name: "3m" }));
+      await waitFor(() => expect(llamadas.at(-1)!.searchParams.get("horizonte_meses")).toBe("3"));
+      expect(screen.getByRole("button", { name: "3m" })).toHaveStyle({ backgroundColor: "var(--color-marca)" });
       expect(screen.getByRole("button", { name: "12m" })).not.toHaveStyle({ backgroundColor: "var(--color-marca)" });
     });
 
-    it("ofrece exactamente los horizontes 6, 12 y 18 meses", async () => {
+    it("ofrece exactamente los horizontes 1, 3, 6 y 12 meses", async () => {
       montar();
       await esperarDatos();
-      for (const h of ["6m", "12m", "18m"]) expect(screen.getByRole("button", { name: h })).toBeInTheDocument();
+      for (const h of ["1m", "3m", "6m", "12m"]) expect(screen.getByRole("button", { name: h })).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "24m" })).not.toBeInTheDocument();
     });
   });
@@ -175,6 +175,56 @@ describe("SendaVolumenPanel", () => {
       render(<SendaVolumenPanel embalses={EMBALSES_EJEMPLO} />);
       expect(await screen.findByText(/No fue posible cargar la senda/)).toHaveTextContent("requiere al menos 9 registros");
       expect(screen.queryByTestId("composed-chart")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("proyeccion del modelo de Outputs", () => {
+    const outputs = () =>
+      crearSenda({
+        metodo: "Prophet + XGBoost con escenarios ENSO de prueba",
+        origen_proyeccion: "outputs",
+        horizonte_efectivo_meses: 12,
+        validacion: [],
+      });
+
+    it("nombra la banda como escenarios P10-P90 y no como intervalo de confianza", async () => {
+      montar(outputs());
+      await esperarDatos();
+      const nombres = screen.getAllByTestId("area").map((a) => a.dataset.name);
+      expect(nombres).toContain("Escenarios P10–P90 (ENSO)");
+      expect(nombres).not.toContain("Intervalo de confianza 95%");
+    });
+
+    it("con el respaldo Holt-Winters mantiene el intervalo de confianza 95%", async () => {
+      montar();
+      await esperarDatos();
+      expect(screen.getAllByTestId("area").map((a) => a.dataset.name)).toContain("Intervalo de confianza 95%");
+    });
+
+    it("muestra el metodo publicado y una nota en lugar de la tabla walk-forward", async () => {
+      montar(outputs());
+      expect(await screen.findByText(/Prophet \+ XGBoost con escenarios ENSO de prueba/)).toBeInTheDocument();
+      expect(screen.getByText(/Sobre esta proyección/)).toBeInTheDocument();
+      expect(screen.getByText(/no incluyen validación fuera de muestra/)).toBeInTheDocument();
+      expect(screen.queryByRole("table")).not.toBeInTheDocument();
+      expect(screen.queryByText(/Nota de honestidad/)).not.toBeInTheDocument();
+    });
+
+    it("avisa cuando se piden mas meses de los que publica la corrida del modelo", async () => {
+      montar({ ...outputs(), horizonte_efectivo_meses: 6 });
+      expect(await screen.findByText(/El modelo publica 6 meses de proyección: se muestran 6 aunque se pidieron 12/)).toBeInTheDocument();
+    });
+
+    it("no avisa cuando la corrida cubre lo pedido", async () => {
+      montar(outputs());
+      await esperarDatos();
+      expect(screen.queryByText(/El modelo publica/)).not.toBeInTheDocument();
+    });
+
+    it("el respaldo no muestra el aviso de horizonte cuando cubre lo pedido", async () => {
+      montar(crearSenda({ horizonte_efectivo_meses: 12 }));
+      await esperarDatos();
+      expect(screen.queryByText(/El modelo publica/)).not.toBeInTheDocument();
     });
   });
 });

@@ -4,8 +4,8 @@
 
 Plataforma de monitoreo hidrológico con **datos reales y públicos de XM/SIMEM**
 (Colombia): volumen y energía útiles, aportes, descargas, pronóstico diario de
-%V. útil a 30/60/90 días y una senda mensual de largo plazo (6/12/18 meses) con
-validación walk-forward. Backend con arquitectura hexagonal y dashboard Next.js
+%V. útil y una senda mensual de largo plazo, ambos a 1, 3, 6 y 12 meses, con
+la proyección del modelo de largo plazo (Prophet + XGBoost, escenarios ENSO). Backend con arquitectura hexagonal y dashboard Next.js
 con ayuda contextual (ⓘ) en cada encabezado técnico.
 
 > **Los datos son reales**, descargados de SIMEM y de la API de XM con un
@@ -89,7 +89,7 @@ C4Container
         Container(frontend, "Dashboard Web", "Next.js 16 + React 19 + Tailwind + Recharts", "KPIs, gráfico temporal con proyección ML, distribución regional, senda de largo plazo con validación, tabla interactiva, ayuda contextual y procedencia de los datos")
         Container(api, "API REST", "FastAPI (Python 3.12)", "Expone los casos de uso vía /api/v1/*; solo lee de la base local")
         Container(sync, "Sincronizador", "CLI Python (infrastructure/ingesta)", "Descarga, normaliza y guarda datos (completo o incremental)")
-        ContainerDb(db, "DuckDB", "Archivo embebido .duckdb", "Embalses, mediciones diarias y procedencia de los datos")
+        ContainerDb(db, "DuckDB", "Archivo embebido .duckdb", "Embalses, mediciones diarias, proyección de largo plazo y procedencia de los datos")
     }
 
     Rel(analista, frontend, "Usa", "HTTPS")
@@ -109,9 +109,9 @@ C4Component
         Component(routers, "Routers", "FastAPI APIRouter", "embalses, regiones, senda-volumen, fuente-datos")
         Component(usecases, "Casos de uso", "application/use_cases", "ObtenerResumenNacional, ListarEmbalses, ObtenerDetalleEmbalse, GenerarPrediccion, ObtenerSendaVolumen, ObtenerFuenteDatos, SincronizarDatos")
         Component(domainsvc, "Servicios de dominio", "domain/services", "CalculoHidricoService, AutonomiaService — reglas puras")
-        Component(ports, "Puertos", "domain/repositories, application/ports/output", "EmbalseRepository, MedicionRepository, MetadatosRepository, ForecastingPort, FuenteMedicionesPort")
+        Component(ports, "Puertos", "domain/repositories, application/ports/output", "EmbalseRepository, MedicionRepository, MetadatosRepository, ProyeccionSendaRepository, ForecastingPort, FuenteMedicionesPort")
         Component(duckdbrepo, "Adaptadores DuckDB", "infrastructure/persistence", "Implementan los puertos de repositorio")
-        Component(mlservice, "Adaptador Holt-Winters", "infrastructure/ml", "ForecastingPort con statsmodels; instancia diaria (sin estacionalidad) y mensual (estacional, 12 periodos)")
+        Component(mlservice, "Adaptador Holt-Winters", "infrastructure/ml", "ForecastingPort con statsmodels; respaldo cuando no hay proyección de Outputs: instancia diaria (sin estacionalidad) y mensual (estacional, 12 periodos)")
         Component(fuente, "Adaptador SIMEM/XM", "infrastructure/fuentes", "FuenteMedicionesPort: clientes HTTP + normalización pura")
         Component(sintetica, "Adaptador sintético", "infrastructure/data_generation", "FuenteMedicionesPort alternativa para demos sin red")
     }
@@ -134,6 +134,7 @@ C4Component
 | SIMEM | `02B289` | Aportes por serie hidrológica de río (m³/s) y su media histórica |
 | XM | `VoluUtilDiarEner` | Energía útil almacenada por embalse (kWh → GWh) |
 | XM | `CapaUtilDiarEner` | Capacidad útil en energía por embalse (kWh → GWh); es el peso de agregación |
+| Modelo de largo plazo | `proyeccion_montecarlo_enso <fecha>.xlsx` (Outputs) | Proyección a 12 meses por embalse y `TOTAL`: P10/P50/P90 (Prophet + XGBoost con escenarios ENSO); se importa a mano, no viene de XM |
 
 - **Embalses:** los 23 embalses individuales que publica XM más el **agregado
   Bogotá** (XM lo publica como una sola entidad y entra al total nacional; su
@@ -185,24 +186,45 @@ y
   (p. ej. Punchiná, que recibe agua turbinada aguas arriba) puede ser
   engañosamente baja. Es `None` si falta algún dato o si los aportes superan las
   salidas.
-- **Pronóstico diario (30/60/90 días)**: Holt-Winters con tendencia
-  amortiguada (`statsmodels`), sin estacionalidad; intervalo de confianza al
-  95% por simulación Monte Carlo (300 trayectorias).
-- **Senda mensual**: la serie diaria se agrega a promedios mensuales y se
-  proyecta a 6, 12 o 18 meses con Holt-Winters **estacional** (12 periodos, con
-  fallback automático a no estacional si hay menos de 24 meses). Se valida con
-  un backtest walk-forward de los últimos 6 meses (MAE y R²) contra una línea
-  base de persistencia. Semáforo del mínimo proyectado: rojo <55%, ámbar <65%,
-  verde ≥65%.
+- **Pronóstico diario (1, 3, 6 y 12 meses = 30, 90, 180 y 360 días)**: es la
+  **misma proyección de Outputs que la senda**, para que ambos tableros cuenten la
+  misma historia: sus valores mensuales (promedio del mes, situado a mitad de mes)
+  se unen por **interpolación lineal** desde el último dato observado
+  ([`ProyeccionDiariaService`](backend/domain/services/proyeccion_diaria_service.py)).
+  La banda son los escenarios P10–P90, sin incertidumbre en el primer día, y la curva
+  llega hasta donde publica el modelo (~358 días: con 12 meses termina a mitad de
+  septiembre de 2027). Para un embalse sin proyección publicada (Agregado Bogotá), o
+  con una ya vencida, se usa el respaldo Holt-Winters con tendencia amortiguada
+  (`statsmodels`), sin estacionalidad, con intervalo de confianza al 95% por
+  simulación Monte Carlo (300 trayectorias). La respuesta indica cuál se usó
+  (`origen`; `nivel_confianza` es `null` con Outputs).
+- **Senda mensual**: el histórico es la serie diaria agregada a promedios
+  mensuales. La **proyección es la del modelo de largo plazo de
+  `1. Modelo niveles de embalses` (Prophet + XGBoost con escenarios climáticos
+  ENSO simulados por Monte Carlo)**: valor central = P50 y banda = escenarios
+  P10–P90, hasta 12 meses (si una corrida publicara menos de los pedidos, se muestran
+  los publicados y se avisa). Se importa
+  desde `Datos/Outputs/proyeccion_montecarlo_enso <fecha>.xlsx` a la tabla
+  `proyecciones_senda` (ver «Proyección de largo plazo» más abajo). Para un embalse
+  sin proyección publicada (Agregado Bogotá) se usa un **respaldo Holt-Winters
+  estacional** (12 periodos, con fallback a no estacional con menos de 24 meses),
+  que sí se valida con un backtest walk-forward de los últimos 6 meses (MAE y R²)
+  contra persistencia. La respuesta indica cuál se usó (`origen_proyeccion`).
+  Semáforo del mínimo proyectado: rojo <55%, ámbar <65%, verde ≥65%.
 
 ## Alcance y límites
 
-- Los **pronósticos son estadísticos y solo ven la serie histórica**: no
-  incorporan clima (El Niño/La Niña), demanda, precios ni operación futura, a
-  diferencia de modelos oficiales que usan variables exógenas. Léelos como la
-  forma estacional esperada, no como una predicción puntual. La tabla de
-  validación muestra cuánto supera el modelo a la persistencia y puede ser
-  peor en algunos embalses.
+- El **pronóstico diario** es la proyección de Outputs interpolada linealmente entre
+  valores mensuales: la forma dentro de cada mes es una suavización, no un
+  resultado del modelo. Solo Agregado Bogotá usa el respaldo estadístico
+  (Holt-Winters), que solo ve la serie histórica: sin clima, demanda ni operación
+  futura, y que no debe leerse como una predicción puntual.
+- La **senda de largo plazo** usa la proyección del modelo Prophet + XGBoost con
+  escenarios ENSO (importada de sus Outputs). Cubre 12 meses, su banda son
+  escenarios P10–P90 (no un intervalo de confianza; en los primeros meses puede
+  ser casi nula) y los archivos entregados no traen validación fuera de muestra.
+  Agregado Bogotá no tiene proyección publicada y usa un respaldo Holt-Winters
+  (solo serie histórica, con su tabla de validación).
 - XM **revisa datos recientes**: cada sincronización incremental vuelve a
   descargar los últimos 7 días para recoger esas correcciones.
 - Hay huecos de energía publicada para algunos embalses y periodos (p.
@@ -225,7 +247,7 @@ plataforma-embalses/
 │   │   ├── persistence/          # DuckDB (schema.sql, conexión thread-safe, repositorios)
 │   │   ├── fuentes/              # Clientes HTTP (SIMEM, XM) y adaptador SimemXmFuenteMediciones
 │   │   ├── data_generation/      # Fuente sintética opcional (catálogo + generador)
-│   │   ├── ingesta/              # CLI de sincronización
+│   │   ├── ingesta/              # CLI de sincronización e importación de la proyección de Outputs
 │   │   └── ml/                   # Adaptador de pronóstico Holt-Winters
 │   ├── presentation/api/         # FastAPI: main, dependencies (composition root), routers, arranque_vercel
 │   ├── index.py, vercel.json     # Punto de entrada y configuración del despliegue en Vercel
@@ -286,6 +308,21 @@ dashboard marca como no reales).
 > Una base creada con la versión anterior (datos sintéticos con cota y
 > generación) no es compatible: la API se niega a abrirla y pide ejecutar la
 > carga con `--reiniciar`, en lugar de borrarla sin avisar.
+
+#### Proyección de largo plazo (Outputs)
+
+La senda proyecta con la salida del modelo de largo plazo. Cada vez que el modelo
+genere una corrida nueva, se importa con (con la API detenida; necesita
+`openpyxl`, incluido en `requirements-dev.txt`):
+
+```bash
+python -m infrastructure.ingesta.importar_proyeccion \
+  --xlsx "../../1. Modelo niveles de embalses/Datos/Outputs/proyeccion_montecarlo_enso 20260923.xlsx"
+```
+
+Reemplaza la proyección completa, valida el archivo (columnas, fechas, fracciones
+0–1, `P10 ≤ P50 ≤ P90`, sin meses repetidos, embalses existentes) y no se borra con
+`--reiniciar`. Luego hay que volver a publicar la API para que Vercel la incluya.
 
 Levanta la API:
 
@@ -369,6 +406,9 @@ scripts/desplegar-vercel.sh          # copia data/hidrologia.duckdb, empaqueta y
   python -m infrastructure.ingesta.sincronizar --fuente simem    # con la API local detenida
   cd .. && scripts/desplegar-vercel.sh
   ```
+
+  La proyección de largo plazo no viene de XM: se importa aparte (ver «Proyección
+  de largo plazo») y viaja dentro de la misma base.
 - **Arranque en frío.** La primera consulta tras un rato de inactividad tarda unos
   segundos más (importar statsmodels y copiar la base). El paquete pesa ~310 MB
   descomprimidos y cupo en el límite del plan; si crece (dependencias nuevas)
@@ -385,10 +425,10 @@ Prefijo base: `/api/v1`
 | GET | `/embalses/resumen` | KPIs nacionales agregados + corte por región + listado de embalses. Filtros: `region` (repetible), `embalse` (repetible), `fecha` |
 | GET | `/embalses` | Listado de embalses con ficha resumida. Filtros: `region`, `fecha_inicio`, `fecha_fin` (incluye serie histórica si se pasan fechas) |
 | GET | `/embalses/{id}` | Último dato + serie histórica de un embalse (id = código XM, p. ej. `GUAVIO`) |
-| GET | `/embalses/{id}/prediccion` | Pronóstico de %V. útil. Query: `horizonte` = 30, 60 o 90 |
+| GET | `/embalses/{id}/prediccion` | Pronóstico diario de %V. útil: la proyección de Outputs interpolada (`origen = outputs`, banda P10–P90, `nivel_confianza = null`) o el respaldo Holt-Winters (`holt_winters`). Query: `horizonte` en días = 30, 90, 180 o 360 (1, 3, 6 o 12 meses) |
 | GET | `/embalses/{id}/reporte` | Descarga CSV o JSON de la serie histórica. Query: `formato`, `fecha_inicio`, `fecha_fin` |
 | GET | `/regiones` | Agregado por región hidrológica |
-| GET | `/senda-volumen` | Senda mensual observada + proyectada de %V. útil, con validación walk-forward (MAE/R² del modelo vs. persistencia). Query: `embalse` (id o `TOTAL`), `horizonte_meses` = 6, 12 o 18 |
+| GET | `/senda-volumen` | Senda mensual observada + proyectada de %V. útil. La proyección es la del modelo de Outputs (`origen_proyeccion = outputs`, banda P10–P90, hasta 12 meses, sin validación) o, sin ella, el respaldo Holt-Winters con validación walk-forward (`holt_winters`). Incluye `horizonte_efectivo_meses`. Query: `embalse` (id o `TOTAL`), `horizonte_meses` = 1, 3, 6 o 12 |
 | GET | `/fuente-datos` | Procedencia de los datos (fuente, si son reales, fecha de corte, última actualización) |
 | GET | `/salud` | Health check |
 
@@ -431,9 +471,9 @@ gh pr create --fill                # abrir el pull request
 gh pr merge --squash --delete-branch   # cuando los checks estén en verde
 ```
 
-### Backend — 175 pruebas (pytest)
+### Backend — 236 pruebas (pytest)
 
-175 pruebas con pytest, sin red ni base de datos externa (repositorios,
+236 pruebas con pytest, sin red ni base de datos externa (repositorios,
 fuente y pronóstico en memoria —ver [`tests/fakes.py`](backend/tests/fakes.py)—, y
 DuckDB sobre archivos temporales). Las pruebas HTTP usan `TestClient` de FastAPI
 (requiere `httpx`, incluido en `requirements-dev.txt`):
@@ -442,10 +482,12 @@ DuckDB sobre archivos temporales). Las pruebas HTTP usan `TestClient` de FastAPI
 |---|---|---|
 | `test_domain_calculos.py` | 28 | %V. útil con la capacidad del día, sin acotar en 100%, umbrales de riesgo, aportes % media, energía y peso, autonomía (incluye turbinada y datos faltantes), value objects |
 | `test_agregacion.py` | 15 | Agregación mensual; KPI y regiones ponderados por energía (no volumen); agregados en el total; energía no publicada; aportes como total/total |
-| `test_senda_volumen.py` | 20 | Senda por embalse y "Total nacional", horizontes, mínimo proyectado, errores de dominio, MAE/R² con valores calculados a mano, sin fuga de datos futuros |
+| `test_senda_volumen.py` | 34 | Senda por embalse y "Total nacional", horizontes, mínimo proyectado, errores de dominio, MAE/R² con valores calculados a mano, sin fuga de datos futuros; **proyección de Outputs**: la usa en lugar del modelo estadístico, limita el horizonte a lo publicado, sin walk-forward, respaldo cuando no hay proyección |
+| `test_proyeccion_diaria.py` | 18 | Interpolación lineal mensual→diaria (pasa por cada valor mensual, banda que nace sin incertidumbre, no extrapola, ignora anclas vencidas, acotado 0–100) y el pronóstico diario con Outputs: cuatro horizontes, coincide con la senda en las fechas mensuales, respaldo si no hay proyección o está vencida |
+| `test_proyeccion_outputs.py` | 18 | Importación de la proyección: conversión de fracciones a %, P10/P50/P90, validaciones del archivo (columnas, fechas, repetidos, bandas desordenadas, porcentajes ya multiplicados), lectura de un `.xlsx` real, repositorio DuckDB (orden, reemplazo, `--reiniciar` no la borra) |
 | `test_holt_winters_estacional.py` | 7 | Ciclo anual, fallback con <24 meses, pasos de fecha, acotamiento 0–100 |
 | `test_fuente_simem_xm.py` | 26 | Conversión de unidades (m³→Mm³, m³/día→m³/s, kWh→GWh), mapeo río→embalse, agregado Bogotá y `AGREGADO_SIN`, datos faltantes como `None`, imputación del peso, región desconocida, cliente XM en bloques de 30 días, errores de red |
-| `test_api_http.py` | 56 | Contrato HTTP sobre la app real con los casos de uso reales y repositorios en memoria: los 9 endpoints, códigos 404/405/422 y su `detalle`, filtros y validación de parámetros, `null` en datos no publicados, CSV/JSON descargable (celdas vacías, no ceros), la ruta `/resumen` frente a `/{id}`, forma del JSON de la senda, OpenAPI y CORS (origen permitido, otros rechazados, preflight solo GET) |
+| `test_api_http.py` | 67 | Contrato HTTP sobre la app real con los casos de uso reales y repositorios en memoria: los 9 endpoints, códigos 404/405/422 y su `detalle`, filtros y validación de parámetros, `null` en datos no publicados, CSV/JSON descargable (celdas vacías, no ceros), la ruta `/resumen` frente a `/{id}`, forma del JSON de la senda (origen de la proyección y horizonte efectivo), OpenAPI y CORS (origen permitido, otros rechazados, preflight solo GET) |
 | `test_arranque_vercel.py` | 4 | Copia de la base empaquetada a `/tmp` (no pisa copias existentes, error claro si falta) |
 | `test_sincronizacion_y_persistencia.py` | 19 | Sincronización completa/incremental/idempotente, procedencia, ida y vuelta en DuckDB con nulos, upsert, esquema heredado (rechazo y `--reiniciar`) |
 
@@ -461,7 +503,7 @@ repositorios en memoria; DuckDB se prueba aparte). La descarga real de SIMEM/XM
 se verificó manualmente (carga completa e incremental) y contra el agregado
 oficial de XM, pero no en las pruebas automáticas, que no usan red.
 
-### Frontend — 182 pruebas (Vitest + React Testing Library + jsdom)
+### Frontend — 192 pruebas (Vitest + React Testing Library + jsdom)
 
 Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 ([`tests/mocks/fetch.ts`](frontend/tests/mocks/fetch.ts)) con datos de ejemplo
@@ -477,8 +519,8 @@ Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 | `components/tarjetas.test.tsx` | 15 | KpiCard, RiskBadge y SistemaRiesgoCard (color del delta, niveles de riesgo, ayuda) |
 | `components/FiltersPanel.test.tsx` | 11 | Seis regiones (incl. Caldas), embalses según región, callbacks (`null`, no cadena vacía), botón «Restablecer filtros», límites de fechas, ayudas |
 | `components/EmbalsesTable.test.tsx` | 22 | Orden (asc/desc, texto, nulos), búsqueda, "—" por dato no publicado, cero real, insignia "Agregado", selección de fila, enlaces de reporte, esqueletos |
-| `components/graficos.test.tsx` | 19 | Regiones (orden, color por riesgo, eje sobre 100%) y gráfico principal (punto puente histórico→proyección, huecos `null`, series, horizonte, errores parciales) |
-| `components/SendaVolumenPanel.test.tsx` | 23 | Semáforo del mínimo proyectado en los umbrales exactos, datos del gráfico, tabla de validación, selectores, estados de carga y error |
+| `components/graficos.test.tsx` | 23 | Regiones (orden, color por riesgo, eje sobre 100%) y gráfico principal (punto puente histórico→proyección, huecos `null`, series, horizonte 1/3/6/12, errores parciales, banda y subtítulo según sea Outputs u Holt-Winters) |
+| `components/SendaVolumenPanel.test.tsx` | 29 | Semáforo del mínimo proyectado en los umbrales exactos, datos del gráfico, tabla de validación, selectores, estados de carga y error; proyección de Outputs (banda P10–P90, nota en lugar de la tabla, aviso si la corrida publica menos meses de los pedidos); horizontes 1/3/6/12 |
 | `components/ThemeToggle.test.tsx` | 6 | Preferencia guardada vs. del sistema, clase `dark`, sincronía entre botones |
 | `app/page.test.tsx` | 20 | Página completa con la API simulada: KPIs, procedencia real/no real, selección automática, rango de 180 días, **cambio de región sin dejar un embalse de otra región seleccionado**, «Todos los embalses» que se mantiene, restablecer filtros (región, embalse y fechas), error de API |
 | `app/ayudas.test.tsx` | 6 | Catálogo de ayudas (títulos únicos, sin textos obsoletos) y auditoría: todo encabezado, columna, filtro y tarjeta tiene su ⓘ y todos abren y cierran |
@@ -547,10 +589,18 @@ Las pruebas encontraron **tres defectos reales**, ya corregidos:
   [`DuckDBConnection`](backend/infrastructure/persistence/duckdb_connection.py)
   serializa todas las consultas con un lock de instancia. Verificado con 120
   requests concurrentes sin errores ni caídas del proceso.
-- **Holt-Winters sobre Prophet/XGBoost**: para una API ligera y sin
-  dependencias nativas pesadas, Holt-Winters con tendencia amortiguada ofrece
-  pronósticos con intervalo de confianza competentes para series suaves. La
-  **senda mensual usa una instancia separada con estacionalidad anual**
+- **La proyección de largo plazo se importa, no se calcula en la API**: Prophet y
+  XGBoost corren en el proyecto de modelado y la API solo sirve su salida (P50 y
+  escenarios P10–P90). Se descartó recalcularla con Holt-Winters porque solo ve el
+  volumen y no el clima: con El Niño previsto (ONI 1,8 y probabilidad del 100% de
+  octubre 2026 a febrero 2027 en `NOOA`) proyectaba una recuperación a ~90%,
+  frente a un mínimo de ~35% del modelo con ENSO. Los Outputs no traen validación
+  fuera de muestra, por eso el panel no muestra tabla walk-forward para esa
+  proyección; y su banda son escenarios, no un intervalo de confianza.
+- **Holt-Winters como respaldo**: para los embalses sin proyección publicada
+  (Agregado Bogotá), Holt-Winters con tendencia amortiguada ofrece pronósticos con
+  intervalo de confianza competentes para series suaves; también es el modelo del
+  pronóstico diario de esos mismos embalses. La **instancia mensual tiene estacionalidad anual**
   (`obtener_forecasting_service_mensual` en
   [`dependencies.py`](backend/presentation/api/dependencies.py)); sin ese
   componente solo extrapolaría la tendencia y no reproduciría el ciclo

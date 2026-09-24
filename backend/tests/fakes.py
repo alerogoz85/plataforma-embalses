@@ -7,10 +7,12 @@ from application.ports.output.forecasting_port import ForecastingPort, PuntoFore
 from domain.entities.embalse import Embalse
 from domain.entities.medicion_hidrologica import MedicionHidrologica
 from domain.entities.metadatos_datos import MetadatosDatos
+from domain.entities.proyeccion_senda import ProyeccionSendaMensual
 from domain.entities.region import NombreRegion, Region
 from domain.repositories.embalse_repository import EmbalseRepository
 from domain.repositories.medicion_repository import MedicionRepository
 from domain.repositories.metadatos_repository import MetadatosRepository
+from domain.repositories.proyeccion_senda_repository import ProyeccionSendaRepository
 from domain.value_objects.caudal import Caudal
 from domain.value_objects.volumen import Volumen
 
@@ -129,6 +131,32 @@ class MetadatosRepositoryEnMemoria(MetadatosRepository):
 
     def guardar(self, metadatos: MetadatosDatos) -> None:
         self.guardado = metadatos
+
+
+class ProyeccionSendaRepositoryEnMemoria(ProyeccionSendaRepository):
+    def __init__(self, proyecciones: Optional[list[ProyeccionSendaMensual]] = None) -> None:
+        self._proyecciones = list(proyecciones or [])
+
+    def obtener(self, embalse_id: str) -> list[ProyeccionSendaMensual]:
+        return sorted(
+            (p for p in self._proyecciones if p.embalse_id == embalse_id), key=lambda p: p.mes
+        )
+
+    def reemplazar_todas(self, proyecciones: list[ProyeccionSendaMensual]) -> None:
+        self._proyecciones = list(proyecciones)
+
+
+def crear_proyeccion_publicada(
+    embalse_id: str, meses: int = 12, inicio: date = date(2024, 9, 1), base: float = 60.0,
+    origen: str = "Modelo de prueba",
+) -> list[ProyeccionSendaMensual]:
+    """Proyeccion descendente de `meses` meses: el minimo cae en el ultimo mes."""
+    puntos = []
+    for i in range(meses):
+        mes = date(inicio.year + (inicio.month - 1 + i) // 12, (inicio.month - 1 + i) % 12 + 1, 1)
+        central = base - 2.0 * i
+        puntos.append(ProyeccionSendaMensual(embalse_id, mes, central - 3.0, central, central + 3.0, origen))
+    return puntos
 
 
 class ForecastingPersistencia(ForecastingPort):

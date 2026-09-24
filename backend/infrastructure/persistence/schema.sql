@@ -29,3 +29,16 @@ CREATE TABLE IF NOT EXISTS fuente_datos (
     actualizado_en  TIMESTAMP NOT NULL,
     es_real         BOOLEAN NOT NULL
 );
+
+-- Proyeccion de largo plazo publicada por el modelo de Outputs (Prophet + XGBoost
+-- con escenarios ENSO). No proviene de SIMEM/XM: se carga con
+-- infrastructure.ingesta.importar_proyeccion y --reiniciar no la borra.
+CREATE TABLE IF NOT EXISTS proyecciones_senda (
+    embalse_id       VARCHAR NOT NULL,
+    mes              DATE NOT NULL,
+    limite_inferior  DOUBLE NOT NULL,
+    valor_esperado   DOUBLE NOT NULL,
+    limite_superior  DOUBLE NOT NULL,
+    origen           VARCHAR NOT NULL,
+    PRIMARY KEY (embalse_id, mes)
+);

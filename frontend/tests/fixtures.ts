@@ -87,19 +87,21 @@ export function crearDetalle(dias = 5): EmbalseDetalle {
   return { resumen: crearEmbalse(), serie_historica: crearSerie(dias) };
 }
 
-export function crearPrediccion(puntos = 3): Prediccion {
+export function crearPrediccion(puntos = 3, sobrescribir: Partial<Prediccion> = {}): Prediccion {
   return {
     embalse_id: "GUAVIO",
     horizonte_dias: 30,
     nivel_confianza: 0.95,
     generado_en: "2026-09-23T12:00:00Z",
     metodo: "Holt-Winters de prueba",
+    origen: "holt_winters",
     puntos: Array.from({ length: puntos }, (_, i) => ({
       fecha: `2026-09-${String(23 + i).padStart(2, "0")}`,
       valor_esperado: 90 - i,
       limite_inferior: 85 - i,
       limite_superior: 95 - i,
     })),
+    ...sobrescribir,
   };
 }
 
@@ -124,6 +126,8 @@ export function crearSenda(sobrescribir: Partial<SendaVolumen> = {}): SendaVolum
       { modelo: "Persistencia (ultimo valor)", mae: 3.57, r2: 0.537 },
       { modelo: "Holt-Winters estacional de prueba", mae: 2.217, r2: 0.828 },
     ],
+    origen_proyeccion: "holt_winters",
+    horizonte_efectivo_meses: 2,
     ...sobrescribir,
   };
 }
