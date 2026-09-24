@@ -17,7 +17,14 @@ async function paginaCompleta() {
 }
 
 function tieneAyuda(elemento: Element): boolean {
-  const contenedor = elemento.tagName === "TH" ? elemento : elemento.parentElement!;
+  // th: el boton va dentro. h2: va en la esquina derecha del encabezado de la tarjeta
+  // (hermano del bloque del titulo). Resto: hermano dentro del mismo contenedor.
+  const contenedor =
+    elemento.tagName === "TH"
+      ? elemento
+      : elemento.tagName === "H2"
+        ? elemento.parentElement!.parentElement!
+        : elemento.parentElement!;
   return contenedor.querySelector('button[aria-label^="Ayuda:"]') !== null;
 }
 

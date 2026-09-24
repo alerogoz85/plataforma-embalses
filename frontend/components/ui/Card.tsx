@@ -28,13 +28,15 @@ export function CardHeader({ title, subtitle, action, ayuda }: CardHeaderProps) 
   return (
     <div className="flex items-start justify-between gap-3 px-5 pt-5">
       <div>
-        <div className="flex items-center gap-1.5">
-          <h2 className="text-sm font-semibold tracking-wide text-foreground">{title}</h2>
-          {ayuda && <InfoButton titulo={ayuda.titulo}>{ayuda.contenido}</InfoButton>}
-        </div>
+        <h2 className="text-sm font-semibold tracking-wide text-foreground">{title}</h2>
         {subtitle && <p className="mt-0.5 text-xs text-foreground-muted">{subtitle}</p>}
       </div>
-      {action}
+      {(action || ayuda) && (
+        <div className="flex shrink-0 items-center gap-2">
+          {action}
+          {ayuda && <InfoButton titulo={ayuda.titulo}>{ayuda.contenido}</InfoButton>}
+        </div>
+      )}
     </div>
   );
 }
