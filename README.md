@@ -110,7 +110,7 @@ C4Component
 
     Container_Boundary(api, "Backend") {
         Component(routers, "Routers", "FastAPI APIRouter", "embalses, regiones, senda-volumen, fuente-datos")
-        Component(usecases, "Casos de uso", "application/use_cases", "ObtenerResumenNacional, ListarEmbalses, ObtenerDetalleEmbalse, GenerarPrediccion, ObtenerSendaVolumen, ObtenerFuenteDatos, SincronizarDatos")
+        Component(usecases, "Casos de uso", "application/use_cases", "ObtenerResumenNacional, ListarEmbalses, ObtenerDetalleEmbalse, GenerarPrediccion, ObtenerSendaVolumen, ObtenerFuenteDatos, SeriesAgregadas (total nacional y regiones), SincronizarDatos")
         Component(domainsvc, "Servicios de dominio", "domain/services", "CalculoHidricoService, AutonomiaService — reglas puras")
         Component(ports, "Puertos", "domain/repositories, application/ports/output", "EmbalseRepository, MedicionRepository, MetadatosRepository, ProyeccionSendaRepository, ForecastingPort, FuenteMedicionesPort")
         Component(duckdbrepo, "Adaptadores DuckDB", "infrastructure/persistence", "Implementan los puertos de repositorio")
@@ -196,8 +196,8 @@ y
   ([`ProyeccionDiariaService`](backend/domain/services/proyeccion_diaria_service.py)).
   La banda son los escenarios P10–P90, sin incertidumbre en el primer día, y la curva
   llega hasta donde publica el modelo (~358 días: con 12 meses termina a mitad de
-  septiembre de 2027). Para un embalse sin proyección publicada (Agregado Bogotá), o
-  con una ya vencida, se usa el respaldo Holt-Winters con tendencia amortiguada
+  septiembre de 2027). Para un embalse o agregado sin proyección publicada (Agregado
+  Bogotá y los agregados regionales), o con una ya vencida, se usa el respaldo Holt-Winters con tendencia amortiguada
   (`statsmodels`), sin estacionalidad, con intervalo de confianza al 95% por
   simulación Monte Carlo (300 trayectorias). La respuesta indica cuál se usó
   (`origen`; `nivel_confianza` es `null` con Outputs).
@@ -219,8 +219,8 @@ y
 
 - El **pronóstico diario** es la proyección de Outputs interpolada linealmente entre
   valores mensuales: la forma dentro de cada mes es una suavización, no un
-  resultado del modelo. Solo Agregado Bogotá usa el respaldo estadístico
-  (Holt-Winters), que solo ve la serie histórica: sin clima, demanda ni operación
+  resultado del modelo. Agregado Bogotá y los agregados regionales («Todos los
+  embalses» de una región) usan el respaldo estadístico (Holt-Winters), que solo ve la serie histórica: sin clima, demanda ni operación
   futura, y que no debe leerse como una predicción puntual.
 - La **senda de largo plazo** usa la proyección del modelo Prophet + XGBoost con
   escenarios ENSO (importada de sus Outputs). Cubre 12 meses, su banda son
@@ -601,10 +601,10 @@ Las pruebas encontraron **tres defectos reales**, ya corregidos:
   frente a un mínimo de ~35% del modelo con ENSO. Los Outputs no traen validación
   fuera de muestra, por eso el panel no muestra tabla walk-forward para esa
   proyección; y su banda son escenarios, no un intervalo de confianza.
-- **Holt-Winters como respaldo**: para los embalses sin proyección publicada
-  (Agregado Bogotá), Holt-Winters con tendencia amortiguada ofrece pronósticos con
+- **Holt-Winters como respaldo**: para lo que no tiene proyección publicada
+  (Agregado Bogotá y los agregados regionales), Holt-Winters con tendencia amortiguada ofrece pronósticos con
   intervalo de confianza competentes para series suaves; también es el modelo del
-  pronóstico diario de esos mismos embalses. La **instancia mensual tiene estacionalidad anual**
+  pronóstico diario de esos mismos casos. La **instancia mensual tiene estacionalidad anual**
   (`obtener_forecasting_service_mensual` en
   [`dependencies.py`](backend/presentation/api/dependencies.py)); sin ese
   componente solo extrapolaría la tendencia y no reproduciría el ciclo
