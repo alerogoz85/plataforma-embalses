@@ -225,6 +225,34 @@ class TestListado:
         assert len(detalles[0]["serie_historica"]) == 22
 
 
+class TestAgregados:
+    """'Todos los embalses' (TOTAL) y 'Todos los embalses de una region' (REGION:<nombre>)."""
+
+    def test_detalle_del_total_nacional(self, cliente):
+        respuesta = cliente.get("/api/v1/embalses/TOTAL")
+        assert respuesta.status_code == 200
+        cuerpo = respuesta.json()
+        assert cuerpo["resumen"]["id"] == "TOTAL" and cuerpo["resumen"]["es_agregado"] is True
+        assert len(cuerpo["serie_historica"]) > 100
+        assert set(cuerpo["serie_historica"][0]) >= {"fecha", "pct_volumen_util", "aportes_pct_media"}
+
+    def test_detalle_de_una_region_con_dos_puntos_en_la_ruta(self, cliente):
+        cuerpo = cliente.get("/api/v1/embalses/REGION%3AAntioquia").json()
+        assert cuerpo["resumen"]["id"] == "REGION:Antioquia" and cuerpo["resumen"]["nombre"] == "Región Antioquia"
+
+    def test_una_region_inexistente_da_404(self, cliente):
+        assert cliente.get("/api/v1/embalses/REGION%3AMarte").status_code == 404
+
+    def test_prediccion_del_total_y_de_una_region(self, cliente):
+        for id_ in ("TOTAL", "REGION%3AAntioquia"):
+            respuesta = cliente.get(f"/api/v1/embalses/{id_}/prediccion", params={"horizonte": 30})
+            assert respuesta.status_code == 200 and len(respuesta.json()["puntos"]) == 30
+
+    def test_el_total_coincide_con_el_kpi_nacional(self, cliente):
+        kpi = cliente.get("/api/v1/embalses/resumen").json()["kpis"]["pct_volumen_util_nacional"]
+        assert cliente.get("/api/v1/embalses/TOTAL").json()["resumen"]["pct_volumen_util"] == kpi
+
+
 class TestPrediccion:
     @pytest.mark.parametrize("horizonte", [30, 90, 180, 360])  # 1, 3, 6 y 12 meses
     def test_devuelve_tantos_puntos_como_el_horizonte(self, cliente, horizonte):

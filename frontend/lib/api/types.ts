@@ -122,6 +122,8 @@ export interface SendaVolumen {
 export type OrigenProyeccion = "outputs" | "holt_winters";
 
 export const ID_TOTAL_NACIONAL = "TOTAL";
+/** Id del agregado de una región ("Todos los embalses" con una región elegida). */
+export const idAgregadoRegion = (region: string) => `REGION:${region}`;
 export const HORIZONTES_SENDA_VOLUMEN = [1, 3, 6, 12] as const;
 export type HorizonteSendaVolumen = (typeof HORIZONTES_SENDA_VOLUMEN)[number];
 
