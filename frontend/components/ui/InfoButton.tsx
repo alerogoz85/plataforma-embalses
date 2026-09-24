@@ -64,7 +64,7 @@ export function InfoButton({ titulo, children }: InfoButtonProps) {
         aria-label={`Ayuda: ${titulo}`}
         aria-expanded={abierto}
         aria-controls={abierto ? idPanel : undefined}
-        className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border-strong text-[11px] font-semibold leading-none text-foreground-muted transition-colors hover:border-[var(--color-optimo)] hover:text-[var(--color-optimo)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-optimo)]"
+        className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border-strong text-[11px] font-semibold leading-none text-foreground-muted transition-colors hover:border-[var(--color-marca)] hover:text-[var(--color-marca)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-marca)]"
       >
         <span aria-hidden="true">i</span>
       </button>

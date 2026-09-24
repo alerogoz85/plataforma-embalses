@@ -153,8 +153,8 @@ describe("EmbalsesTable interaccion", () => {
 
   it("resalta la fila seleccionada", () => {
     montar({ embalseSeleccionado: "PRADO" });
-    expect(fila("Prado")).toHaveStyle({ backgroundColor: "var(--color-optimo-bg)" });
-    expect(fila("Guavio")).not.toHaveStyle({ backgroundColor: "var(--color-optimo-bg)" });
+    expect(fila("Prado")).toHaveStyle({ backgroundColor: "var(--color-marca-bg)" });
+    expect(fila("Guavio")).not.toHaveStyle({ backgroundColor: "var(--color-marca-bg)" });
   });
 
   it("los enlaces de reporte apuntan a la API y no seleccionan la fila", async () => {

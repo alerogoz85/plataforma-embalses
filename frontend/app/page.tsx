@@ -105,7 +105,7 @@ export default function DashboardPage() {
                   positivo: resumen.datos.kpis.delta_diario_pct >= 0,
                 }}
                 icono={ICONO_GOTA}
-                acento="var(--color-optimo)"
+                acento="var(--color-marca)"
                 ayuda={AYUDAS.pctVolumenUtilNacional}
               />
               <KpiCard
