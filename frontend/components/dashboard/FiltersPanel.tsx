@@ -98,7 +98,7 @@ export function FiltersPanel({
           min-width: 9.5rem;
         }
         :global(.campo-select:focus) {
-          outline: 2px solid var(--color-optimo);
+          outline: 2px solid var(--color-marca);
           outline-offset: 1px;
         }
       `}</style>

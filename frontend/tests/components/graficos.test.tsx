@@ -161,8 +161,8 @@ describe("MainChart", () => {
     await waitFor(() =>
       expect(llamadas.some((u) => u.pathname.endsWith("/prediccion") && u.searchParams.get("horizonte") === "60")).toBe(true),
     );
-    expect(screen.getByRole("button", { name: "60d" })).toHaveStyle({ backgroundColor: "var(--color-optimo)" });
-    expect(screen.getByRole("button", { name: "30d" })).not.toHaveStyle({ backgroundColor: "var(--color-optimo)" });
+    expect(screen.getByRole("button", { name: "60d" })).toHaveStyle({ backgroundColor: "var(--color-marca)" });
+    expect(screen.getByRole("button", { name: "30d" })).not.toHaveStyle({ backgroundColor: "var(--color-marca)" });
   });
 
   it("si falla la prediccion igual muestra la serie historica", async () => {

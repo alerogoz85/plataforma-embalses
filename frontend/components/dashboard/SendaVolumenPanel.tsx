@@ -111,7 +111,7 @@ export function SendaVolumenPanel({ embalses }: { embalses: EmbalseResumen[] }) 
                   className="rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
                   style={
                     horizonte === h
-                      ? { backgroundColor: "var(--color-optimo)", color: "white" }
+                      ? { backgroundColor: "var(--color-marca)", color: "white" }
                       : { color: "var(--foreground-muted)" }
                   }
                 >

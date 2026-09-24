@@ -136,11 +136,11 @@ export function EmbalsesTable({
                 key={embalse.id}
                 onClick={() => onSeleccionar(embalse.id)}
                 className={`cursor-pointer border-b border-border/60 transition-colors hover:bg-border/30 ${
-                  embalseSeleccionado === embalse.id ? "bg-optimo-bg/40" : ""
+                  embalseSeleccionado === embalse.id ? "bg-marca-bg/60" : ""
                 }`}
                 style={
                   embalseSeleccionado === embalse.id
-                    ? { backgroundColor: "var(--color-optimo-bg)" }
+                    ? { backgroundColor: "var(--color-marca-bg)" }
                     : undefined
                 }
               >
@@ -178,15 +178,15 @@ export function EmbalsesTable({
                   <div className="flex gap-2 text-xs font-medium">
                     <a
                       href={urlReporte(embalse.id, "csv")}
-                      className="text-optimo hover:underline"
-                      style={{ color: "var(--color-optimo)" }}
+                      className="text-marca hover:underline"
+                      style={{ color: "var(--color-marca)" }}
                     >
                       CSV
                     </a>
                     <a
                       href={urlReporte(embalse.id, "json")}
-                      className="text-optimo hover:underline"
-                      style={{ color: "var(--color-optimo)" }}
+                      className="text-marca hover:underline"
+                      style={{ color: "var(--color-marca)" }}
                     >
                       JSON
                     </a>

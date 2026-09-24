@@ -508,6 +508,14 @@ Las pruebas encontraron **tres defectos reales**, ya corregidos:
 
 ## Decisiones de diseño
 
+- **Identidad visual del sector**: la paleta y las tipografías siguen las de
+  minenergia.gov.co (sistema GOV.CO): azul `#3366CC`/`#004884`, amarillo
+  institucional `#EDB600`, verde `#068460`, Nunito Sans (texto) y Montserrat
+  (títulos). Todo vive en tokens CSS de `frontend/app/globals.css`. El color de
+  marca (`--color-marca`, azul) está separado del semáforo de estado
+  (`--color-optimo/alerta/critico/reboce`) para que "verde" siempre signifique
+  "óptimo". Solo se adopta el estilo: no se usan logos ni escudos oficiales, y la
+  plataforma no es un producto oficial del Ministerio.
 - **Datos reales detrás de un puerto**: `FuenteMedicionesPort` aísla el origen
   de los datos; la descarga vive en un adaptador y la interpretación
   (`ensamblar`, `indexar_*`) son funciones puras probadas sin red. La API no

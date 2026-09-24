@@ -122,10 +122,10 @@ export function MainChart({
                   onClick={() => setHorizonte(h)}
                   className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
                     horizonte === h
-                      ? "bg-optimo text-white"
+                      ? "bg-marca text-white"
                       : "text-foreground-muted hover:text-foreground"
                   }`}
-                  style={horizonte === h ? { backgroundColor: "var(--color-optimo)" } : undefined}
+                  style={horizonte === h ? { backgroundColor: "var(--color-marca)" } : undefined}
                 >
                   {h}d
                 </button>

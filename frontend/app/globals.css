@@ -3,49 +3,60 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #f4f7fb;
+  /* Identidad visual del sector (paleta GOV.CO / Ministerio de Minas y Energia) */
+  --background: #f2f5fa;
   --background-elevated: #ffffff;
-  --foreground: #0f172a;
-  --foreground-muted: #52607a;
-  --border: #e2e8f0;
-  --border-strong: #cbd5e1;
+  --foreground: #2b2b2b;
+  --foreground-muted: #4b4b4b;
+  --border: #dde3ee;
+  --border-strong: #babfcc;
 
-  --color-optimo: #0891b2;
-  --color-optimo-bg: #ecfeff;
-  --color-alerta: #d97706;
-  --color-alerta-bg: #fffbeb;
-  --color-critico: #dc2626;
-  --color-critico-bg: #fef2f2;
-  --color-reboce: #be123c;
-  --color-reboce-bg: #fff1f2;
+  --color-marca: #3366cc;
+  --color-marca-oscuro: #004884;
+  --color-marca-bg: #e6effd;
+  --color-institucional: #edb600;
 
-  --chart-volumen: #0891b2;
-  --chart-aportes: #6366f1;
-  --chart-prediccion: #0891b2;
-  --chart-banda: #0891b233;
+  --color-optimo: #068460;
+  --color-optimo-bg: #e6f5f0;
+  --color-alerta: #b87400;
+  --color-alerta-bg: #fff6dc;
+  --color-critico: #d31f3f;
+  --color-critico-bg: #fdecef;
+  --color-reboce: #a80521;
+  --color-reboce-bg: #fbe9ec;
+
+  --chart-volumen: #3366cc;
+  --chart-aportes: #edb600;
+  --chart-prediccion: #004884;
+  --chart-banda: #3366cc33;
 }
 
 :root.dark {
-  --background: #0b1220;
-  --background-elevated: #131c2e;
-  --foreground: #e7edf7;
-  --foreground-muted: #93a3bf;
-  --border: #223049;
-  --border-strong: #2e4066;
+  --background: #0a1526;
+  --background-elevated: #10213b;
+  --foreground: #eaf0fa;
+  --foreground-muted: #a9b8d3;
+  --border: #1f3557;
+  --border-strong: #2f4b78;
 
-  --color-optimo: #22d3ee;
-  --color-optimo-bg: #0e2b33;
-  --color-alerta: #fbbf24;
-  --color-alerta-bg: #332409;
-  --color-critico: #f87171;
-  --color-critico-bg: #331313;
-  --color-reboce: #fb7185;
-  --color-reboce-bg: #33101a;
+  --color-marca: #6699ff;
+  --color-marca-oscuro: #9dbeff;
+  --color-marca-bg: #14294a;
+  --color-institucional: #edb600;
 
-  --chart-volumen: #22d3ee;
-  --chart-aportes: #818cf8;
-  --chart-prediccion: #22d3ee;
-  --chart-banda: #22d3ee2b;
+  --color-optimo: #2fc59a;
+  --color-optimo-bg: #0c2d27;
+  --color-alerta: #ffc233;
+  --color-alerta-bg: #33270a;
+  --color-critico: #ff6b83;
+  --color-critico-bg: #33131b;
+  --color-reboce: #ff8a9c;
+  --color-reboce-bg: #33111a;
+
+  --chart-volumen: #6699ff;
+  --chart-aportes: #edb600;
+  --chart-prediccion: #9dbeff;
+  --chart-banda: #6699ff2b;
 }
 
 @theme inline {
@@ -55,6 +66,10 @@
   --color-foreground-muted: var(--foreground-muted);
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
+  --color-marca: var(--color-marca);
+  --color-marca-oscuro: var(--color-marca-oscuro);
+  --color-marca-bg: var(--color-marca-bg);
+  --color-institucional: var(--color-institucional);
   --color-optimo: var(--color-optimo);
   --color-optimo-bg: var(--color-optimo-bg);
   --color-alerta: var(--color-alerta);
@@ -63,7 +78,8 @@
   --color-critico-bg: var(--color-critico-bg);
   --color-reboce: var(--color-reboce);
   --color-reboce-bg: var(--color-reboce-bg);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-nunito);
+  --font-heading: var(--font-montserrat);
   --font-mono: var(--font-geist-mono);
 }
 
@@ -71,6 +87,10 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-heading), var(--font-sans), Arial, sans-serif;
 }
 
 * {

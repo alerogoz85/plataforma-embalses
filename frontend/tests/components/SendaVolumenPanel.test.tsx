@@ -150,8 +150,8 @@ describe("SendaVolumenPanel", () => {
       await esperarDatos();
       await userEvent.click(screen.getByRole("button", { name: "18m" }));
       await waitFor(() => expect(llamadas.at(-1)!.searchParams.get("horizonte_meses")).toBe("18"));
-      expect(screen.getByRole("button", { name: "18m" })).toHaveStyle({ backgroundColor: "var(--color-optimo)" });
-      expect(screen.getByRole("button", { name: "12m" })).not.toHaveStyle({ backgroundColor: "var(--color-optimo)" });
+      expect(screen.getByRole("button", { name: "18m" })).toHaveStyle({ backgroundColor: "var(--color-marca)" });
+      expect(screen.getByRole("button", { name: "12m" })).not.toHaveStyle({ backgroundColor: "var(--color-marca)" });
     });
 
     it("ofrece exactamente los horizontes 6, 12 y 18 meses", async () => {
