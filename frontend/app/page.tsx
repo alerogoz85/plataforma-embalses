@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 
+import Image from "next/image";
+
 import { Header } from "@/components/layout/Header";
 import { FiltersPanel } from "@/components/dashboard/FiltersPanel";
 import { KpiCard } from "@/components/dashboard/KpiCard";
@@ -156,7 +158,14 @@ export default function DashboardPage() {
         </section>
       </main>
 
-      <footer className="border-t border-border px-4 py-4 text-center text-xs text-foreground-muted sm:px-6">
+      <footer
+        className="flex flex-col items-center gap-2 border-t-[3px] bg-background-elevated px-4 py-4 text-center text-xs text-foreground-muted sm:px-6"
+        style={{ borderTopColor: "var(--color-institucional)" }}
+      >
+        <span className="rounded-lg bg-white px-2 py-1">
+          <Image src="/marca/logo-mme.png" alt="Ministerio de Minas y Energía" width={600} height={407} className="h-10 w-auto" />
+        </span>
+        <p>
         {fuente.datos ? (
           <>
             <strong style={{ color: fuente.datos.es_real ? "var(--color-optimo)" : "var(--color-alerta)" }}>
@@ -169,6 +178,7 @@ export default function DashboardPage() {
           "Verificando procedencia de los datos…"
         )}
         {" · "}Plataforma de Monitoreo y Predicción de Embalses
+        </p>
       </footer>
     </div>
   );
