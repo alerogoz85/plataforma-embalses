@@ -242,7 +242,7 @@ plataforma-embalses/
 │       ├── api/                    # client.ts, types.ts (espejo de los DTOs del backend)
 │       ├── hooks/                  # useAsyncResource, useResumenNacional, useEmbalseDetalle, usePrediccion, useSendaVolumen, useFuenteDatos
 │       └── utils/                  # formatters.ts, dates.ts
-├── scripts/                       # desplegar-vercel.sh
+├── scripts/                       # desplegar-vercel.sh (publica la API en Vercel)
 ├── data/                          # hidrologia.duckdb (generado por la sincronización, no versionado)
 └── README.md
 ```
@@ -319,23 +319,42 @@ cd plataforma-embalses/frontend && npm test          # una corrida; `npm run tes
 
 En producción: **https://plataforma-embalses.vercel.app**
 
-Son dos proyectos de Vercel, publicados con la CLI:
+Son dos proyectos de Vercel:
 
-| Proyecto | Carpeta | Qué es | URL |
-|---|---|---|---|
-| `plataforma-embalses` | `frontend/` | Sitio Next.js | https://plataforma-embalses.vercel.app |
-| `plataforma-embalses-api` | `backend/` | FastAPI como función Python ([`index.py`](backend/index.py), [`vercel.json`](backend/vercel.json)) | https://plataforma-embalses-api.vercel.app |
+| Proyecto | Carpeta | Qué es | Cómo se despliega | URL |
+|---|---|---|---|---|
+| `plataforma-embalses` | `frontend/` | Sitio Next.js | **Automático por Git** | https://plataforma-embalses.vercel.app |
+| `plataforma-embalses-api` | `backend/` | FastAPI como función Python ([`index.py`](backend/index.py), [`vercel.json`](backend/vercel.json)) | Por CLI: `scripts/desplegar-vercel.sh` | https://plataforma-embalses-api.vercel.app |
 
-El sitio **reenvía** `/api/v1/*` a la API con un *rewrite*
+### Sitio: despliegues automáticos por Git
+
+El proyecto del sitio está conectado a este repositorio (directorio raíz
+`frontend/`, rama de producción `main`):
+
+- **Merge a `main`** → despliegue de **producción**.
+- **Pull request** → despliegue de **vista previa** con su propia URL (aparece
+  como comentario en el PR).
+- Las vistas previas usan la misma API de producción (variables de entorno del
+  entorno *Preview*), así que muestran datos reales.
+- Se compila en cada push aunque solo cambie el backend; es rápido (~40 s) y evita
+  depender de una regla de omisión que podría saltarse un cambio real.
+
+El sitio reenvía `/api/v1/*` a la API con un *rewrite*
 ([`next.config.ts`](frontend/next.config.ts)), así que el navegador solo habla con
-el dominio del sitio (sin CORS). Variables del proyecto `plataforma-embalses`
-(Production): `NEXT_PUBLIC_API_BASE_URL=/` y `API_URL=https://plataforma-embalses-api.vercel.app`.
+el dominio del sitio (sin CORS). Variables (Production y Preview):
+`NEXT_PUBLIC_API_BASE_URL=/` y `API_URL=https://plataforma-embalses-api.vercel.app`.
+
+Como el directorio raíz es `frontend/`, el sitio **no** se debe desplegar con
+`vercel deploy` desde la CLI: se hace por Git.
+
+### API: despliegue por CLI
+
+La API **no** está conectada a Git: su base de datos no está en el repositorio, así
+que un despliegue automático no tendría datos.
 
 ```bash
-scripts/desplegar-vercel.sh          # API + sitio (también: api | web)
+scripts/desplegar-vercel.sh          # copia data/hidrologia.duckdb, empaqueta y publica
 ```
-
-Cómo funciona la API en Vercel:
 
 - **La base viaja con el despliegue.** `data/hidrologia.duckdb` (~7 MB) se copia a
   `backend/data/` (ignorado por git) y se empaqueta. El disco de la función es de
@@ -347,15 +366,14 @@ Cómo funciona la API en Vercel:
   ```bash
   cd backend && source .venv/bin/activate
   python -m infrastructure.ingesta.sincronizar --fuente simem    # con la API local detenida
-  cd .. && scripts/desplegar-vercel.sh api
+  cd .. && scripts/desplegar-vercel.sh
   ```
 - **Arranque en frío.** La primera consulta tras un rato de inactividad tarda unos
   segundos más (importar statsmodels y copiar la base). El paquete pesa ~310 MB
   descomprimidos y cupo en el límite del plan; si crece (dependencias nuevas)
   puede dejar de caber.
-- **Despliegue por CLI, no por Git.** Como la base no está en el repositorio, un
-  despliegue automático desde GitHub de la API no tendría datos. El sitio sí podría
-  conectarse a Git.
+- `vercel link` escribe un token temporal en `.env.local`; el script lo retira, y
+  `.env*` está ignorado por git.
 
 ## Referencia de la API
 

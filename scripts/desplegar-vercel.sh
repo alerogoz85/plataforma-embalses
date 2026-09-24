@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
-# Publica la aplicación en Vercel: la API (backend) y el sitio (frontend).
+# Publica la API (backend) en Vercel con la base de datos actual.
 #
-# Uso:  scripts/desplegar-vercel.sh [api|web|todo]      (por defecto: todo)
+# Uso:  scripts/desplegar-vercel.sh
 #
-# Requisitos: Vercel CLI con sesión iniciada (`vercel login`) y, para publicar
-# la API, la base de datos cargada en data/hidrologia.duckdb (ver README).
+# El sitio (frontend) NO se publica con este script: se despliega solo por Git
+# (cada merge a main es un despliegue de producción; cada PR, una vista previa).
+# La API sí se publica por CLI porque la base de datos no está en el repositorio.
+#
+# Requisitos: Vercel CLI con sesión iniciada (`vercel login`) y la base cargada
+# en data/hidrologia.duckdb (ver README).
 set -euo pipefail
 
 raiz="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-objetivo="${1:-todo}"
+base="$raiz/data/hidrologia.duckdb"
+[[ -f "$base" ]] || { echo "Falta $base: ejecuta antes la sincronización." >&2; exit 1; }
 
 # `vercel link` agrega un token OIDC temporal a .env.local; se retira para no
 # dejarlo en disco (ni arriesgar que se suba a git). Si el archivo queda vacío, se borra.
@@ -18,27 +23,9 @@ retirar_token_local() {
   [[ -s .env.local ]] || rm -f .env.local
 }
 
-desplegar_api() {
-  local base="$raiz/data/hidrologia.duckdb"
-  [[ -f "$base" ]] || { echo "Falta $base: ejecuta antes la sincronización." >&2; exit 1; }
-  mkdir -p "$raiz/backend/data"
-  cp "$base" "$raiz/backend/data/hidrologia.duckdb"
-  ( cd "$raiz/backend"
-    vercel link --yes --project plataforma-embalses-api >/dev/null
-    retirar_token_local
-    vercel deploy --prod --yes )
-}
-
-desplegar_web() {
-  ( cd "$raiz/frontend"
-    vercel link --yes --project plataforma-embalses >/dev/null
-    retirar_token_local
-    vercel deploy --prod --yes )
-}
-
-case "$objetivo" in
-  api)  desplegar_api ;;
-  web)  desplegar_web ;;
-  todo) desplegar_api; desplegar_web ;;
-  *)    echo "Uso: $0 [api|web|todo]" >&2; exit 2 ;;
-esac
+mkdir -p "$raiz/backend/data"
+cp "$base" "$raiz/backend/data/hidrologia.duckdb"
+cd "$raiz/backend"
+vercel link --yes --project plataforma-embalses-api >/dev/null
+retirar_token_local
+vercel deploy --prod --yes
