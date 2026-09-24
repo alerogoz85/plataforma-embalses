@@ -10,3 +10,7 @@ data/*.duckdb.wal
 
 # Sistema
 .DS_Store
+
+# Despliegue en Vercel
+.vercel/
+backend/data/
