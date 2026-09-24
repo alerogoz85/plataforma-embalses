@@ -33,7 +33,7 @@ export function FiltersPanel({
     : embalsesDisponibles;
 
   return (
-    <div className="flex flex-wrap items-end gap-4 rounded-2xl border border-border bg-background-elevated p-4">
+    <div className="grid grid-cols-1 gap-x-5 gap-y-4 rounded-2xl border border-border bg-background-elevated p-5 sm:grid-cols-2 lg:grid-cols-4">
       <Campo etiqueta="Región" ayuda={AYUDAS.filtroRegion}>
         <select
           className="campo-select"
@@ -93,9 +93,10 @@ export function FiltersPanel({
           background: var(--background);
           color: var(--foreground);
           border-radius: 0.6rem;
-          padding: 0.4rem 0.7rem;
-          font-size: 0.8rem;
-          min-width: 9.5rem;
+          padding: 0 0.75rem;
+          font-size: 0.85rem;
+          width: 100%;
+          height: 2.5rem;
         }
         :global(.campo-select:focus) {
           outline: 2px solid var(--color-marca);
@@ -116,9 +117,9 @@ function Campo({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex items-center gap-1.5">
-        <span className="text-[11px] font-medium uppercase tracking-wide text-foreground-muted">
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-foreground-muted">
           {etiqueta}
         </span>
         <InfoButton titulo={ayuda.titulo}>{ayuda.contenido}</InfoButton>

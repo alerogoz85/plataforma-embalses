@@ -15,58 +15,67 @@ describe("InfoButton", () => {
     expect(screen.queryByRole("note")).not.toBeInTheDocument();
   });
 
-  it("al hacer clic muestra el titulo y la explicacion", async () => {
+  it("al pasar el cursor muestra el titulo y la explicacion, y al salir se oculta", async () => {
     render(<InfoButton titulo="% Vol. útil"><p>Porcentaje de agua útil</p></InfoButton>);
-    await userEvent.click(boton());
+    await userEvent.hover(boton());
     const nota = screen.getByRole("note");
     expect(nota).toHaveTextContent("% Vol. útil");
     expect(nota).toHaveTextContent("Porcentaje de agua útil");
     expect(boton()).toHaveAttribute("aria-expanded", "true");
-  });
 
-  it("enlaza el boton con su panel mediante aria-controls", async () => {
-    render(<InfoButton titulo="% Vol. útil">x</InfoButton>);
-    await userEvent.click(boton());
-    expect(boton().getAttribute("aria-controls")).toBe(screen.getByRole("note").id);
-  });
-
-  it("un segundo clic lo cierra", async () => {
-    render(<InfoButton titulo="% Vol. útil">x</InfoButton>);
-    await userEvent.click(boton());
-    await userEvent.click(boton());
+    await userEvent.unhover(boton());
     expect(screen.queryByRole("note")).not.toBeInTheDocument();
     expect(boton()).toHaveAttribute("aria-expanded", "false");
   });
 
-  it("Escape lo cierra y devuelve el foco al boton", async () => {
+  it("el panel no intercepta el cursor (no hay parpadeo al mover el mouse)", async () => {
     render(<InfoButton titulo="% Vol. útil">x</InfoButton>);
-    await userEvent.click(boton());
-    await userEvent.keyboard("{Escape}");
-    expect(screen.queryByRole("note")).not.toBeInTheDocument();
-    expect(boton()).toHaveFocus();
+    await userEvent.hover(boton());
+    expect(screen.getByRole("note")).toHaveStyle({ pointerEvents: "none" });
   });
 
-  it("un clic fuera lo cierra, pero un clic dentro del panel no", async () => {
+  it("al enfocar con el teclado lo muestra y al perder el foco lo oculta", async () => {
+    render(<InfoButton titulo="% Vol. útil">x</InfoButton>);
+    await userEvent.tab();
+    expect(boton()).toHaveFocus();
+    expect(screen.getByRole("note")).toBeInTheDocument();
+    await userEvent.tab();
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
+  });
+
+  it("un toque (clic) lo abre para pantallas sin cursor y otro toque fuera lo cierra", async () => {
     render(
       <div>
         <span>fuera</span>
-        <InfoButton titulo="% Vol. útil">contenido</InfoButton>
+        <InfoButton titulo="% Vol. útil">x</InfoButton>
       </div>,
     );
-    await userEvent.click(boton());
-    await userEvent.click(screen.getByText("contenido"));
+    fireEvent.click(boton());
     expect(screen.getByRole("note")).toBeInTheDocument();
     await userEvent.click(screen.getByText("fuera"));
     expect(screen.queryByRole("note")).not.toBeInTheDocument();
   });
 
+  it("enlaza el boton con su panel mediante aria-controls", async () => {
+    render(<InfoButton titulo="% Vol. útil">x</InfoButton>);
+    await userEvent.hover(boton());
+    expect(boton().getAttribute("aria-controls")).toBe(screen.getByRole("note").id);
+  });
+
+  it("Escape lo cierra", async () => {
+    render(<InfoButton titulo="% Vol. útil">x</InfoButton>);
+    await userEvent.hover(boton());
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
+  });
+
   it("se cierra al hacer scroll o cambiar el tamano de la ventana", async () => {
     render(<InfoButton titulo="% Vol. útil">x</InfoButton>);
-    await userEvent.click(boton());
+    await userEvent.hover(boton());
     fireEvent.scroll(window);
     expect(screen.queryByRole("note")).not.toBeInTheDocument();
 
-    await userEvent.click(boton());
+    await userEvent.hover(boton());
     fireEvent(window, new Event("resize"));
     expect(screen.queryByRole("note")).not.toBeInTheDocument();
   });
@@ -79,6 +88,7 @@ describe("InfoButton", () => {
       </div>,
     );
     await userEvent.click(boton());
+    expect(screen.getByRole("note")).toBeInTheDocument();
     expect(alClic).not.toHaveBeenCalled();
   });
 
@@ -89,8 +99,9 @@ describe("InfoButton", () => {
         <InfoButton titulo="Dos">b</InfoButton>
       </>,
     );
-    await userEvent.click(screen.getByRole("button", { name: "Ayuda: Uno" }));
-    await userEvent.click(screen.getByRole("button", { name: "Ayuda: Dos" }));
+    await userEvent.hover(screen.getByRole("button", { name: "Ayuda: Uno" }));
+    await userEvent.unhover(screen.getByRole("button", { name: "Ayuda: Uno" }));
+    await userEvent.hover(screen.getByRole("button", { name: "Ayuda: Dos" }));
     expect(screen.getAllByRole("note")).toHaveLength(1);
     expect(screen.getByRole("note")).toHaveTextContent("Dos");
   });
@@ -102,7 +113,7 @@ describe("InfoButton", () => {
       vi.spyOn(HTMLButtonElement.prototype, "getBoundingClientRect").mockReturnValue({
         left: 0, right: 0, top: 0, bottom: 0, width: 20, height: 20, x: 0, y: 0, toJSON: () => ({}), ...caja,
       });
-      return userEvent.click(boton());
+      return userEvent.hover(boton());
     }
 
     it("se coloca justo debajo del boton", async () => {

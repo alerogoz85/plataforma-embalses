@@ -25,10 +25,7 @@ export function InfoButton({ titulo, children }: InfoButtonProps) {
       if (!panelRef.current?.contains(objetivo) && !botonRef.current?.contains(objetivo)) cerrar();
     };
     const alPulsarTecla = (evento: KeyboardEvent) => {
-      if (evento.key === "Escape") {
-        cerrar();
-        botonRef.current?.focus();
-      }
+      if (evento.key === "Escape") cerrar();
     };
     document.addEventListener("mousedown", alPulsarFuera);
     document.addEventListener("keydown", alPulsarTecla);
@@ -42,12 +39,10 @@ export function InfoButton({ titulo, children }: InfoButtonProps) {
     };
   }, [abierto]);
 
-  function alternar(evento: React.MouseEvent) {
-    evento.stopPropagation();
-    if (abierto) {
-      setPosicion(null);
-      return;
-    }
+  // Se muestra al pasar el cursor (o al enfocar con teclado) y se oculta al salir.
+  // El clic tambien lo abre, para pantallas tactiles donde no hay hover.
+  function abrir(evento?: React.SyntheticEvent) {
+    evento?.stopPropagation();
     const caja = botonRef.current?.getBoundingClientRect();
     if (!caja) return;
     const ancho = Math.min(ANCHO_PANEL, window.innerWidth - MARGEN * 2);
@@ -60,11 +55,15 @@ export function InfoButton({ titulo, children }: InfoButtonProps) {
       <button
         ref={botonRef}
         type="button"
-        onClick={alternar}
+        onMouseEnter={abrir}
+        onMouseLeave={() => setPosicion(null)}
+        onFocus={abrir}
+        onBlur={() => setPosicion(null)}
+        onClick={abrir}
         aria-label={`Ayuda: ${titulo}`}
         aria-expanded={abierto}
         aria-controls={abierto ? idPanel : undefined}
-        className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border-strong text-[11px] font-semibold leading-none text-foreground-muted transition-colors hover:border-[var(--color-marca)] hover:text-[var(--color-marca)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-marca)]"
+        className="inline-flex h-4 w-4 shrink-0 cursor-help items-center justify-center rounded-full bg-marca-bg text-[10px] font-bold leading-none text-marca transition-colors hover:bg-marca hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-marca)]"
       >
         <span aria-hidden="true">i</span>
       </button>
@@ -79,6 +78,7 @@ export function InfoButton({ titulo, children }: InfoButtonProps) {
             left: posicion.left,
             width: Math.min(ANCHO_PANEL, window.innerWidth - MARGEN * 2),
             zIndex: 50,
+            pointerEvents: "none",
           }}
           className="rounded-xl border border-border-strong bg-background-elevated p-3 text-left text-xs font-normal normal-case leading-relaxed tracking-normal text-foreground shadow-lg"
         >
