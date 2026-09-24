@@ -19,7 +19,7 @@ app = FastAPI(
     description=(
         "API REST para monitoreo hidrologico con datos publicos de XM/SIMEM: "
         "volumen y energia utiles, aportes, descargas y pronosticos de "
-        "%V_util a 30/60/90 dias y a 6/12/18 meses por embalse y region."
+        "%V_util a 1, 3, 6 y 12 meses por embalse y region."
     ),
     version="1.0.0",
 )

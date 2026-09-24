@@ -16,11 +16,13 @@ from application.use_cases.obtener_senda_volumen import ObtenerSendaVolumenUseCa
 from domain.repositories.embalse_repository import EmbalseRepository
 from domain.repositories.medicion_repository import MedicionRepository
 from domain.repositories.metadatos_repository import MetadatosRepository
+from domain.repositories.proyeccion_senda_repository import ProyeccionSendaRepository
 from infrastructure.ml.holt_winters_forecasting_service import HoltWintersForecastingService
 from infrastructure.persistence.duckdb_connection import DuckDBConnection
 from infrastructure.persistence.duckdb_embalse_repository import DuckDBEmbalseRepository
 from infrastructure.persistence.duckdb_medicion_repository import DuckDBMedicionRepository
 from infrastructure.persistence.duckdb_metadatos_repository import DuckDBMetadatosRepository
+from infrastructure.persistence.duckdb_proyeccion_senda_repository import DuckDBProyeccionSendaRepository
 
 _RUTA_BACKEND = Path(__file__).resolve().parents[2]
 _RUTA_DB_POR_DEFECTO = _RUTA_BACKEND.parent / "data" / "hidrologia.duckdb"
@@ -49,6 +51,11 @@ def obtener_medicion_repository() -> MedicionRepository:
 @lru_cache
 def obtener_metadatos_repository() -> MetadatosRepository:
     return DuckDBMetadatosRepository(obtener_conexion())
+
+
+@lru_cache
+def obtener_proyeccion_senda_repository() -> ProyeccionSendaRepository:
+    return DuckDBProyeccionSendaRepository(obtener_conexion())
 
 
 @lru_cache
@@ -89,6 +96,7 @@ def obtener_generar_prediccion_use_case() -> GenerarPrediccionUseCase:
         obtener_embalse_repository(),
         obtener_medicion_repository(),
         obtener_forecasting_service(),
+        obtener_proyeccion_senda_repository(),
     )
 
 
@@ -98,6 +106,7 @@ def obtener_senda_volumen_use_case() -> ObtenerSendaVolumenUseCase:
         obtener_embalse_repository(),
         obtener_medicion_repository(),
         obtener_forecasting_service_mensual(),
+        obtener_proyeccion_senda_repository(),
     )
 
 

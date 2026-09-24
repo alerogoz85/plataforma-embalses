@@ -11,7 +11,7 @@ from presentation.api.dependencies import obtener_senda_volumen_use_case
 
 router = APIRouter(prefix="/api/v1/senda-volumen", tags=["senda-volumen"])
 
-HORIZONTES_PERMITIDOS_MESES = {6, 12, 18}
+HORIZONTES_PERMITIDOS_MESES = {1, 3, 6, 12}
 
 
 @router.get(
@@ -24,9 +24,9 @@ def obtener_senda_volumen(
         default=ID_TOTAL_NACIONAL,
         description="Id de embalse, o 'TOTAL' para el agregado nacional ponderado",
     ),
-    horizonte_meses: int = Query(default=12, description="Horizonte en meses (6, 12 o 18)"),
+    horizonte_meses: int = Query(default=12, description="Horizonte en meses (1, 3, 6 o 12)"),
     caso_de_uso: ObtenerSendaVolumenUseCase = Depends(obtener_senda_volumen_use_case),
 ) -> SendaVolumenDTO:
     if horizonte_meses not in HORIZONTES_PERMITIDOS_MESES:
-        raise HTTPException(status_code=422, detail="El horizonte debe ser 6, 12 o 18 meses")
+        raise HTTPException(status_code=422, detail="El horizonte debe ser 1, 3, 6 o 12 meses")
     return caso_de_uso.ejecutar(embalse_id=embalse, horizonte_meses=horizonte_meses)

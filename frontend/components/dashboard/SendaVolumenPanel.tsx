@@ -44,6 +44,7 @@ export function SendaVolumenPanel({ embalses }: { embalses: EmbalseResumen[] }) 
   const [embalseId, setEmbalseId] = useState<string>(ID_TOTAL_NACIONAL);
   const [horizonte, setHorizonte] = useState<HorizonteSendaVolumen>(12);
   const senda = useSendaVolumen(embalseId, horizonte);
+  const esOutputs = senda.datos?.origen_proyeccion === "outputs";
 
   const datos = useMemo<PuntoGrafico[]>(() => {
     if (!senda.datos) return [];
@@ -169,6 +170,12 @@ export function SendaVolumenPanel({ embalses }: { embalses: EmbalseResumen[] }) 
           <p className="px-5 pt-2 text-[11px] text-foreground-muted">
             Riesgo de la senda: rojo &lt;55% · ámbar &lt;65% · verde ≥65%
           </p>
+          {senda.datos.horizonte_efectivo_meses < horizonte && (
+            <p className="px-5 pt-1 text-[11px] text-foreground-muted">
+              El modelo publica {senda.datos.horizonte_efectivo_meses} meses de proyección: se
+              muestran {senda.datos.horizonte_efectivo_meses} aunque se pidieron {horizonte}.
+            </p>
+          )}
 
           <div className="h-72 w-full px-2 pb-2 pt-4 sm:px-4">
             <ResponsiveContainer width="100%" height="100%">
@@ -212,7 +219,7 @@ export function SendaVolumenPanel({ embalses }: { embalses: EmbalseResumen[] }) 
                   stackId="banda"
                   stroke="none"
                   fill="var(--chart-banda)"
-                  name="Intervalo de confianza 95%"
+                  name={esOutputs ? "Escenarios P10–P90 (ENSO)" : "Intervalo de confianza 95%"}
                   isAnimationActive={false}
                 />
                 <Line
@@ -238,43 +245,59 @@ export function SendaVolumenPanel({ embalses }: { embalses: EmbalseResumen[] }) 
             </ResponsiveContainer>
           </div>
 
-          <div className="px-5 pb-5 pt-2">
-            <div className="mb-2 flex items-center gap-1.5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-foreground-muted">
-                Validación walk-forward (honesta)
+          {esOutputs ? (
+            <div className="px-5 pb-5 pt-2">
+              <p
+                className="rounded-lg p-3 text-xs leading-relaxed"
+                style={{ backgroundColor: "var(--color-marca-bg)", color: "var(--foreground-muted)" }}
+              >
+                <strong style={{ color: "var(--color-marca-oscuro)" }}>Sobre esta proyección: </strong>
+                proviene del modelo de largo plazo (Prophet + XGBoost) con escenarios climáticos
+                ENSO simulados por Monte Carlo. La banda son los escenarios P10–P90, no un
+                intervalo de confianza estadístico, y en los primeros meses puede ser muy angosta.
+                Los resultados entregados no incluyen validación fuera de muestra, por eso no se
+                muestra una tabla walk-forward.
               </p>
-              <InfoButton titulo={AYUDAS.validacion.titulo}>{AYUDAS.validacion.contenido}</InfoButton>
             </div>
-            <table className="w-full border-collapse text-left text-sm">
-              <thead>
-                <tr className="border-b border-border text-xs text-foreground-muted">
-                  <th className="py-1.5 pr-4 font-medium"><span className="inline-flex items-center gap-1">Modelo<InfoButton titulo={AYUDAS.valModelo.titulo}>{AYUDAS.valModelo.contenido}</InfoButton></span></th>
-                  <th className="py-1.5 pr-4 font-medium"><span className="inline-flex items-center gap-1">MAE<InfoButton titulo={AYUDAS.valMae.titulo}>{AYUDAS.valMae.contenido}</InfoButton></span></th>
-                  <th className="py-1.5 font-medium"><span className="inline-flex items-center gap-1">R²<InfoButton titulo={AYUDAS.valR2.titulo}>{AYUDAS.valR2.contenido}</InfoButton></span></th>
-                </tr>
-              </thead>
-              <tbody>
-                {senda.datos.validacion.map((m) => (
-                  <tr key={m.modelo} className="border-b border-border/60 last:border-0">
-                    <td className="py-1.5 pr-4 text-foreground">{m.modelo}</td>
-                    <td className="py-1.5 pr-4 tabular-nums text-foreground-muted">{m.mae.toFixed(3)}</td>
-                    <td className="py-1.5 tabular-nums text-foreground-muted">{m.r2.toFixed(3)}</td>
+          ) : (
+            <div className="px-5 pb-5 pt-2">
+              <div className="mb-2 flex items-center gap-1.5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-foreground-muted">
+                  Validación walk-forward (honesta)
+                </p>
+                <InfoButton titulo={AYUDAS.validacion.titulo}>{AYUDAS.validacion.contenido}</InfoButton>
+              </div>
+              <table className="w-full border-collapse text-left text-sm">
+                <thead>
+                  <tr className="border-b border-border text-xs text-foreground-muted">
+                    <th className="py-1.5 pr-4 font-medium"><span className="inline-flex items-center gap-1">Modelo<InfoButton titulo={AYUDAS.valModelo.titulo}>{AYUDAS.valModelo.contenido}</InfoButton></span></th>
+                    <th className="py-1.5 pr-4 font-medium"><span className="inline-flex items-center gap-1">MAE<InfoButton titulo={AYUDAS.valMae.titulo}>{AYUDAS.valMae.contenido}</InfoButton></span></th>
+                    <th className="py-1.5 font-medium"><span className="inline-flex items-center gap-1">R²<InfoButton titulo={AYUDAS.valR2.titulo}>{AYUDAS.valR2.contenido}</InfoButton></span></th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            <p
-              className="mt-3 rounded-lg p-3 text-xs leading-relaxed"
-              style={{ backgroundColor: "var(--color-alerta-bg)", color: "var(--foreground-muted)" }}
-            >
-              <strong style={{ color: "var(--color-alerta)" }}>Nota de honestidad: </strong>
-              la senda se valida contra una línea base ingenua de persistencia (repetir el último
-              valor observado) para los últimos meses de historia. Cuando la persistencia iguala o
-              supera al modelo, la senda debe leerse como la{" "}
-              <strong>forma estacional esperada</strong> del embalse, no como una predicción
-              puntual superior. Misma vara aplicada a todos los embalses.
-            </p>
-          </div>
+                </thead>
+                <tbody>
+                  {senda.datos.validacion.map((m) => (
+                    <tr key={m.modelo} className="border-b border-border/60 last:border-0">
+                      <td className="py-1.5 pr-4 text-foreground">{m.modelo}</td>
+                      <td className="py-1.5 pr-4 tabular-nums text-foreground-muted">{m.mae.toFixed(3)}</td>
+                      <td className="py-1.5 tabular-nums text-foreground-muted">{m.r2.toFixed(3)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p
+                className="mt-3 rounded-lg p-3 text-xs leading-relaxed"
+                style={{ backgroundColor: "var(--color-alerta-bg)", color: "var(--foreground-muted)" }}
+              >
+                <strong style={{ color: "var(--color-alerta)" }}>Nota de honestidad: </strong>
+                la senda se valida contra una línea base ingenua de persistencia (repetir el último
+                valor observado) para los últimos meses de historia. Cuando la persistencia iguala o
+                supera al modelo, la senda debe leerse como la{" "}
+                <strong>forma estacional esperada</strong> del embalse, no como una predicción
+                puntual superior. Misma vara aplicada a todos los embalses.
+              </p>
+            </div>
+          )}
         </>
       )}
     </Card>

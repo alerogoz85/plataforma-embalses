@@ -16,8 +16,10 @@ from domain.exceptions import (
 from tests.fakes import (
     EmbalseRepositoryEnMemoria,
     ForecastingPersistencia,
+    ProyeccionSendaRepositoryEnMemoria,
     MedicionRepositoryEnMemoria,
     crear_embalse,
+    crear_proyeccion_publicada,
     serie_mensual_constante,
 )
 
@@ -55,7 +57,7 @@ class TestSendaEmbalseIndividual:
         assert senda.ultimo_observado.mes == "2025-08"
         assert senda.ultimo_observado.pct_volumen_util == pytest.approx(self.valores[-1], abs=0.01)
 
-    @pytest.mark.parametrize("horizonte", [6, 12, 18])
+    @pytest.mark.parametrize("horizonte", [1, 3, 6, 12])
     def test_proyecta_el_horizonte_solicitado(self, horizonte):
         senda = self.caso.ejecutar("A", horizonte_meses=horizonte)
         assert len(senda.proyeccion) == horizonte
@@ -179,3 +181,68 @@ class TestValidacionWalkForward:
         for fold in (c for c in forecasting.llamadas if c["horizonte"] == 1):
             assert fold["fechas"] == sorted(fold["fechas"])
             assert fold["fechas"][-1] < date(2025, 8, 3)
+
+
+class TestSendaConProyeccionDeOutputs:
+    """La proyeccion publicada por el modelo de Outputs reemplaza a Holt-Winters."""
+
+    def setup_method(self):
+        self.embalse = crear_embalse("A")
+        self.mediciones = serie_mensual_constante(self.embalse, _rampa())
+        self.forecasting = ForecastingPersistencia()
+
+    def _caso(self, publicada):
+        return ObtenerSendaVolumenUseCase(
+            EmbalseRepositoryEnMemoria([self.embalse]),
+            MedicionRepositoryEnMemoria(self.mediciones),
+            self.forecasting,
+            ProyeccionSendaRepositoryEnMemoria(publicada),
+        )
+
+    def test_usa_la_proyeccion_publicada_y_no_llama_al_modelo_estadistico(self):
+        senda = self._caso(crear_proyeccion_publicada("A")).ejecutar("A", horizonte_meses=12)
+        assert senda.origen_proyeccion == "outputs"
+        assert self.forecasting.llamadas == []
+        assert [p.valor_esperado for p in senda.proyeccion][:3] == [60.0, 58.0, 56.0]
+        assert (senda.proyeccion[0].limite_inferior, senda.proyeccion[0].limite_superior) == (57.0, 63.0)
+
+    def test_el_metodo_describe_el_origen_de_la_proyeccion(self):
+        publicada = crear_proyeccion_publicada("A", origen="Prophet + XGBoost (prueba)")
+        assert self._caso(publicada).ejecutar("A").metodo == "Prophet + XGBoost (prueba)"
+
+    def test_sin_validacion_walk_forward_porque_no_hay_modelo_local_que_validar(self):
+        assert self._caso(crear_proyeccion_publicada("A")).ejecutar("A").validacion == []
+
+    def test_el_minimo_proyectado_sale_de_la_proyeccion_publicada(self):
+        senda = self._caso(crear_proyeccion_publicada("A")).ejecutar("A")
+        assert senda.minimo_proyectado.valor_esperado == 38.0  # 60 - 2*11
+        assert senda.minimo_proyectado.mes == "2025-08"
+
+    @pytest.mark.parametrize("horizonte,esperado", [(1, 1), (3, 3), (6, 6), (12, 12)])
+    def test_el_horizonte_se_recorta_a_lo_publicado(self, horizonte, esperado):
+        senda = self._caso(crear_proyeccion_publicada("A", meses=12)).ejecutar("A", horizonte_meses=horizonte)
+        assert len(senda.proyeccion) == esperado
+        assert senda.horizonte_efectivo_meses == esperado
+
+    def test_si_la_corrida_publica_menos_meses_que_el_horizonte_pedido_lo_informa(self):
+        senda = self._caso(crear_proyeccion_publicada("A", meses=6)).ejecutar("A", horizonte_meses=12)
+        assert len(senda.proyeccion) == 6 and senda.horizonte_efectivo_meses == 6
+
+    def test_el_horizonte_corto_toma_los_primeros_meses(self):
+        senda = self._caso(crear_proyeccion_publicada("A")).ejecutar("A", horizonte_meses=6)
+        assert senda.proyeccion[0].mes == "2024-09" and senda.proyeccion[-1].mes == "2025-02"
+
+    def test_sin_proyeccion_publicada_para_ese_embalse_usa_el_respaldo(self):
+        senda = self._caso(crear_proyeccion_publicada("OTRO")).ejecutar("A", horizonte_meses=6)
+        assert senda.origen_proyeccion == "holt_winters"
+        assert senda.metodo == "Persistencia de prueba"
+        assert len(senda.validacion) == 2 and len(self.forecasting.llamadas) > 0
+
+    def test_el_historico_y_el_ultimo_observado_siguen_saliendo_de_las_mediciones(self):
+        senda = self._caso(crear_proyeccion_publicada("A")).ejecutar("A")
+        assert senda.ultimo_observado.mes == "2025-08"  # MESES=20 desde 2024-01
+        assert len(senda.historico) == MESES
+
+    def test_aplica_tambien_al_total_nacional(self):
+        senda = self._caso(crear_proyeccion_publicada("TOTAL", base=70.0)).ejecutar("TOTAL")
+        assert senda.origen_proyeccion == "outputs" and senda.proyeccion[0].valor_esperado == 70.0

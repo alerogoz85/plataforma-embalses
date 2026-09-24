@@ -46,15 +46,15 @@ describe("construccion de URLs", () => {
 
   it("la prediccion lleva el horizonte", async () => {
     const { llamadas } = simularFetch({ "/api/v1/embalses/GUAVIO/prediccion": () => crearPrediccion() });
-    await obtenerPrediccion("GUAVIO", 90);
-    expect(llamadas[0].searchParams.get("horizonte")).toBe("90");
+    await obtenerPrediccion("GUAVIO", 180);
+    expect(llamadas[0].searchParams.get("horizonte")).toBe("180");
   });
 
   it("la senda lleva embalse y horizonte en meses", async () => {
     const { llamadas } = simularFetch({ "/api/v1/senda-volumen": () => crearSenda() });
-    await obtenerSendaVolumen("TOTAL", 18);
+    await obtenerSendaVolumen("TOTAL", 3);
     expect(llamadas[0].searchParams.get("embalse")).toBe("TOTAL");
-    expect(llamadas[0].searchParams.get("horizonte_meses")).toBe("18");
+    expect(llamadas[0].searchParams.get("horizonte_meses")).toBe("3");
   });
 
   it("consulta regiones y la procedencia de los datos", async () => {
@@ -109,11 +109,11 @@ describe("errores", () => {
 
   it("usa el 'detail' de los errores de validacion de FastAPI", async () => {
     simularFetch({
-      "/api/v1/embalses/GUAVIO/prediccion": () => ({ status: 422, cuerpo: { detail: "El horizonte debe ser 30, 60 o 90 dias" } }),
+      "/api/v1/embalses/GUAVIO/prediccion": () => ({ status: 422, cuerpo: { detail: "El horizonte debe ser 30, 90, 180 o 360 dias (1, 3, 6 o 12 meses)" } }),
     });
     const error = await obtenerPrediccion("GUAVIO", 45).catch((e) => e);
     expect(error.status).toBe(422);
-    expect(error.message).toBe("El horizonte debe ser 30, 60 o 90 dias");
+    expect(error.message).toBe("El horizonte debe ser 30, 90, 180 o 360 dias (1, 3, 6 o 12 meses)");
   });
 
   it("cae al texto de estado si la respuesta no trae un mensaje utilizable", async () => {

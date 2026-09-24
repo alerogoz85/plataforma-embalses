@@ -23,7 +23,8 @@ from presentation.api.dependencies import (
 
 router = APIRouter(prefix="/api/v1/embalses", tags=["embalses"])
 
-HORIZONTES_PERMITIDOS = {30, 60, 90}
+# 1, 3, 6 y 12 meses, con el mes comercial de 30 dias.
+HORIZONTES_PERMITIDOS = {30, 90, 180, 360}
 
 
 @router.get("/resumen", response_model=ResumenNacionalDTO, summary="Panorama nacional agregado")
@@ -59,15 +60,15 @@ def obtener_detalle_embalse(
 @router.get(
     "/{embalse_id}/prediccion",
     response_model=PrediccionDTO,
-    summary="Pronostico de %V_util a 30/60/90 dias",
+    summary="Pronostico de %V_util a 1, 3, 6 o 12 meses (30, 90, 180 o 360 dias)",
 )
 def generar_prediccion(
     embalse_id: str,
-    horizonte: int = Query(default=30, description="Horizonte en dias (30, 60 o 90)"),
+    horizonte: int = Query(default=30, description="Horizonte en dias: 30, 90, 180 o 360 (1, 3, 6 o 12 meses)"),
     caso_de_uso: GenerarPrediccionUseCase = Depends(obtener_generar_prediccion_use_case),
 ) -> PrediccionDTO:
     if horizonte not in HORIZONTES_PERMITIDOS:
-        raise HTTPException(status_code=422, detail="El horizonte debe ser 30, 60 o 90 dias")
+        raise HTTPException(status_code=422, detail="El horizonte debe ser 30, 90, 180 o 360 dias (1, 3, 6 o 12 meses)")
     return caso_de_uso.ejecutar(embalse_id, horizonte_dias=horizonte)
 
 

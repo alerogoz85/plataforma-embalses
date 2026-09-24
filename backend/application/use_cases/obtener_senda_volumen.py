@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import date, datetime, timezone
+from typing import Optional
 
 from application.dtos.senda_volumen_dto import (
     MetricaValidacionDTO,
@@ -18,6 +19,7 @@ from domain.exceptions import (
 )
 from domain.repositories.embalse_repository import EmbalseRepository
 from domain.repositories.medicion_repository import MedicionRepository
+from domain.repositories.proyeccion_senda_repository import ProyeccionSendaRepository
 from domain.services.calculo_hidrico_service import CalculoHidricoService
 
 ID_TOTAL_NACIONAL = "TOTAL"
@@ -25,13 +27,18 @@ PASO_DIAS_MENSUAL = 30
 MESES_VALIDACION = 6
 MINIMO_MESES_HISTORICO = 9
 NIVEL_CONFIANZA = 0.95
+ORIGEN_OUTPUTS = "outputs"
+ORIGEN_HOLT_WINTERS = "holt_winters"
 
 
 class ObtenerSendaVolumenUseCase(ObtenerSendaVolumenPort):
     """Construye la senda mensual observada + proyectada de %V. util de un
-    embalse (o del agregado nacional ponderado 'TOTAL'), junto con una
-    validacion walk-forward honesta que compara el modelo de pronostico
-    contra una linea base ingenua de persistencia (ultimo valor observado).
+    embalse (o del agregado nacional ponderado 'TOTAL').
+
+    La proyeccion es la del modelo de largo plazo (Outputs: Prophet + XGBoost
+    con escenarios ENSO) cuando hay una publicada para el embalse. Sin ella
+    (p. ej. Agregado Bogota) se usa un respaldo estadistico, Holt-Winters, junto
+    con una validacion walk-forward que lo compara contra la persistencia.
     """
 
     def __init__(
@@ -39,10 +46,12 @@ class ObtenerSendaVolumenUseCase(ObtenerSendaVolumenPort):
         embalse_repository: EmbalseRepository,
         medicion_repository: MedicionRepository,
         forecasting_service: ForecastingPort,
+        proyeccion_repository: Optional[ProyeccionSendaRepository] = None,
     ) -> None:
         self._embalses_repo = embalse_repository
         self._mediciones_repo = medicion_repository
         self._forecasting = forecasting_service
+        self._proyecciones = proyeccion_repository
         self._calculo = CalculoHidricoService()
 
     def ejecutar(
@@ -73,22 +82,40 @@ class ObtenerSendaVolumenUseCase(ObtenerSendaVolumenPort):
         fechas_mensuales = [fecha for fecha, _ in historico_mensual]
         valores_mensuales = [valor for _, valor in historico_mensual]
 
-        puntos_forecast = self._forecasting.proyectar(
-            serie_historica=valores_mensuales,
-            fechas_historicas=fechas_mensuales,
-            horizonte_periodos=horizonte_meses,
-            nivel_confianza=NIVEL_CONFIANZA,
-            paso_dias=PASO_DIAS_MENSUAL,
-        )
-        proyeccion = [
-            PuntoProyeccionMensualDTO(
-                mes=p.fecha.strftime("%Y-%m"),
-                valor_esperado=round(p.valor_esperado, 2),
-                limite_inferior=round(p.limite_inferior, 2),
-                limite_superior=round(p.limite_superior, 2),
+        publicada = self._proyecciones.obtener(embalse_id) if self._proyecciones else []
+        if publicada:
+            proyeccion = [
+                PuntoProyeccionMensualDTO(
+                    mes=p.mes.strftime("%Y-%m"),
+                    valor_esperado=round(p.valor_esperado, 2),
+                    limite_inferior=round(p.limite_inferior, 2),
+                    limite_superior=round(p.limite_superior, 2),
+                )
+                for p in publicada[:horizonte_meses]
+            ]
+            metodo = publicada[0].origen
+            origen_proyeccion = ORIGEN_OUTPUTS
+            validacion: list[MetricaValidacionDTO] = []
+        else:
+            puntos_forecast = self._forecasting.proyectar(
+                serie_historica=valores_mensuales,
+                fechas_historicas=fechas_mensuales,
+                horizonte_periodos=horizonte_meses,
+                nivel_confianza=NIVEL_CONFIANZA,
+                paso_dias=PASO_DIAS_MENSUAL,
             )
-            for p in puntos_forecast
-        ]
+            proyeccion = [
+                PuntoProyeccionMensualDTO(
+                    mes=p.fecha.strftime("%Y-%m"),
+                    valor_esperado=round(p.valor_esperado, 2),
+                    limite_inferior=round(p.limite_inferior, 2),
+                    limite_superior=round(p.limite_superior, 2),
+                )
+                for p in puntos_forecast
+            ]
+            metodo = self._forecasting.nombre_metodo()
+            origen_proyeccion = ORIGEN_HOLT_WINTERS
+            validacion = self._validar_walk_forward(valores_mensuales, fechas_mensuales)
         minimo_proyectado = min(proyeccion, key=lambda p: p.valor_esperado)
 
         ultima_fecha, ultimo_valor = historico_mensual[-1]
@@ -103,13 +130,15 @@ class ObtenerSendaVolumenUseCase(ObtenerSendaVolumenPort):
         return SendaVolumenDTO(
             embalse_id=embalse_id,
             nombre=nombre,
-            metodo=self._forecasting.nombre_metodo(),
+            metodo=metodo,
             generado_en=datetime.now(timezone.utc),
             ultimo_observado=ultimo_observado,
             minimo_proyectado=minimo_proyectado,
             historico=historico,
             proyeccion=proyeccion,
-            validacion=self._validar_walk_forward(valores_mensuales, fechas_mensuales),
+            validacion=validacion,
+            origen_proyeccion=origen_proyeccion,
+            horizonte_efectivo_meses=len(proyeccion),
         )
 
     def _serie_diaria_nacional(self) -> list[tuple[date, float]]:

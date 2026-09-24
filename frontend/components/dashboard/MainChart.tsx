@@ -46,6 +46,7 @@ export function MainChart({
   const [horizonte, setHorizonte] = useState<HorizontePrediccion>(30);
   const detalle = useEmbalseDetalle(embalseId, { fechaInicio, fechaFin });
   const prediccion = usePrediccion(embalseId, horizonte);
+  const esOutputs = prediccion.datos?.origen === "outputs";
 
   const datos = useMemo<PuntoGrafico[]>(() => {
     const serie = detalle.datos?.serie_historica ?? [];
@@ -109,7 +110,9 @@ export function MainChart({
         title={`${nombreEmbalse} — %V. útil vs. aportes y proyección ML`}
         subtitle={
           prediccion.datos
-            ? `${prediccion.datos.metodo} · IC ${Math.round((prediccion.datos.nivel_confianza ?? 0.95) * 100)}%`
+            ? esOutputs
+              ? `${prediccion.datos.metodo} · escenarios P10–P90`
+              : `${prediccion.datos.metodo} · IC ${Math.round((prediccion.datos.nivel_confianza ?? 0.95) * 100)}%`
             : "Cargando modelo de pronóstico…"
         }
         action={
@@ -127,7 +130,7 @@ export function MainChart({
                   }`}
                   style={horizonte === h ? { backgroundColor: "var(--color-marca)" } : undefined}
                 >
-                  {h}d
+                  {h / 30}m
                 </button>
               ))}
             </div>
@@ -175,7 +178,7 @@ export function MainChart({
               stackId="banda"
               stroke="none"
               fill="var(--chart-banda)"
-              name="Intervalo de confianza 95%"
+              name={esOutputs ? "Escenarios P10–P90 (ENSO)" : "Intervalo de confianza 95%"}
               isAnimationActive={false}
             />
             <Line
