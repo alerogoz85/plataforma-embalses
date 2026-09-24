@@ -1,0 +1,12 @@
+# Backend (Python)
+backend/.venv/
+backend/**/__pycache__/
+backend/.pytest_cache/
+*.pyc
+
+# Datos generados por el seed (no versionados)
+data/*.duckdb
+data/*.duckdb.wal
+
+# Sistema
+.DS_Store

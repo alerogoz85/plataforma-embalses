@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #f4f7fb;
+  --background-elevated: #ffffff;
+  --foreground: #0f172a;
+  --foreground-muted: #52607a;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+
+  --color-optimo: #0891b2;
+  --color-optimo-bg: #ecfeff;
+  --color-alerta: #d97706;
+  --color-alerta-bg: #fffbeb;
+  --color-critico: #dc2626;
+  --color-critico-bg: #fef2f2;
+  --color-reboce: #be123c;
+  --color-reboce-bg: #fff1f2;
+
+  --chart-volumen: #0891b2;
+  --chart-aportes: #6366f1;
+  --chart-prediccion: #0891b2;
+  --chart-banda: #0891b233;
+}
+
+:root.dark {
+  --background: #0b1220;
+  --background-elevated: #131c2e;
+  --foreground: #e7edf7;
+  --foreground-muted: #93a3bf;
+  --border: #223049;
+  --border-strong: #2e4066;
+
+  --color-optimo: #22d3ee;
+  --color-optimo-bg: #0e2b33;
+  --color-alerta: #fbbf24;
+  --color-alerta-bg: #332409;
+  --color-critico: #f87171;
+  --color-critico-bg: #331313;
+  --color-reboce: #fb7185;
+  --color-reboce-bg: #33101a;
+
+  --chart-volumen: #22d3ee;
+  --chart-aportes: #818cf8;
+  --chart-prediccion: #22d3ee;
+  --chart-banda: #22d3ee2b;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-background-elevated: var(--background-elevated);
+  --color-foreground: var(--foreground);
+  --color-foreground-muted: var(--foreground-muted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-optimo: var(--color-optimo);
+  --color-optimo-bg: var(--color-optimo-bg);
+  --color-alerta: var(--color-alerta);
+  --color-alerta-bg: var(--color-alerta-bg);
+  --color-critico: var(--color-critico);
+  --color-critico-bg: var(--color-critico-bg);
+  --color-reboce: var(--color-reboce);
+  --color-reboce-bg: var(--color-reboce-bg);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+* {
+  border-color: var(--border);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 9999px;
+}
+
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--border) 25%, var(--border-strong) 37%, var(--border) 63%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s linear infinite;
+}
