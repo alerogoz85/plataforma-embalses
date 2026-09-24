@@ -5,15 +5,18 @@
 Plataforma de monitoreo hidrológico con **datos reales y públicos de XM/SIMEM**
 (Colombia): volumen y energía útiles, aportes, descargas, pronóstico diario de
 %V. útil y una senda mensual de largo plazo, ambos a 1, 3, 6 y 12 meses, con
-la proyección del modelo de largo plazo (Prophet + XGBoost, escenarios ENSO). Backend con arquitectura hexagonal y dashboard Next.js
-con ayuda contextual (ⓘ) en cada encabezado técnico.
+la proyección del modelo de largo plazo (Prophet + XGBoost, escenarios ENSO).
+Backend con arquitectura hexagonal y dashboard Next.js con ayuda contextual (ⓘ)
+en cada encabezado técnico.
 
 > **Los datos son reales**, descargados de SIMEM y de la API de XM con un
 > comando de sincronización, y se guardan en una base DuckDB local (la API no
 > llama a servicios externos en cada consulta). El pie del dashboard muestra
-> la procedencia y la fecha de corte. Los **pronósticos**, en cambio, son
-> modelos estadísticos propios sobre esa historia — no son proyecciones
-> oficiales (ver [Alcance y límites](#alcance-y-límites)). Existe una fuente
+> la procedencia y la fecha de corte. Las **proyecciones** no vienen de XM: son la
+> salida del modelo de largo plazo del proyecto `1. Modelo niveles de embalses`
+> (importada a la base), con un respaldo estadístico propio (Holt-Winters) solo
+> para Agregado Bogotá; no son proyecciones oficiales (ver
+> [Alcance y límites](#alcance-y-límites)). Existe una fuente
 > sintética opcional para demostraciones sin red; si se usa, el dashboard lo
 > declara ("Datos no reales").
 
@@ -241,14 +244,14 @@ y
 ```
 plataforma-embalses/
 ├── backend/
-│   ├── domain/                  # Entidades, value objects, servicios, interfaces de repositorio
+│   ├── domain/                  # Entidades, value objects, servicios (cálculo hídrico, autonomía, interpolación diaria), interfaces de repositorio
 │   ├── application/              # DTOs, puertos, casos de uso (incl. SincronizarDatos)
 │   ├── infrastructure/
 │   │   ├── persistence/          # DuckDB (schema.sql, conexión thread-safe, repositorios)
 │   │   ├── fuentes/              # Clientes HTTP (SIMEM, XM) y adaptador SimemXmFuenteMediciones
 │   │   ├── data_generation/      # Fuente sintética opcional (catálogo + generador)
 │   │   ├── ingesta/              # CLI de sincronización e importación de la proyección de Outputs
-│   │   └── ml/                   # Adaptador de pronóstico Holt-Winters
+│   │   └── ml/                   # Adaptador de pronóstico Holt-Winters (respaldo)
 │   ├── presentation/api/         # FastAPI: main, dependencies (composition root), routers, arranque_vercel
 │   ├── index.py, vercel.json     # Punto de entrada y configuración del despliegue en Vercel
 │   ├── tests/                    # Pruebas (pytest)
