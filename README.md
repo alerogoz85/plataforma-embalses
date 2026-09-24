@@ -1,5 +1,7 @@
 # Plataforma de Monitoreo y Predicción de Embalses
 
+[![CI](https://github.com/alerogoz85/plataforma-embalses/actions/workflows/ci.yml/badge.svg)](https://github.com/alerogoz85/plataforma-embalses/actions/workflows/ci.yml)
+
 Plataforma de monitoreo hidrológico con **datos reales y públicos de XM/SIMEM**
 (Colombia): volumen y energía útiles, aportes, descargas, pronóstico diario de
 %V. útil a 30/60/90 días y una senda mensual de largo plazo (6/12/18 meses) con
@@ -257,7 +259,7 @@ plataforma-embalses/
 cd plataforma-embalses/backend
 python3.12 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements-dev.txt   # incluye pytest; usa requirements.txt para solo ejecutar
+pip install -r requirements-dev.txt   # incluye pytest, httpx y pyflakes; usa requirements.txt para solo ejecutar
 ```
 
 Carga inicial de datos reales (unos 2 minutos; descarga desde 2022-01-01):
@@ -333,6 +335,18 @@ dominio se traducen a HTTP de forma centralizada en
 `DatosHistoricosInsuficientesError` → 422, cualquier otro `DomainError` → 400.
 
 ## Pruebas
+
+### Integración continua
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) corre en cada push a `main`
+y en cada pull request, con dos jobs en paralelo:
+
+- **Backend** (Python 3.12): `pyflakes` sobre el código y las pruebas, y `pytest`.
+- **Frontend** (Node 22): `npm ci`, `npm run lint`, `npm test` y `npm run build`
+  (el build también verifica los tipos de TypeScript).
+
+No usa secretos ni red hacia SIMEM/XM: las pruebas no llaman a servicios externos.
+Una ejecución nueva sobre la misma rama cancela la anterior.
 
 ### Backend — 171 pruebas (pytest)
 
