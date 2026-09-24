@@ -10,6 +10,7 @@ interface FiltersPanelProps {
   onCambiarRegion: (region: string | null) => void;
   embalseSeleccionado: string | null;
   onCambiarEmbalse: (embalseId: string | null) => void;
+  onRestablecer: () => void;
   fechaInicio: string;
   fechaFin: string;
   onCambiarFechaInicio: (fecha: string) => void;
@@ -22,6 +23,7 @@ export function FiltersPanel({
   onCambiarRegion,
   embalseSeleccionado,
   onCambiarEmbalse,
+  onRestablecer,
   fechaInicio,
   fechaFin,
   onCambiarFechaInicio,
@@ -38,10 +40,7 @@ export function FiltersPanel({
         <select
           className="campo-select"
           value={regionSeleccionada ?? ""}
-          onChange={(e) => {
-            onCambiarRegion(e.target.value || null);
-            onCambiarEmbalse(null);
-          }}
+          onChange={(e) => onCambiarRegion(e.target.value || null)}
         >
           <option value="">Todas las regiones</option>
           {REGIONES.map((region) => (
@@ -86,6 +85,21 @@ export function FiltersPanel({
           onChange={(e) => onCambiarFechaFin(e.target.value)}
         />
       </Campo>
+
+      <div className="flex justify-end sm:col-span-2 lg:col-span-4">
+        <button
+          type="button"
+          onClick={onRestablecer}
+          className="inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-xs font-semibold transition-colors hover:bg-marca hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-marca)]"
+          style={{ borderColor: "var(--color-marca)", color: "var(--color-marca)" }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M3 12a9 9 0 1 0 3-6.7" />
+            <path d="M3 4v5h5" />
+          </svg>
+          Restablecer filtros
+        </button>
+      </div>
 
       <style jsx>{`
         :global(.campo-select) {

@@ -233,7 +233,7 @@ plataforma-embalses/
 │   └── requirements*.txt
 ├── frontend/
 │   ├── app/                      # Next.js App Router (layout, page, globals.css con los tokens de la identidad visual)
-│   ├── public/marca/             # Logos GOV.CO y Ministerio de Minas y Energía
+│   ├── public/marca/             # Logos GOV.CO y Ministerio de Minas y Energía (el favicon del navegador es el del Ministerio: app/favicon.ico)
 │   ├── components/
 │   │   ├── layout/                # Header (franja GOV.CO + logo), ThemeToggle
 │   │   ├── dashboard/              # KpiCard, SistemaRiesgoCard, RiskBadge, FiltersPanel, MainChart, RegionBarChart, SendaVolumenPanel, EmbalsesTable, ayudas.tsx (textos de ayuda)
@@ -461,7 +461,7 @@ repositorios en memoria; DuckDB se prueba aparte). La descarga real de SIMEM/XM
 se verificó manualmente (carga completa e incremental) y contra el agregado
 oficial de XM, pero no en las pruebas automáticas, que no usan red.
 
-### Frontend — 178 pruebas (Vitest + React Testing Library + jsdom)
+### Frontend — 182 pruebas (Vitest + React Testing Library + jsdom)
 
 Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 ([`tests/mocks/fetch.ts`](frontend/tests/mocks/fetch.ts)) con datos de ejemplo
@@ -475,12 +475,12 @@ Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 | `hooks/useAsyncResource.test.tsx` | 10 | Estados cargando/datos/error, cancelación al desmontar y al cambiar dependencias, gana la última respuesta, sin peticiones repetidas |
 | `components/InfoButton.test.tsx` | 13 | Botón ⓘ: aria, mostrar al pasar el cursor/enfocar y ocultar al salir, clic táctil, Escape, fuera, scroll, resize, no propaga el clic, un solo panel, posición dentro de la pantalla |
 | `components/tarjetas.test.tsx` | 15 | KpiCard, RiskBadge y SistemaRiesgoCard (color del delta, niveles de riesgo, ayuda) |
-| `components/FiltersPanel.test.tsx` | 10 | Seis regiones (incl. Caldas), embalses según región, callbacks (`null`, no cadena vacía), límites de fechas, ayudas |
+| `components/FiltersPanel.test.tsx` | 11 | Seis regiones (incl. Caldas), embalses según región, callbacks (`null`, no cadena vacía), botón «Restablecer filtros», límites de fechas, ayudas |
 | `components/EmbalsesTable.test.tsx` | 22 | Orden (asc/desc, texto, nulos), búsqueda, "—" por dato no publicado, cero real, insignia "Agregado", selección de fila, enlaces de reporte, esqueletos |
 | `components/graficos.test.tsx` | 19 | Regiones (orden, color por riesgo, eje sobre 100%) y gráfico principal (punto puente histórico→proyección, huecos `null`, series, horizonte, errores parciales) |
 | `components/SendaVolumenPanel.test.tsx` | 23 | Semáforo del mínimo proyectado en los umbrales exactos, datos del gráfico, tabla de validación, selectores, estados de carga y error |
 | `components/ThemeToggle.test.tsx` | 6 | Preferencia guardada vs. del sistema, clase `dark`, sincronía entre botones |
-| `app/page.test.tsx` | 17 | Página completa con la API simulada: KPIs, procedencia real/no real, selección automática, rango de 180 días, **cambio de región sin dejar un embalse de otra región seleccionado**, error de API |
+| `app/page.test.tsx` | 20 | Página completa con la API simulada: KPIs, procedencia real/no real, selección automática, rango de 180 días, **cambio de región sin dejar un embalse de otra región seleccionado**, «Todos los embalses» que se mantiene, restablecer filtros (región, embalse y fechas), error de API |
 | `app/ayudas.test.tsx` | 6 | Catálogo de ayudas (títulos únicos, sin textos obsoletos) y auditoría: todo encabezado, columna, filtro y tarjeta tiene su ⓘ y todos abren y cierran |
 
 Recharts se sustituye por un doble
@@ -561,6 +561,11 @@ Las pruebas encontraron **tres defectos reales**, ya corregidos:
   así que el resultado (a veces la persistencia empata o gana) no es
   decorativo. La senda usa sus propios umbrales de riesgo (rojo <55%, ámbar
   <65%), distintos de los del estado diario.
+- **Filtros y «Todos los embalses»**: elegir «Todos los embalses» (o pulsar
+  «Restablecer filtros», que además vuelve a Todas las regiones y al rango de
+  180 días) es una elección explícita y se mantiene; el gráfico principal pide
+  entonces escoger un embalse. Sin esa elección, un embalse nulo se
+  auto-corrige al primero de la lista (carga inicial y cambio de región).
 - **Ayuda contextual (ⓘ)**: cada encabezado técnico, filtro, selector de
   horizonte y columna de tabla tiene un botón
   [`InfoButton`](frontend/components/ui/InfoButton.tsx) con una explicación
