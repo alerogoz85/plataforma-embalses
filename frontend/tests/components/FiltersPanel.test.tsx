@@ -10,6 +10,7 @@ function montar(props: Partial<React.ComponentProps<typeof FiltersPanel>> = {}) 
   const manejadores = {
     onCambiarRegion: vi.fn(),
     onCambiarEmbalse: vi.fn(),
+    onRestablecer: vi.fn(),
     onCambiarFechaInicio: vi.fn(),
     onCambiarFechaFin: vi.fn(),
   };
@@ -50,11 +51,19 @@ describe("FiltersPanel", () => {
     expect(nombres).toEqual(["Todos los embalses", "Prado", "Muna", "Agregado Bogotá"]);
   });
 
-  it("al elegir una region la informa y limpia el embalse", async () => {
+  it("al elegir una region solo informa la region (la pagina decide el embalse)", async () => {
     const m = montar();
     await userEvent.selectOptions(region(), "Centro");
     expect(m.onCambiarRegion).toHaveBeenCalledWith("Centro");
-    expect(m.onCambiarEmbalse).toHaveBeenCalledWith(null);
+    expect(m.onCambiarEmbalse).not.toHaveBeenCalled();
+  });
+
+  it("el boton 'Restablecer filtros' avisa a la pagina sin tocar cada filtro", async () => {
+    const m = montar();
+    await userEvent.click(screen.getByRole("button", { name: "Restablecer filtros" }));
+    expect(m.onRestablecer).toHaveBeenCalledTimes(1);
+    expect(m.onCambiarRegion).not.toHaveBeenCalled();
+    expect(m.onCambiarEmbalse).not.toHaveBeenCalled();
   });
 
   it("volver a 'Todas las regiones' informa null, no una cadena vacia", async () => {

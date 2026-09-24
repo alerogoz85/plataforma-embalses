@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -156,6 +156,38 @@ describe("DashboardPage filtro de region", () => {
     await waitFor(() => expect(tituloGrafico()).toHaveTextContent("Prado"));
     const opciones = within(selectorEmbalse()).getAllByRole("option").map((o) => o.textContent);
     expect(opciones).not.toContain("Guavio");
+  });
+
+  it("elegir 'Todos los embalses' se mantiene (no vuelve al primero) y el grafico pide elegir uno", async () => {
+    await pagina();
+    await userEvent.selectOptions(selectorEmbalse(), "Todos los embalses");
+    expect(selectorEmbalse()).toHaveValue("");
+    expect(await screen.findByText(/Selecciona un embalse en los filtros/)).toBeInTheDocument();
+  });
+
+  it("'Restablecer filtros' devuelve region, embalse y fechas a Todos / valores por defecto", async () => {
+    await pagina();
+    await userEvent.selectOptions(selectorRegion(), "Centro");
+    await waitFor(() => expect(selectorEmbalse()).toHaveValue("PRADO"));
+    const desde = screen.getByLabelText(/Desde/) as HTMLInputElement;
+    const porDefecto = desde.value;
+    fireEvent.change(desde, { target: { value: "2026-05-01" } });
+    expect(desde.value).toBe("2026-05-01");
+
+    await userEvent.click(screen.getByRole("button", { name: "Restablecer filtros" }));
+
+    expect(selectorRegion()).toHaveValue("");
+    expect(selectorEmbalse()).toHaveValue("");
+    expect(desde.value).toBe(porDefecto);
+    await waitFor(() => expect(filasTabla()).toHaveLength(1 + EMBALSES_EJEMPLO.length));
+  });
+
+  it("tras restablecer, cambiar de region vuelve a elegir automaticamente el primer embalse", async () => {
+    await pagina();
+    await userEvent.click(screen.getByRole("button", { name: "Restablecer filtros" }));
+    expect(selectorEmbalse()).toHaveValue("");
+    await userEvent.selectOptions(selectorRegion(), "Centro");
+    await waitFor(() => expect(selectorEmbalse()).toHaveValue("PRADO"));
   });
 
   it("volver a todas las regiones restablece la lista completa", async () => {

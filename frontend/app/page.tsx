@@ -45,6 +45,9 @@ const ICONO_RAYO = (
 export default function DashboardPage() {
   const [region, setRegion] = useState<string | null>(null);
   const [embalseId, setEmbalseId] = useState<string | null>(null);
+  // "Todos los embalses" es una eleccion explicita: sin ella, un embalse nulo se
+  // auto-corrige al primero de la lista (carga inicial y cambio de region).
+  const [todosLosEmbalses, setTodosLosEmbalses] = useState(false);
   const [fechaInicio, setFechaInicio] = useState(fechaHaceDias(180));
   const [fechaFin, setFechaFin] = useState(hoyISO());
 
@@ -63,8 +66,27 @@ export default function DashboardPage() {
   // estado durante el render (sin efecto) siguiendo el patron recomendado
   // por React para derivar un valor a partir de datos que llegan de forma
   // asincrona.
-  if (embalses.length > 0 && !embalseActual) {
+  if (!todosLosEmbalses && embalses.length > 0 && !embalseActual) {
     setEmbalseId(embalses[0].id);
+  }
+
+  function cambiarRegion(nueva: string | null) {
+    setRegion(nueva);
+    setEmbalseId(null);
+    setTodosLosEmbalses(false);
+  }
+
+  function cambiarEmbalse(id: string | null) {
+    setEmbalseId(id);
+    setTodosLosEmbalses(id === null);
+  }
+
+  function restablecerFiltros() {
+    setRegion(null);
+    setEmbalseId(null);
+    setTodosLosEmbalses(true);
+    setFechaInicio(fechaHaceDias(180));
+    setFechaFin(hoyISO());
   }
 
   return (
@@ -74,9 +96,10 @@ export default function DashboardPage() {
       <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-5 px-4 py-6 sm:px-6">
         <FiltersPanel
           regionSeleccionada={region}
-          onCambiarRegion={setRegion}
+          onCambiarRegion={cambiarRegion}
           embalseSeleccionado={embalseId}
-          onCambiarEmbalse={setEmbalseId}
+          onCambiarEmbalse={cambiarEmbalse}
+          onRestablecer={restablecerFiltros}
           fechaInicio={fechaInicio}
           fechaFin={fechaFin}
           onCambiarFechaInicio={setFechaInicio}
@@ -152,7 +175,7 @@ export default function DashboardPage() {
           <EmbalsesTable
             embalses={embalses}
             cargando={resumen.cargando}
-            onSeleccionar={setEmbalseId}
+            onSeleccionar={cambiarEmbalse}
             embalseSeleccionado={embalseId}
           />
         </section>
