@@ -348,6 +348,25 @@ y en cada pull request, con dos jobs en paralelo:
 No usa secretos ni red hacia SIMEM/XM: las pruebas no llaman a servicios externos.
 Una ejecución nueva sobre la misma rama cancela la anterior.
 
+### Flujo de trabajo y protección de `main`
+
+La rama `main` está protegida (incluye a los administradores):
+
+- Los cambios entran **solo por pull request**; no se puede hacer push directo.
+- Deben pasar los dos checks de CI —`Backend (pyflakes + pytest)` y
+  `Frontend (lint + pruebas + build)`— y la rama debe estar al día con `main`.
+- Historial lineal (se fusiona con *squash* o *rebase*), sin push forzado, sin
+  borrar la rama y con las conversaciones resueltas.
+- No exige aprobaciones de revisión (proyecto de una sola persona); si se suman
+  colaboradores conviene subir `required_approving_review_count`.
+
+```bash
+git switch -c mi-cambio            # trabajar en una rama
+git push -u origin mi-cambio
+gh pr create --fill                # abrir el pull request
+gh pr merge --squash --delete-branch   # cuando los checks estén en verde
+```
+
 ### Backend — 171 pruebas (pytest)
 
 171 pruebas con pytest, sin red ni base de datos externa (repositorios,
