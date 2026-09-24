@@ -232,9 +232,10 @@ plataforma-embalses/
 │   ├── tests/                    # Pruebas (pytest)
 │   └── requirements*.txt
 ├── frontend/
-│   ├── app/                      # Next.js App Router (layout, page, globals.css)
+│   ├── app/                      # Next.js App Router (layout, page, globals.css con los tokens de la identidad visual)
+│   ├── public/marca/             # Logos GOV.CO y Ministerio de Minas y Energía
 │   ├── components/
-│   │   ├── layout/                # Header, ThemeToggle
+│   │   ├── layout/                # Header (franja GOV.CO + logo), ThemeToggle
 │   │   ├── dashboard/              # KpiCard, SistemaRiesgoCard, RiskBadge, FiltersPanel, MainChart, RegionBarChart, SendaVolumenPanel, EmbalsesTable, ayudas.tsx (textos de ayuda)
 │   │   └── ui/                     # Card, Skeleton, InfoButton (botón ⓘ)
 │   ├── tests/                    # Pruebas (Vitest + Testing Library): utils, api, hooks, components, app, mocks, fixtures
@@ -460,7 +461,7 @@ repositorios en memoria; DuckDB se prueba aparte). La descarga real de SIMEM/XM
 se verificó manualmente (carga completa e incremental) y contra el agregado
 oficial de XM, pero no en las pruebas automáticas, que no usan red.
 
-### Frontend — 177 pruebas (Vitest + React Testing Library + jsdom)
+### Frontend — 178 pruebas (Vitest + React Testing Library + jsdom)
 
 Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 ([`tests/mocks/fetch.ts`](frontend/tests/mocks/fetch.ts)) con datos de ejemplo
@@ -472,7 +473,7 @@ Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 | `utils/dates.test.ts` | 6 | Fechas en calendario **local** (hora de Bogotá): no se adelanta un día de noche |
 | `api/client.test.ts` | 19 | Construcción de URLs y query strings (parámetros repetibles, vacíos omitidos), `urlReporte`, cancelación, errores (`detalle` de dominio y `detail` de FastAPI, fallos de red) y URL base según el entorno (local vs. `/` en producción) |
 | `hooks/useAsyncResource.test.tsx` | 10 | Estados cargando/datos/error, cancelación al desmontar y al cambiar dependencias, gana la última respuesta, sin peticiones repetidas |
-| `components/InfoButton.test.tsx` | 12 | Botón ⓘ: aria, abrir/cerrar (clic, Escape, fuera, scroll, resize), no propaga el clic, un solo panel, posición dentro de la pantalla |
+| `components/InfoButton.test.tsx` | 13 | Botón ⓘ: aria, mostrar al pasar el cursor/enfocar y ocultar al salir, clic táctil, Escape, fuera, scroll, resize, no propaga el clic, un solo panel, posición dentro de la pantalla |
 | `components/tarjetas.test.tsx` | 15 | KpiCard, RiskBadge y SistemaRiesgoCard (color del delta, niveles de riesgo, ayuda) |
 | `components/FiltersPanel.test.tsx` | 10 | Seis regiones (incl. Caldas), embalses según región, callbacks (`null`, no cadena vacía), límites de fechas, ayudas |
 | `components/EmbalsesTable.test.tsx` | 22 | Orden (asc/desc, texto, nulos), búsqueda, "—" por dato no publicado, cero real, insignia "Agregado", selección de fila, enlaces de reporte, esqueletos |
@@ -563,10 +564,13 @@ Las pruebas encontraron **tres defectos reales**, ya corregidos:
 - **Ayuda contextual (ⓘ)**: cada encabezado técnico, filtro, selector de
   horizonte y columna de tabla tiene un botón
   [`InfoButton`](frontend/components/ui/InfoButton.tsx) con una explicación
-  (qué se muestra, cómo se calcula, cómo leerlo). El panel usa posición `fixed`
-  calculada al abrir para no quedar recortado por las tablas con scroll, se
-  cierra con Escape, clic fuera o scroll, y es accesible (`aria-label`,
-  `aria-expanded`). Los textos viven en
+  (qué se muestra, cómo se calcula, cómo leerlo). La ayuda aparece al pasar el
+  cursor (o al enfocar con teclado) y se oculta al salir; un toque la abre en
+  pantallas táctiles. En las tarjetas el botón va en la esquina superior
+  derecha. El panel usa posición `fixed` calculada al abrir para no quedar
+  recortado por las tablas con scroll y no captura el cursor (sin parpadeos);
+  también se cierra con Escape, clic fuera o scroll, y es accesible
+  (`aria-label`, `aria-expanded`). Los textos viven en
   [`ayudas.tsx`](frontend/components/dashboard/ayudas.tsx).
 - **Frontend sin librería de fetching externa**: un hook (`useAsyncResource`)
   cubre los flujos de datos del dashboard sin añadir SWR/React Query.
