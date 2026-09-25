@@ -90,12 +90,13 @@ export const AYUDAS = {
     titulo: "Riesgo del sistema",
     contenido: (
       <>
-        <p>Clasificación del %V. útil nacional:</p>
+        <p>Clasificación del %V. útil del sistema (la misma que usan la tabla y la distribución regional):</p>
         <ul className="list-disc pl-4">
-          <li>Óptimo: entre 30% y 95%</li>
-          <li>Alerta de sequía: entre 15% y 30%</li>
-          <li>Crítico: menos de 15%</li>
-          <li>Reboce: 95% o más (riesgo de vertimiento)</li>
+          <li>Normal: más de 80%</li>
+          <li>Estable: de 70% a 80%</li>
+          <li>Alerta temprana: de 60% a menos de 70%</li>
+          <li>Situación delicada: de 50% a menos de 60%</li>
+          <li>Crítico: menos de 50%</li>
         </ul>
       </>
     ),
@@ -129,7 +130,7 @@ export const AYUDAS = {
       <p>
         %V. útil agregado por región hidrológica según la clasificación de XM (Antioquia, Caldas,
         Caribe, Centro, Oriente, Valle), ponderado por capacidad en energía, de menor a mayor. El
-        color sigue la clasificación de riesgo: azul óptimo, ámbar alerta, rojo crítico o reboce.
+        color sigue la clasificación de riesgo: verde normal, cian estable, ámbar alerta temprana, naranja situación delicada y rojo crítico.
       </p>
     ),
   },
@@ -273,7 +274,7 @@ export const AYUDAS = {
   },
   colPctVolumen: {
     titulo: "% Vol. útil",
-    contenido: <p>Porcentaje de agua útil almacenada, con su nivel de riesgo (óptimo, alerta, crítico o reboce).</p>,
+    contenido: <p>Porcentaje de agua útil almacenada, con su nivel de riesgo (normal, estable, alerta temprana, situación delicada o crítico).</p>,
   },
   colAportes: {
     titulo: "Aportes (% media)",

@@ -39,7 +39,7 @@ describe("DashboardPage indicadores", () => {
     expect(kpis).toHaveTextContent("-1.47 p.p. semanal");
     expect(kpis).toHaveTextContent("46.3%");
     expect(kpis).toHaveTextContent("13.553 GWh");
-    expect(kpis).toHaveTextContent("Óptimo");
+    expect(kpis).toHaveTextContent("Estable");
     expect(kpis).toHaveTextContent("4 embalses monitoreados"); // los 4 del fixture
   });
 

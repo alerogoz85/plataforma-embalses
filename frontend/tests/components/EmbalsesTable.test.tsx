@@ -139,7 +139,7 @@ describe("EmbalsesTable contenido", () => {
   });
 
   it("no rompe con valores por encima de 100%", () => {
-    montar({ embalses: [crearEmbalse({ id: "PLAYAS", nombre: "Playas", pct_volumen_util: 111.8, nivel_riesgo: "REBOCE" })] });
+    montar({ embalses: [crearEmbalse({ id: "PLAYAS", nombre: "Playas", pct_volumen_util: 111.8, nivel_riesgo: "NORMAL" })] });
     expect(within(fila("Playas")).getAllByRole("cell")[2]).toHaveTextContent("111.8%");
   });
 });

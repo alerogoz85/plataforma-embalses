@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   COLOR_VAR_RIESGO,
+  RANGO_RIESGO,
   SIN_DATO,
   etiquetaRiesgo,
   formatearDelta,
@@ -79,18 +80,24 @@ describe("fechas", () => {
 
 describe("riesgo", () => {
   it("tiene una etiqueta legible para cada nivel", () => {
-    expect(etiquetaRiesgo("OPTIMO")).toBe("Óptimo");
-    expect(etiquetaRiesgo("ALERTA")).toBe("Alerta de sequía");
+    expect(etiquetaRiesgo("NORMAL")).toBe("Normal");
+    expect(etiquetaRiesgo("ESTABLE")).toBe("Estable");
+    expect(etiquetaRiesgo("ALERTA_TEMPRANA")).toBe("Alerta temprana");
+    expect(etiquetaRiesgo("SITUACION_DELICADA")).toBe("Situación delicada");
     expect(etiquetaRiesgo("CRITICO")).toBe("Crítico");
-    expect(etiquetaRiesgo("REBOCE")).toBe("Reboce");
   });
 
   it("tiene una paleta semantica distinta para cada nivel", () => {
     const textos = Object.values(COLOR_VAR_RIESGO).map((c) => c.texto);
-    expect(new Set(textos).size).toBe(4);
-    expect(COLOR_VAR_RIESGO.OPTIMO.texto).toBe("var(--color-optimo)");
-    expect(COLOR_VAR_RIESGO.ALERTA.texto).toBe("var(--color-alerta)");
-    expect(COLOR_VAR_RIESGO.CRITICO.texto).toBe("var(--color-critico)");
-    expect(COLOR_VAR_RIESGO.REBOCE.texto).toBe("var(--color-reboce)");
+    expect(new Set(textos).size).toBe(5);
+    expect(COLOR_VAR_RIESGO.NORMAL.texto).toBe("var(--riesgo-normal)");
+    expect(COLOR_VAR_RIESGO.ESTABLE.texto).toBe("var(--riesgo-estable)");
+    expect(COLOR_VAR_RIESGO.ALERTA_TEMPRANA.texto).toBe("var(--riesgo-alerta-temprana)");
+    expect(COLOR_VAR_RIESGO.SITUACION_DELICADA.texto).toBe("var(--riesgo-delicada)");
+    expect(COLOR_VAR_RIESGO.CRITICO.texto).toBe("var(--riesgo-critico)");
+  });
+
+  it("publica el rango de %V. util de cada nivel (>80, 70-80, 60-70, 50-60, <50)", () => {
+    expect(Object.values(RANGO_RIESGO)).toEqual(["> 80 %", "70 – 80 %", "60 – 70 %", "50 – 60 %", "< 50 %"]);
   });
 });

@@ -18,7 +18,7 @@ export function crearEmbalse(sobrescribir: Partial<EmbalseResumen> = {}): Embals
     es_agregado: false,
     fecha: "2026-09-22",
     pct_volumen_util: 94.3,
-    nivel_riesgo: "OPTIMO",
+    nivel_riesgo: "NORMAL",
     volumen_util_mm3: 943,
     capacidad_util_mm3: 1000,
     energia_util_gwh: 2400,
@@ -51,8 +51,8 @@ export const EMBALSES_EJEMPLO: EmbalseResumen[] = [
 ];
 
 export const REGIONES_EJEMPLO: RegionResumen[] = [
-  { region: "Oriente", pct_volumen_util: 94.3, aportes_pct_media: 80, nivel_riesgo: "REBOCE", num_embalses: 1, energia_util_gwh: 2400 },
-  { region: "Centro", pct_volumen_util: 30.1, aportes_pct_media: 28, nivel_riesgo: "OPTIMO", num_embalses: 3, energia_util_gwh: 500 },
+  { region: "Oriente", pct_volumen_util: 94.3, aportes_pct_media: 80, nivel_riesgo: "NORMAL", num_embalses: 1, energia_util_gwh: 2400 },
+  { region: "Centro", pct_volumen_util: 72.4, aportes_pct_media: 28, nivel_riesgo: "ESTABLE", num_embalses: 3, energia_util_gwh: 500 },
   { region: "Caldas", pct_volumen_util: 12, aportes_pct_media: null, nivel_riesgo: "CRITICO", num_embalses: 1, energia_util_gwh: 10 },
 ];
 
@@ -63,7 +63,7 @@ export const KPIS_EJEMPLO: KpiNacional = {
   delta_semanal_pct: -1.47,
   aportes_pct_media_nacional: 46.3,
   capacidad_guardada_gwh: 13553,
-  nivel_riesgo_sistema: "OPTIMO",
+  nivel_riesgo_sistema: "ESTABLE",
   total_embalses: 24,
 };
 

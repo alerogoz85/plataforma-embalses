@@ -22,8 +22,18 @@
   --color-alerta-bg: #fff6dc;
   --color-critico: #d31f3f;
   --color-critico-bg: #fdecef;
-  --color-reboce: #a80521;
-  --color-reboce-bg: #fbe9ec;
+
+  /* Clasificacion del %V. util en 5 niveles (embalses, regiones y sistema) */
+  --riesgo-normal: #068460;
+  --riesgo-normal-bg: #e3f5ef;
+  --riesgo-estable: #0b8fb0;
+  --riesgo-estable-bg: #e1f4f9;
+  --riesgo-alerta-temprana: #b87400;
+  --riesgo-alerta-temprana-bg: #fff3d6;
+  --riesgo-delicada: #d2561c;
+  --riesgo-delicada-bg: #fdece3;
+  --riesgo-critico: #d31f3f;
+  --riesgo-critico-bg: #fdecef;
 
   --chart-volumen: #3366cc;
   --chart-aportes: #edb600;
@@ -50,8 +60,17 @@
   --color-alerta-bg: #33270a;
   --color-critico: #ff6b83;
   --color-critico-bg: #33131b;
-  --color-reboce: #ff8a9c;
-  --color-reboce-bg: #33111a;
+
+  --riesgo-normal: #2fc59a;
+  --riesgo-normal-bg: #0c2d27;
+  --riesgo-estable: #4fd0ea;
+  --riesgo-estable-bg: #0b2c36;
+  --riesgo-alerta-temprana: #ffc233;
+  --riesgo-alerta-temprana-bg: #33270a;
+  --riesgo-delicada: #ff8a5c;
+  --riesgo-delicada-bg: #351a10;
+  --riesgo-critico: #ff6b83;
+  --riesgo-critico-bg: #33131b;
 
   --chart-volumen: #6699ff;
   --chart-aportes: #edb600;
@@ -76,8 +95,6 @@
   --color-alerta-bg: var(--color-alerta-bg);
   --color-critico: var(--color-critico);
   --color-critico-bg: var(--color-critico-bg);
-  --color-reboce: var(--color-reboce);
-  --color-reboce-bg: var(--color-reboce-bg);
   --font-sans: var(--font-nunito);
   --font-heading: var(--font-montserrat);
   --font-mono: var(--font-geist-mono);

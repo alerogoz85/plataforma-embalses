@@ -168,7 +168,7 @@ class TestRegiones:
         regiones = {r["region"]: r for r in respuesta.json()}
         assert set(regiones) == {"Antioquia", "Caribe", "Centro"}
         assert regiones["Caribe"]["pct_volumen_util"] == 30.0
-        assert regiones["Caribe"]["nivel_riesgo"] == "OPTIMO"
+        assert regiones["Caribe"]["nivel_riesgo"] == "CRITICO"  # 30 % < 50 %
         assert regiones["Centro"]["nivel_riesgo"] == "CRITICO"
 
 

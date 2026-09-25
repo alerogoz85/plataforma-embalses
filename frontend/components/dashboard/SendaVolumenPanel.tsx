@@ -32,7 +32,7 @@ interface PuntoGrafico {
 }
 
 // Umbrales de riesgo propios de la senda de largo plazo (rojo <55%, ambar
-// <65%), distintos de los umbrales OPTIMO/ALERTA/CRITICO/REBOCE que
+// <65%), distintos de los 5 niveles (Normal/Estable/Alerta temprana/Situacion delicada/Critico) que
 // clasifican el %V.util del dia a dia.
 function colorMinimoProyectado(valor: number): string {
   if (valor < 55) return "var(--color-critico)";

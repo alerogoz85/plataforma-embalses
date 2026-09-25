@@ -34,7 +34,7 @@ class TestPorcentajeVolumenUtil:
     def test_no_acota_por_arriba_valores_sobre_capacidad_nominal(self):
         pct = CalculoHidricoService.calcular_porcentaje_volumen_util(_medicion(111.8))
         assert pct.valor == 111.8
-        assert pct.nivel_riesgo == NivelRiesgo.REBOCE
+        assert pct.nivel_riesgo == NivelRiesgo.NORMAL
 
     def test_capacidad_cero_no_divide_por_cero(self):
         medicion = crear_medicion(EMBALSE, HOY, 0, capacidad_mm3=0)
@@ -44,15 +44,19 @@ class TestPorcentajeVolumenUtil:
         "pct,esperado",
         [
             (0, NivelRiesgo.CRITICO),
-            (14.99, NivelRiesgo.CRITICO),
-            (15, NivelRiesgo.ALERTA),
-            (29.99, NivelRiesgo.ALERTA),
-            (30, NivelRiesgo.OPTIMO),
-            (94.99, NivelRiesgo.OPTIMO),
-            (95, NivelRiesgo.REBOCE),
+            (49.99, NivelRiesgo.CRITICO),
+            (50, NivelRiesgo.SITUACION_DELICADA),
+            (59.99, NivelRiesgo.SITUACION_DELICADA),
+            (60, NivelRiesgo.ALERTA_TEMPRANA),
+            (69.99, NivelRiesgo.ALERTA_TEMPRANA),
+            (70, NivelRiesgo.ESTABLE),
+            (80, NivelRiesgo.ESTABLE),
+            (80.01, NivelRiesgo.NORMAL),
+            (100, NivelRiesgo.NORMAL),
+            (111.8, NivelRiesgo.NORMAL),
         ],
     )
-    def test_clasificacion_de_riesgo_en_los_umbrales(self, pct, esperado):
+    def test_clasificacion_de_riesgo_en_los_umbrales_de_5_niveles(self, pct, esperado):
         assert Porcentaje(pct).nivel_riesgo == esperado
 
     def test_delta_en_puntos_porcentuales(self):

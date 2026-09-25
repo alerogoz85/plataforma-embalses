@@ -26,7 +26,7 @@ describe("RegionBarChart", () => {
   it("colorea cada barra segun el riesgo de su region", () => {
     render(<RegionBarChart regiones={REGIONES_EJEMPLO} cargando={false} />);
     const colores = screen.getAllByTestId("cell").map((c) => c.dataset.fill);
-    expect(colores).toEqual(["var(--color-critico)", "var(--color-optimo)", "var(--color-reboce)"]);
+    expect(colores).toEqual(["var(--riesgo-critico)", "var(--riesgo-estable)", "var(--riesgo-normal)"]);
   });
 
   it("el eje se ajusta si una region supera el 100% (no recorta barras)", () => {

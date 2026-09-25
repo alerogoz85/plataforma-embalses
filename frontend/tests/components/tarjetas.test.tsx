@@ -44,10 +44,11 @@ describe("KpiCard", () => {
 
 describe("RiskBadge", () => {
   const casos: [NivelRiesgo, string, string][] = [
-    ["OPTIMO", "Óptimo", "var(--color-optimo)"],
-    ["ALERTA", "Alerta de sequía", "var(--color-alerta)"],
-    ["CRITICO", "Crítico", "var(--color-critico)"],
-    ["REBOCE", "Reboce", "var(--color-reboce)"],
+    ["NORMAL", "Normal", "var(--riesgo-normal)"],
+    ["ESTABLE", "Estable", "var(--riesgo-estable)"],
+    ["ALERTA_TEMPRANA", "Alerta temprana", "var(--riesgo-alerta-temprana)"],
+    ["SITUACION_DELICADA", "Situación delicada", "var(--riesgo-delicada)"],
+    ["CRITICO", "Crítico", "var(--riesgo-critico)"],
   ];
 
   it.each(casos)("%s se muestra como '%s' con su color semantico", (nivel, texto, color) => {
@@ -56,22 +57,24 @@ describe("RiskBadge", () => {
   });
 
   it("tiene un tamano compacto para tablas", () => {
-    render(<RiskBadge nivel="OPTIMO" tamano="sm" />);
-    expect(screen.getByText("Óptimo").className).toContain("text-[11px]");
+    render(<RiskBadge nivel="NORMAL" tamano="sm" />);
+    expect(screen.getByText("Normal").className).toContain("text-[11px]");
   });
 });
 
 describe("SistemaRiesgoCard", () => {
-  it.each(["OPTIMO", "ALERTA", "CRITICO", "REBOCE"] as NivelRiesgo[])("muestra el nivel %s", (nivel) => {
+  it.each(["NORMAL", "ESTABLE", "ALERTA_TEMPRANA", "SITUACION_DELICADA", "CRITICO"] as NivelRiesgo[])("muestra el nivel %s", (nivel) => {
     render(<SistemaRiesgoCard nivel={nivel} totalEmbalses={24} />);
     expect(screen.getByText("Riesgo del sistema")).toBeInTheDocument();
     expect(screen.getByText(/monitoreados/)).toHaveTextContent("24 embalses monitoreados");
   });
 
   it("explica los umbrales en su ayuda", async () => {
-    render(<SistemaRiesgoCard nivel="OPTIMO" totalEmbalses={1} />);
+    render(<SistemaRiesgoCard nivel="ESTABLE" totalEmbalses={1} />);
     await userEvent.click(screen.getByRole("button", { name: "Ayuda: Riesgo del sistema" }));
     const ayuda = screen.getByRole("note");
-    for (const umbral of ["30%", "15%", "95%"]) expect(ayuda).toHaveTextContent(umbral);
+    for (const texto of ["Normal: más de 80%", "Estable: de 70% a 80%", "Alerta temprana: de 60% a menos de 70%", "Situación delicada: de 50% a menos de 60%", "Crítico: menos de 50%"]) {
+      expect(ayuda).toHaveTextContent(texto);
+    }
   });
 });

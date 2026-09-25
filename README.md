@@ -176,8 +176,20 @@ y
   con la capacidad que XM publica *ese día*, porque XM la revisa con el tiempo.
   No se acota en 100%: XM publica valores mayores cuando un embalse supera su
   capacidad nominal (p. ej. Playas).
-- **Clasificación de riesgo**: Óptimo 30–95%, Alerta 15–30%, Crítico <15%,
-  Reboce ≥95% ([`Porcentaje.nivel_riesgo`](backend/domain/value_objects/porcentaje.py)).
+- **Clasificación de riesgo** (5 niveles, la misma para embalses, regiones y sistema;
+  [`Porcentaje.nivel_riesgo`](backend/domain/value_objects/porcentaje.py)):
+
+  | Nivel | %V. útil | Código de la API | Color |
+  |---|---|---|---|
+  | Normal | > 80 % | `NORMAL` | verde |
+  | Estable | 70 % a 80 % (80 incluido) | `ESTABLE` | cian |
+  | Alerta temprana | 60 % a < 70 % | `ALERTA_TEMPRANA` | ámbar |
+  | Situación delicada | 50 % a < 60 % | `SITUACION_DELICADA` | naranja |
+  | Crítico | < 50 % | `CRITICO` | rojo |
+
+  Sustituye a la escala anterior (Óptimo/Alerta/Crítico/Reboce con umbrales 30/15/95 %).
+  La senda de largo plazo conserva su propio semáforo sobre el mínimo proyectado
+  (rojo <55 %, ámbar <65 %, verde ≥65 %).
 - **Agregación nacional/regional**: promedio del %V. útil ponderado por la
   **capacidad útil en energía (GWh)** de cada embalse ese día, la convención de
   la métrica oficial de XM «% Volumen Útil Diario (GWh)». Se usa en los KPIs,
@@ -481,16 +493,16 @@ gh pr create --fill                # abrir el pull request
 gh pr merge --squash --delete-branch   # cuando los checks estén en verde
 ```
 
-### Backend — 261 pruebas (pytest)
+### Backend — 265 pruebas (pytest)
 
-261 pruebas con pytest, sin red ni base de datos externa (repositorios,
+265 pruebas con pytest, sin red ni base de datos externa (repositorios,
 fuente y pronóstico en memoria —ver [`tests/fakes.py`](backend/tests/fakes.py)—, y
 DuckDB sobre archivos temporales). Las pruebas HTTP usan `TestClient` de FastAPI
 (requiere `httpx`, incluido en `requirements-dev.txt`):
 
 | Archivo | Pruebas | Qué cubre |
 |---|---|---|
-| `test_domain_calculos.py` | 28 | %V. útil con la capacidad del día, sin acotar en 100%, umbrales de riesgo, aportes % media, energía y peso, autonomía (incluye turbinada y datos faltantes), value objects |
+| `test_domain_calculos.py` | 32 | %V. útil con la capacidad del día, sin acotar en 100%, umbrales de riesgo, aportes % media, energía y peso, autonomía (incluye turbinada y datos faltantes), value objects |
 | `test_agregacion.py` | 15 | Agregación mensual; KPI y regiones ponderados por energía (no volumen); agregados en el total; energía no publicada; aportes como total/total |
 | `test_senda_volumen.py` | 34 | Senda por embalse y "Total nacional", horizontes, mínimo proyectado, errores de dominio, MAE/R² con valores calculados a mano, sin fuga de datos futuros; **proyección de Outputs**: la usa en lugar del modelo estadístico, limita el horizonte a lo publicado, sin walk-forward, respaldo cuando no hay proyección |
 | `test_series_agregadas.py` | 20 | Agregados «Todos los embalses»: ids `TOTAL` y `REGION:<nombre>`, %V. útil ponderado por energía (no promedio simple), aportes total/total sin contar ceros, suma de volumen y capacidad, rango de fechas, ficha con deltas, pronóstico del total (Outputs) y de una región (respaldo) |
@@ -514,7 +526,7 @@ repositorios en memoria; DuckDB se prueba aparte). La descarga real de SIMEM/XM
 se verificó manualmente (carga completa e incremental) y contra el agregado
 oficial de XM, pero no en las pruebas automáticas, que no usan red.
 
-### Frontend — 198 pruebas (Vitest + React Testing Library + jsdom)
+### Frontend — 201 pruebas (Vitest + React Testing Library + jsdom)
 
 Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 ([`tests/mocks/fetch.ts`](frontend/tests/mocks/fetch.ts)) con datos de ejemplo
@@ -522,12 +534,12 @@ Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 
 | Archivo | Pruebas | Qué cubre |
 |---|---|---|
-| `utils/formatters.test.ts` | 12 | Formato es-CO, "—" para datos no publicados (y el cero real como cero), deltas con signo, fechas sin corrimiento, etiquetas y paleta de riesgo |
+| `utils/formatters.test.ts` | 13 | Formato es-CO, "—" para datos no publicados (y el cero real como cero), deltas con signo, fechas sin corrimiento, etiquetas y paleta de riesgo |
 | `utils/dates.test.ts` | 6 | Fechas en calendario **local** (hora de Bogotá): no se adelanta un día de noche |
 | `api/client.test.ts` | 20 | Construcción de URLs y query strings (parámetros repetibles, vacíos omitidos), `urlReporte`, cancelación, errores (`detalle` de dominio y `detail` de FastAPI, fallos de red) y URL base según el entorno (local vs. `/` en producción) |
 | `hooks/useAsyncResource.test.tsx` | 10 | Estados cargando/datos/error, cancelación al desmontar y al cambiar dependencias, gana la última respuesta, sin peticiones repetidas |
 | `components/InfoButton.test.tsx` | 13 | Botón ⓘ: aria, mostrar al pasar el cursor/enfocar y ocultar al salir, clic táctil, Escape, fuera, scroll, resize, no propaga el clic, un solo panel, posición dentro de la pantalla |
-| `components/tarjetas.test.tsx` | 15 | KpiCard, RiskBadge y SistemaRiesgoCard (color del delta, niveles de riesgo, ayuda) |
+| `components/tarjetas.test.tsx` | 17 | KpiCard, RiskBadge y SistemaRiesgoCard (color del delta, niveles de riesgo, ayuda) |
 | `components/FiltersPanel.test.tsx` | 11 | Seis regiones (incl. Caldas), embalses según región, callbacks (`null`, no cadena vacía), botón «Restablecer filtros», límites de fechas, ayudas |
 | `components/EmbalsesTable.test.tsx` | 22 | Orden (asc/desc, texto, nulos), búsqueda, "—" por dato no publicado, cero real, insignia "Agregado", selección de fila, enlaces de reporte, esqueletos |
 | `components/graficos.test.tsx` | 23 | Regiones (orden, color por riesgo, eje sobre 100%) y gráfico principal (punto puente histórico→proyección, huecos `null`, series, horizonte 1/3/6/12, errores parciales, banda y subtítulo según sea Outputs u Holt-Winters) |
@@ -568,8 +580,8 @@ Las pruebas encontraron **tres defectos reales**, ya corregidos:
   institucional `#EDB600`, verde `#068460`, Nunito Sans (texto) y Montserrat
   (títulos). Todo vive en tokens CSS de `frontend/app/globals.css`. El color de
   marca (`--color-marca`, azul) está separado del semáforo de estado
-  (`--color-optimo/alerta/critico/reboce`) para que "verde" siempre signifique
-  "óptimo". El encabezado lleva la franja GOV.CO y el logo del
+  (`--riesgo-normal/estable/alerta-temprana/delicada/critico`) para que cada color
+  signifique siempre lo mismo. El encabezado lleva la franja GOV.CO y el logo del
   Ministerio (descargados de minenergia.gov.co a `frontend/public/marca/`); el
   pie repite el logo y declara la procedencia de los datos. Los logos son
   propiedad del Ministerio y se usan solo con su autorización.
