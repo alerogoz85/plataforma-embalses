@@ -201,7 +201,7 @@ svg text{font-family:var(--f-body)}
     <div class="fact"><b>24</b><span>embalses del SIN</span></div>
     <div class="fact"><b>77,5 %</b><span>volumen útil nacional al 22-sep-2026</span></div>
     <div class="fact"><b>35,4 %</b><span>mínimo nacional proyectado (mar-2027)</span></div>
-    <div class="fact"><b>456</b><span>pruebas automatizadas</span></div>
+    <div class="fact"><b>466</b><span>pruebas automatizadas</span></div>
   </div>
   <div class="cta"><a class="btn pri" href="#cargue">Modelo de cargue e integración</a><a class="btn" href="#mapa">Ir al manual de usuario</a><a class="btn" href="/">← Volver al tablero</a></div>
 </header>
@@ -473,8 +473,8 @@ flowchart TD
 
 <section class="sec" id="pruebas" data-g="t" data-t="Calidad y pruebas"><div class="eyebrow" style="--c:var(--azul)">Módulo técnico · 8</div>
 <h2>Calidad y pruebas</h2>
-<p class="lead">456 pruebas automatizadas, 261 de backend y 195 de frontend, sin red ni base externa, en cada pull request. Se comprobó que detectan fallos introduciendo regresiones a propósito.</p>
-<div class="grid2"><div class="card"><h4>Backend · 261 (pytest)</h4><div id="bt"></div></div><div class="card"><h4>Frontend · 195 (Vitest)</h4><div id="ft"></div></div></div>
+<p class="lead">466 pruebas automatizadas, 265 de backend y 201 de frontend, sin red ni base externa, en cada pull request. Se comprobó que detectan fallos introduciendo regresiones a propósito.</p>
+<div class="grid2"><div class="card"><h4>Backend · 265 (pytest)</h4><div id="bt"></div></div><div class="card"><h4>Frontend · 201 (Vitest)</h4><div id="ft"></div></div></div>
 </section>
 
 <!-- ===================== MANUAL ===================== -->
@@ -799,8 +799,8 @@ const EPS=[
 $('#eps').innerHTML=EPS.map(e=>`<details><summary><span><span class="pill info">${e[0]}</span> <code>/api/v1${e[1]}</code></span><span style="font-weight:400;color:var(--muted);font-size:13.5px">${esc(e[2].split('.')[0])}</span></summary><div><p>${esc(e[2])}</p><p><b>Parámetros:</b> ${esc(e[3])}</p><pre class="code"><button class="cp" data-cp>Copiar</button>${esc(e[4])}</pre><p><b>Respuesta (forma):</b></p><pre class="code">${esc(e[5])}</pre></div></details>`).join('');
 
 /* ---------- pruebas ---------- */
-const BT=[['test_api_http.py',72,'Contrato HTTP: endpoints, códigos, agregados, OpenAPI y CORS'],['test_senda_volumen.py',34,'Senda, horizontes 1/3/6/12, Outputs y respaldo'],['test_domain_calculos.py',28,'%V. útil, riesgo, aportes, autonomía'],['test_fuente_simem_xm.py',26,'Conversión de unidades, mapeo río→embalse'],['test_series_agregadas.py',20,'Agregados nacional y regional'],['test_sincronizacion_y_persistencia.py',19,'Cargue idempotente y repositorios DuckDB'],['test_proyeccion_diaria.py',18,'Interpolación mensual→diaria'],['test_proyeccion_outputs.py',18,'Importador de Outputs'],['test_agregacion.py',15,'Agregación mensual y por energía'],['test_holt_winters_estacional.py',7,'Respaldo estadístico'],['test_arranque_vercel.py',4,'Copia de la base a /tmp']];
-const FT=[['SendaVolumenPanel',29,'Semáforo, proyección de Outputs y respaldo'],['graficos',23,'Gráfico regional y principal'],['page',22,'Página completa y filtros'],['EmbalsesTable',22,'Orden, búsqueda y reportes'],['client',20,'URLs, parámetros y errores'],['tarjetas',15,'Indicadores y semáforo'],['InfoButton',13,'Ayuda por hover, foco y toque'],['formatters',12,'Formato de números y riesgo'],['FiltersPanel',11,'Filtros y Restablecer'],['useAsyncResource',10,'Carga, cancelación y errores'],['dates, ThemeToggle, ayudas',18,'Fechas locales, tema y cobertura de ayuda']];
+const BT=[['test_api_http.py',72,'Contrato HTTP: endpoints, códigos, agregados, OpenAPI y CORS'],['test_senda_volumen.py',34,'Senda, horizontes 1/3/6/12, Outputs y respaldo'],['test_domain_calculos.py',32,'%V. útil, riesgo, aportes, autonomía'],['test_fuente_simem_xm.py',26,'Conversión de unidades, mapeo río→embalse'],['test_series_agregadas.py',20,'Agregados nacional y regional'],['test_sincronizacion_y_persistencia.py',19,'Cargue idempotente y repositorios DuckDB'],['test_proyeccion_diaria.py',18,'Interpolación mensual→diaria'],['test_proyeccion_outputs.py',18,'Importador de Outputs'],['test_agregacion.py',15,'Agregación mensual y por energía'],['test_holt_winters_estacional.py',7,'Respaldo estadístico'],['test_arranque_vercel.py',4,'Copia de la base a /tmp']];
+const FT=[['SendaVolumenPanel',29,'Semáforo, proyección de Outputs y respaldo'],['graficos',23,'Gráfico regional y principal'],['page',22,'Página completa y filtros'],['EmbalsesTable',22,'Orden, búsqueda y reportes'],['client',20,'URLs, parámetros y errores'],['tarjetas',17,'Indicadores y semáforo'],['InfoButton',13,'Ayuda por hover, foco y toque'],['formatters',13,'Formato de números y riesgo'],['FiltersPanel',11,'Filtros y Restablecer'],['useAsyncResource',10,'Carga, cancelación y errores'],['Header',3,'Acceso «Información» y fecha de corte'],['dates, ThemeToggle, ayudas',18,'Fechas locales, tema y cobertura de ayuda']];
 const tbl=(a,mx)=>'<div class="tw" style="margin:0"><table><tbody>'+a.map(r=>`<tr><td><code>${r[0]}</code></td><td class="num" style="width:120px"><div style="display:flex;gap:8px;align-items:center"><b>${r[1]}</b><span style="display:block;height:6px;border-radius:3px;background:var(--azul);width:${r[1]/mx*56}px"></span></div></td><td style="font-size:13.5px;color:var(--muted)">${r[2]}</td></tr>`).join('')+'</tbody></table></div>';
 $('#bt').innerHTML=tbl(BT,72); $('#ft').innerHTML=tbl(FT,29);
 
