@@ -46,9 +46,10 @@ const ICONO_RAYO = (
 export default function DashboardPage() {
   const [region, setRegion] = useState<string | null>(null);
   const [embalseId, setEmbalseId] = useState<string | null>(null);
-  // "Todos los embalses" es una eleccion explicita: sin ella, un embalse nulo se
-  // auto-corrige al primero de la lista (carga inicial y cambio de region).
-  const [todosLosEmbalses, setTodosLosEmbalses] = useState(false);
+  // Por defecto la pagina abre en "Todas las regiones" + "Todos los embalses": el grafico
+  // principal muestra el total nacional. Al cambiar de region se elige el primer embalse
+  // de esa region (un embalse nulo sin "Todos" se auto-corrige al primero de la lista).
+  const [todosLosEmbalses, setTodosLosEmbalses] = useState(true);
   const [fechaInicio, setFechaInicio] = useState(fechaHaceDias(180));
   const [fechaFin, setFechaFin] = useState(hoyISO());
 
