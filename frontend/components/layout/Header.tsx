@@ -41,7 +41,24 @@ export function Header({ fechaCorte }: { fechaCorte?: string }) {
               </p>
             </div>
           </div>
-          <ThemeToggle />
+          <div className="flex shrink-0 items-center gap-2">
+            {/* Guia de la plataforma (documentacion tecnica y manual de usuario), en una pestana aparte
+                para no perder los filtros del tablero. Es una pagina estatica: public/informacion.html */}
+            <a
+              href="/informacion"
+              target="_blank"
+              rel="noopener"
+              className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-background-elevated px-3 text-xs font-semibold text-foreground-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-marca)]"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 11v5" />
+                <path d="M12 8h.01" />
+              </svg>
+              Información
+            </a>
+            <ThemeToggle />
+          </div>
         </div>
       </div>
     </header>
