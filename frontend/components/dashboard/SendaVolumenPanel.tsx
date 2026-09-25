@@ -179,7 +179,7 @@ export function SendaVolumenPanel({ embalses }: { embalses: EmbalseResumen[] }) 
 
           <div className="h-72 w-full px-2 pb-2 pt-4 sm:px-4">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={datos} margin={{ top: 4, right: 8, left: -12, bottom: 0 }}>
+              <ComposedChart data={datos} margin={{ top: 4, right: 8, left: 4, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis
                   dataKey="mesLabel"
@@ -193,7 +193,7 @@ export function SendaVolumenPanel({ embalses }: { embalses: EmbalseResumen[] }) 
                   tickLine={false}
                   axisLine={false}
                   unit="%"
-                  width={44}
+                  width={48}
                   domain={[0, (maximo: number) => Math.max(100, Math.ceil(maximo))]}
                 />
                 <Tooltip

@@ -1,0 +1,891 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="/favicon.ico">
+
+<title>Guía de Embalses</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Nunito+Sans:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+[hidden]{display:none!important}
+:root{
+  --bg:#F3F6FB; --surface:#FFFFFF; --surface2:#EAF0FA; --ink:#182033; --muted:#556079; --line:#D9E0EE;
+  --azul:#3366CC; --azul-osc:#004884; --azul-bg:#E6EFFD; --amarillo:#EDB600; --amarillo-bg:#FFF6D6;
+  --verde:#068460; --verde-bg:#E3F5EF; --ambar:#B87400; --ambar-bg:#FFF1D6; --rojo:#D31F3F; --rojo-bg:#FDECEF;
+  --code-bg:#0F1B33; --code-ink:#DCE6FA; --shadow:0 1px 2px rgba(16,32,64,.06),0 6px 20px rgba(16,32,64,.06);
+  --f-head:"Montserrat",system-ui,sans-serif; --f-body:"Nunito Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --side:288px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0A1526; --surface:#10213B; --surface2:#14294A; --ink:#EAF0FA; --muted:#A9B8D3; --line:#22395E;
+  --azul:#6E9BFF; --azul-osc:#9DBEFF; --azul-bg:#14294A; --amarillo:#EDB600; --amarillo-bg:#33290A;
+  --verde:#2FC59A; --verde-bg:#0C2D27; --ambar:#FFC233; --ambar-bg:#33270A; --rojo:#FF6B83; --rojo-bg:#33131B;
+  --code-bg:#07101F; --code-ink:#DCE6FA; --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.3); color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0A1526; --surface:#10213B; --surface2:#14294A; --ink:#EAF0FA; --muted:#A9B8D3; --line:#22395E;
+  --azul:#6E9BFF; --azul-osc:#9DBEFF; --azul-bg:#14294A; --amarillo:#EDB600; --amarillo-bg:#33290A;
+  --verde:#2FC59A; --verde-bg:#0C2D27; --ambar:#FFC233; --ambar-bg:#33270A; --rojo:#FF6B83; --rojo-bg:#33131B;
+  --code-bg:#07101F; --code-ink:#DCE6FA; --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.3); color-scheme:dark;}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:76px}
+body{background:var(--bg);color:var(--ink);font:400 16px/1.65 var(--f-body);margin:0;-webkit-font-smoothing:antialiased}
+a{color:var(--azul)} img{max-width:100%;display:block}
+h1,h2,h3,h4{font-family:var(--f-head);line-height:1.2;text-wrap:balance;margin:0;color:var(--ink)}
+code,kbd{font-family:var(--f-mono);font-size:.86em;background:var(--surface2);border:1px solid var(--line);border-radius:5px;padding:.08em .38em}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--azul);outline-offset:2px;border-radius:6px}
+.app{display:grid;grid-template-columns:var(--side) minmax(0,1fr);min-height:100vh}
+/* ---------- barra lateral ---------- */
+.side{position:sticky;top:0;height:100vh;overflow:auto;background:var(--surface);border-right:1px solid var(--line);padding:18px 14px 28px;display:flex;flex-direction:column;gap:14px}
+.brand{display:flex;gap:10px;align-items:center;padding:2px 6px}
+.brand b{font:800 15px/1.15 var(--f-head);color:var(--azul-osc);display:block}
+.brand small{color:var(--muted);font-size:12px}
+.brand i{width:34px;height:34px;border-radius:9px;background:var(--azul);display:grid;place-items:center;flex:none}
+.brand i svg{width:19px;height:19px;stroke:#fff;fill:none;stroke-width:2}
+.search{position:relative}
+.search input[type=search]{width:100%;height:38px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:9px;padding:0 12px 0 34px;font:inherit;font-size:14px}
+.search svg{position:absolute;left:10px;top:11px;width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:2}
+.nav h4{font:700 11px/1 var(--f-head);letter-spacing:.09em;text-transform:uppercase;color:var(--muted);padding:12px 8px 6px;display:flex;align-items:center;gap:8px}
+.nav h4::before{content:"";width:9px;height:9px;border-radius:2px;background:var(--c,var(--azul))}
+.nav a{display:flex;gap:9px;align-items:baseline;padding:6px 8px;border-radius:8px;color:var(--ink);text-decoration:none;font-size:14px;border-left:3px solid transparent}
+.nav a span{font:600 11px var(--f-mono);color:var(--muted);min-width:20px}
+.nav a:hover{background:var(--surface2)}
+.nav a.on{background:var(--azul-bg);border-left-color:var(--azul);font-weight:700;color:var(--azul-osc)}
+.nav a[hidden]{display:none}
+.side .foot{margin-top:auto;display:flex;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:7px 12px;font-size:13.5px;font-weight:600;display:inline-flex;gap:7px;align-items:center}
+.btn:hover{background:var(--surface2)} .btn.pri{background:var(--azul);border-color:var(--azul);color:#fff}
+.top{display:none}
+.bar{position:fixed;left:0;top:0;height:3px;background:var(--amarillo);width:0;z-index:60}
+/* ---------- contenido ---------- */
+main{padding:0 clamp(16px,4vw,56px) 80px;min-width:0}
+.wrap{max-width:940px;margin:0 auto}
+.hero{padding:44px 0 26px;border-bottom:3px solid var(--amarillo);margin-bottom:8px}
+.hero .tag{display:inline-flex;gap:8px;align-items:center;font:700 12px var(--f-head);letter-spacing:.09em;text-transform:uppercase;color:var(--azul-osc);background:var(--azul-bg);padding:6px 11px;border-radius:99px}
+.hero h1{font-size:clamp(28px,4.2vw,44px);margin:16px 0 12px;font-weight:800;color:var(--azul-osc)}
+.hero p{max-width:66ch;color:var(--muted);font-size:17px;margin:0}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:24px 0 6px}
+.fact{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.fact b{font:800 24px var(--f-head);color:var(--azul-osc);display:block;font-variant-numeric:tabular-nums}
+.fact span{font-size:13px;color:var(--muted)}
+.cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+section.sec{padding:52px 0 8px}
+.eyebrow{display:inline-flex;gap:8px;align-items:center;font:700 12px var(--f-head);letter-spacing:.09em;text-transform:uppercase;color:var(--c,var(--azul-osc));margin-bottom:8px}
+.eyebrow::before{content:"";width:22px;height:4px;border-radius:2px;background:var(--c,var(--azul))}
+.sec h2{font-size:clamp(24px,3vw,32px);font-weight:800;margin-bottom:12px}
+.sec h3{font-size:19px;font-weight:700;margin:30px 0 8px}
+.sec h4{font-size:15px;margin:18px 0 6px;color:var(--azul-osc)}
+.sec p{margin:.6em 0;max-width:74ch}
+.sec ul,.sec ol{max-width:74ch;padding-left:1.3em} .sec li{margin:.3em 0}
+.lead{font-size:18px;color:var(--ink);max-width:70ch}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface);margin:14px 0}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{background:var(--surface2);text-align:left;font:700 12px var(--f-head);letter-spacing:.05em;text-transform:uppercase;color:var(--muted);padding:10px 12px;white-space:nowrap}
+td{padding:9px 12px;border-top:1px solid var(--line);vertical-align:top}
+td:first-child{font-weight:600}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.note{border-radius:12px;padding:13px 16px;margin:16px 0;max-width:78ch;display:flex;gap:12px;background:var(--azul-bg);border:1px solid color-mix(in srgb,var(--azul) 30%,transparent)}
+.note.warn{background:var(--ambar-bg);border-color:color-mix(in srgb,var(--ambar) 40%,transparent)}
+.note.ok{background:var(--verde-bg);border-color:color-mix(in srgb,var(--verde) 40%,transparent)}
+.note b:first-child{white-space:nowrap} .note>div{min-width:0}
+.pill{display:inline-block;font:700 12px var(--f-head);padding:3px 9px;border-radius:99px;background:var(--surface2);color:var(--muted);white-space:nowrap}
+.pill.ok{background:var(--verde-bg);color:var(--verde)} .pill.warn{background:var(--ambar-bg);color:var(--ambar)} .pill.bad{background:var(--rojo-bg);color:var(--rojo)} .pill.info{background:var(--azul-bg);color:var(--azul-osc)} .pill.prop{background:var(--amarillo-bg);color:var(--ambar);border:1px dashed var(--amarillo)}
+pre.code{background:var(--code-bg);color:var(--code-ink);border-radius:12px;padding:14px 16px;overflow:auto;font:400 13px/1.6 var(--f-mono);margin:14px 0;position:relative;max-width:100%}
+pre.code .cp{position:absolute;right:8px;top:8px;background:#223558;color:#fff;border:0;border-radius:7px;padding:4px 9px;font-size:12px}
+pre.mermaid{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;overflow:auto;margin:14px 0;text-align:center}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);margin:16px 0}
+.card>h4:first-child{margin-top:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;padding:3px;background:var(--bg);gap:2px;flex-wrap:wrap}
+.seg button{border:0;background:none;padding:6px 13px;border-radius:7px;font-weight:700;font-size:14px;color:var(--muted)}
+.seg button[aria-pressed="true"],.seg button.on{background:var(--azul);color:#fff}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:18px 0 0;overflow-x:auto}
+.tabs button{border:0;background:none;padding:10px 14px;font-weight:700;font-size:14.5px;color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--azul-osc);border-bottom-color:var(--azul)}
+.tabpanel{padding-top:14px} .tabpanel[hidden]{display:none}
+label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;color:var(--muted)}
+input[type=range]{width:100%;accent-color:var(--azul)}
+input[type=search],input[type=number]{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:9px;padding:8px 11px;font:inherit}
+details{border:1px solid var(--line);border-radius:12px;background:var(--surface);margin:8px 0;max-width:80ch}
+details summary{padding:12px 16px;font-weight:700;cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:12px}
+details summary::after{content:"+";font:700 18px var(--f-mono);color:var(--azul)} details[open] summary::after{content:"–"}
+details>div{padding:0 16px 14px}
+/* ---------- capturas con indicadores ---------- */
+.shot{margin:16px 0;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+.shot .stage{position:relative;background:#fff;line-height:0}
+.shot .stage img{width:100%;height:auto}
+.hs{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;border:2px solid #fff;background:var(--azul);color:#fff;font:800 12px var(--f-head);display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.35);transition:transform .15s;line-height:1}
+.hs:hover,.hs.on{transform:scale(1.25);background:var(--amarillo);color:#182033;z-index:3}
+.hs.on::after{content:"";position:absolute;inset:-9px;border-radius:50%;border:2px solid var(--amarillo);animation:pulse 1.4s ease-out infinite}
+.box{position:absolute;border:2px solid var(--amarillo);background:rgba(237,182,0,.14);border-radius:6px;pointer-events:none;opacity:0;transition:opacity .15s}
+.box.on{opacity:1}
+@keyframes pulse{from{transform:scale(.8);opacity:1}to{transform:scale(1.5);opacity:0}}
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:0;border-top:1px solid var(--line);line-height:1.45}
+.legend button{display:flex;gap:10px;text-align:left;border:0;background:none;padding:11px 14px;border-bottom:1px solid var(--line);align-items:flex-start}
+.legend button:hover,.legend button.on{background:var(--azul-bg)}
+.legend .n{flex:none;width:22px;height:22px;border-radius:50%;background:var(--azul);color:#fff;font:800 11px var(--f-head);display:grid;place-items:center;margin-top:1px}
+.legend button.on .n{background:var(--amarillo);color:#182033}
+.legend b{display:block;font-size:14.5px} .legend span.t{font-size:13.5px;color:var(--muted)}
+.detail{padding:12px 16px;background:var(--surface2);border-top:1px solid var(--line);font-size:14.5px;min-height:58px;line-height:1.5}
+.shot figcaption{padding:9px 14px;font-size:12.5px;color:var(--muted);border-top:1px solid var(--line)}
+.gal{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px;margin:14px 0}
+.gal figure{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.gal img{width:100%;height:auto;cursor:zoom-in} .gal figcaption{padding:9px 12px;font-size:13px;color:var(--muted)}
+.zoom{position:fixed;inset:0;background:rgba(6,12,24,.86);z-index:80;display:none;place-items:center;padding:20px}
+.zoom.on{display:grid} .zoom img{max-width:min(96vw,1400px);max-height:92vh;border-radius:8px;background:#fff}
+.zoom button{position:absolute;right:16px;top:14px;background:#fff;border:0;border-radius:9px;padding:8px 14px;font-weight:700}
+/* ---------- mapa de integracion ---------- */
+.map{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;align-items:stretch;margin:14px 0}
+.col h5{font:700 11px var(--f-head);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+.node{display:block;width:100%;text-align:left;border:1.5px solid var(--line);background:var(--surface);border-radius:11px;padding:9px 10px;margin-bottom:8px;font-size:13.5px;line-height:1.3;transition:.15s}
+.node b{display:block;font-size:13.5px} .node small{color:var(--muted);font-size:12px}
+.node:hover{border-color:var(--azul)} .node.on{border-color:var(--azul);background:var(--azul-bg);box-shadow:0 0 0 3px color-mix(in srgb,var(--azul) 25%,transparent)}
+.node.rel{border-color:var(--amarillo);background:var(--amarillo-bg)}
+.node.dim{opacity:.4}
+.mapinfo{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:10px;margin-top:6px}
+.kv{background:var(--surface2);border-radius:10px;padding:10px 12px;font-size:14px} .kv small{display:block;font:700 11px var(--f-head);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+/* ---------- linaje ---------- */
+.lin{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin:14px 0}
+.lin .st{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:10px;font-size:13px;position:relative}
+.lin .st h5{font:700 10.5px var(--f-head);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 5px}
+.lin .st::after{content:"→";position:absolute;right:-11px;top:50%;transform:translateY(-50%);color:var(--azul);font-weight:800;z-index:2}
+.lin .st:last-child::after{display:none}
+.lin .st code{font-size:11.5px;word-break:break-word}
+/* ---------- simulador ---------- */
+.simgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:14px;align-items:end}
+.big{font:800 32px var(--f-head);color:var(--azul-osc);font-variant-numeric:tabular-nums} .big small{font-size:14px;font-weight:600;color:var(--muted)}
+svg text{font-family:var(--f-body)}
+.steps{counter-reset:s;list-style:none;padding:0;margin:14px 0;max-width:80ch}
+.steps li{counter-increment:s;display:flex;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);margin:8px 0;align-items:flex-start}
+.steps li::before{content:counter(s);flex:none;width:28px;height:28px;border-radius:50%;background:var(--azul);color:#fff;font:800 13px var(--f-head);display:grid;place-items:center}
+.steps li.done{background:var(--verde-bg);border-color:var(--verde)} .steps li.done::before{content:"✓";background:var(--verde)}
+.steps li>div{flex:1;min-width:0} .steps input{margin-top:6px;width:20px;height:20px;accent-color:var(--verde)}
+.steps b{display:block} .steps span{font-size:14px;color:var(--muted)}
+.mini{width:100%;height:auto}
+@media (max-width:1000px){
+  .app{display:block} .side{position:fixed;left:0;top:0;bottom:0;width:min(88vw,320px);z-index:70;transform:translateX(-102%);transition:transform .2s;box-shadow:var(--shadow)}
+  body.open .side{transform:none} .scrim{position:fixed;inset:0;background:rgba(6,12,24,.5);z-index:65;display:none} body.open .scrim{display:block}
+  .top{display:flex;position:sticky;top:0;z-index:50;background:var(--surface);border-bottom:1px solid var(--line);padding:9px 14px;align-items:center;gap:12px}
+  .top b{font:800 15px var(--f-head);color:var(--azul-osc)}
+  .map{grid-template-columns:1fr} .lin{grid-template-columns:1fr} .lin .st::after{content:"↓";right:auto;left:50%;top:auto;bottom:-14px;transform:translateX(-50%)}
+  html{scroll-padding-top:64px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+</style>
+<div class="bar" id="bar"></div>
+<div class="top"><button class="btn" id="menu" aria-label="Abrir menú">☰ Menú</button><b>Guía de Embalses</b></div>
+<div class="scrim" id="scrim"></div>
+<div class="app">
+<aside class="side" id="side" aria-label="Contenido">
+  <div class="brand"><i><svg viewBox="0 0 24 24"><path d="M3 16c1.5-2 3-2 4.5 0s3 2 4.5 0 3-2 4.5 0 3 2 4.5 0"/><path d="M3 21h18"/><path d="M12 3v9"/><path d="M8 7l4-4 4 4"/></svg></i><div><b>Guía de Embalses</b><small>Técnico · Manual · Anexos</small></div></div>
+  <label class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="q" type="search" placeholder="Buscar en el menú…" aria-label="Buscar en el menú"></label>
+  <nav class="nav" id="nav"></nav>
+  <div class="foot"><a class="btn" href="/">← Tablero</a><button class="btn" id="theme" aria-label="Cambiar tema claro u oscuro">◐ Tema</button><span>Datos al corte del 22-sep-2026</span></div>
+</aside>
+<main>
+<div class="wrap">
+<header class="hero" id="inicio">
+  <span class="tag">Plataforma de Monitoreo y Predicción de Embalses</span>
+  <h1>Guía técnica y manual de usuario</h1>
+  <p>Cómo se cargan los datos de XM y SIMEM, cómo se calculan los indicadores y cómo leer cada tablero. Las capturas son del tablero real; toca los números sobre ellas para ver qué es cada elemento.</p>
+  <div class="facts">
+    <div class="fact"><b>24</b><span>embalses del SIN</span></div>
+    <div class="fact"><b>77,5 %</b><span>volumen útil nacional al 22-sep-2026</span></div>
+    <div class="fact"><b>35,4 %</b><span>mínimo nacional proyectado (mar-2027)</span></div>
+    <div class="fact"><b>456</b><span>pruebas automatizadas</span></div>
+  </div>
+  <div class="cta"><a class="btn pri" href="#cargue">Modelo de cargue e integración</a><a class="btn" href="#mapa">Ir al manual de usuario</a><a class="btn" href="/">← Volver al tablero</a></div>
+</header>
+
+<!-- ===================== TÉCNICO ===================== -->
+<section class="sec" id="arquitectura" data-g="t" data-t="Arquitectura técnica"><div class="eyebrow" style="--c:var(--azul)">Módulo técnico · 1</div>
+<h2>Arquitectura técnica</h2>
+<p class="lead">Backend hexagonal en cuatro capas: la dependencia siempre apunta hacia adentro y solo dos archivos, los composition roots, conectan interfaces con implementaciones.</p>
+<div class="tw"><table><thead><tr><th>Capa</th><th>Responsabilidad</th><th>Ejemplos</th></tr></thead><tbody>
+<tr><td><code>domain/</code></td><td>Entidades, value objects y servicios de cálculo puros, sin dependencias externas</td><td><code>CalculoHidricoService</code>, <code>AutonomiaService</code>, <code>ProyeccionDiariaService</code></td></tr>
+<tr><td><code>application/</code></td><td>Casos de uso, DTOs (Pydantic) y puertos</td><td><code>ObtenerResumenNacional</code>, <code>GenerarPrediccion</code>, <code>ObtenerSendaVolumen</code>, <code>SeriesAgregadas</code></td></tr>
+<tr><td><code>infrastructure/</code></td><td>Adaptadores: DuckDB, clientes SIMEM/XM, Holt-Winters, importador de Outputs</td><td><code>DuckDBMedicionRepository</code>, <code>SimemXmFuenteMediciones</code></td></tr>
+<tr><td><code>presentation/</code></td><td>API REST con FastAPI: routers, errores y CORS</td><td><code>embalses_router</code>, <code>senda_volumen_router</code></td></tr>
+</tbody></table></div>
+<div class="tabs" role="tablist" data-tabs="arq"><button role="tab" aria-selected="true">Componentes</button><button role="tab" aria-selected="false">Puertos y adaptadores</button><button role="tab" aria-selected="false">Una consulta de punta a punta</button></div>
+<div class="tabpanel"><pre class="mermaid">
+flowchart LR
+  U["Analista"] --> W["Sitio web<br/>Next.js 16 + React 19"]
+  W -->|"reescribe /api/v1/*"| A["API REST<br/>FastAPI"]
+  A --> D[("DuckDB<br/>hidrologia.duckdb")]
+  S["Sincronizador<br/>CLI Python"] --> D
+  S --> X["SIMEM y API de XM"]
+  I["Importador de Outputs<br/>CLI Python"] --> D
+  O["Excel del modelo<br/>de largo plazo"] --> I
+</pre><p>El sitio y la API son dos proyectos de Vercel. El navegador solo conoce el dominio del sitio, que reenvía <code>/api/v1/*</code> a la API, por eso no hay CORS en producción. La API nunca llama a servicios externos al responder: lee solo de la base local.</p></div>
+<div class="tabpanel" hidden><div class="tw"><table><thead><tr><th>Puerto (interfaz)</th><th>Adaptador</th><th>Para qué</th></tr></thead><tbody>
+<tr><td><code>EmbalseRepository</code>, <code>MedicionRepository</code>, <code>MetadatosRepository</code></td><td>Repositorios DuckDB</td><td>Embalses, mediciones diarias y procedencia de los datos</td></tr>
+<tr><td><code>ProyeccionSendaRepository</code></td><td><code>DuckDBProyeccionSendaRepository</code></td><td>Proyección de largo plazo importada de Outputs</td></tr>
+<tr><td><code>FuenteMedicionesPort</code></td><td><code>SimemXmFuenteMediciones</code> (real) y fuente sintética (demos sin red)</td><td>Descargar y normalizar datos</td></tr>
+<tr><td><code>ForecastingPort</code></td><td><code>HoltWintersForecastingService</code></td><td>Respaldo estadístico cuando no hay proyección publicada</td></tr>
+</tbody></table></div></div>
+<div class="tabpanel" hidden><pre class="mermaid">
+sequenceDiagram
+  actor U as Usuario
+  participant W as Sitio (Next.js)
+  participant A as API (FastAPI)
+  participant C as Caso de uso
+  participant R as Repositorios
+  participant D as DuckDB
+  U->>W: Abre el tablero
+  W->>A: GET /api/v1/embalses/resumen
+  A->>C: ObtenerResumenNacional.ejecutar()
+  C->>R: última medición por embalse
+  R->>D: SELECT ... FROM mediciones
+  D-->>R: filas
+  R-->>C: entidades del dominio
+  C-->>A: DTO con KPI, regiones y embalses
+  A-->>W: JSON
+  W-->>U: tarjetas, gráficos y tabla
+</pre></div>
+</section>
+
+<section class="sec" id="datos" data-g="t" data-t="Modelo de datos"><div class="eyebrow" style="--c:var(--azul)">Módulo técnico · 2</div>
+<h2>Modelo de datos</h2>
+<p class="lead">Un solo archivo DuckDB de unos 7 MB con cuatro tablas. Una conexión única se serializa con un lock, porque FastAPI atiende peticiones en varios hilos.</p>
+<div class="tw"><table><thead><tr><th>Tabla</th><th>Clave</th><th>Contenido</th></tr></thead><tbody>
+<tr><td><code>embalses</code></td><td><code>id</code></td><td>Código XM, nombre, región hidrológica y si es un agregado</td></tr>
+<tr><td><code>mediciones</code></td><td><code>(embalse_id, fecha)</code></td><td>Una fila por embalse y día desde 2022-01-01. <span class="pill info">41.090 filas</span></td></tr>
+<tr><td><code>fuente_datos</code></td><td><code>id = 1</code></td><td>Fuente, fecha de corte, momento de actualización y si los datos son reales</td></tr>
+<tr><td><code>proyecciones_senda</code></td><td><code>(embalse_id, mes)</code></td><td>P10, P50, P90 y origen. <span class="pill info">288 filas: 24 series × 12 meses</span></td></tr>
+</tbody></table></div>
+<h3>Diccionario de datos de <code>mediciones</code></h3>
+<label class="search" style="max-width:360px;display:block;margin:8px 0"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="dq" type="search" placeholder="Filtrar campos…" aria-label="Filtrar campos"></label>
+<div class="tw"><table id="dict"><thead><tr><th>Campo</th><th>Unidad</th><th>Origen</th><th>Si falta</th></tr></thead><tbody></tbody></table></div>
+<div class="note"><b>Regla:</b><div>Un dato no publicado es <code>None</code>, nunca cero. Recorre dominio, DuckDB, API (<code>null</code>) y pantalla (“—”). El %V. útil no se recorta en 100 %: XM publica valores mayores cuando el volumen supera la capacidad nominal.</div></div>
+<div class="note warn"><b>Ojo:</b><div><code>--reiniciar</code> borra <code>mediciones</code>, <code>embalses</code> y <code>fuente_datos</code>, pero no <code>proyecciones_senda</code>. Una base con el esquema sintético anterior se rechaza con un error explícito.</div></div>
+<h3>Los 24 embalses por región</h3>
+<div class="tw"><table><thead><tr><th>Región</th><th>Embalses</th></tr></thead><tbody>
+<tr><td>Antioquia</td><td>Ituango, Miraflores, Guatapé (Peñol), Playas, Porce II, Porce III, Punchiná, Río Grande 2, San Lorenzo, Troneras</td></tr>
+<tr><td>Caldas</td><td>Amaní (Miel I)</td></tr><tr><td>Caribe</td><td>Urrá I</td></tr>
+<tr><td>Centro</td><td>Agregado Bogotá, Betania, El Quimbo, Muna, Prado, Sogamoso (Topocoro)</td></tr>
+<tr><td>Oriente</td><td>Chuza, Esmeralda, Guavio</td></tr><tr><td>Valle</td><td>Alto Anchicayá, Calima, Salvajina</td></tr>
+</tbody></table></div>
+</section>
+
+<section class="sec" id="fuentes" data-g="t" data-t="Integraciones y fuentes"><div class="eyebrow" style="--c:var(--azul)">Módulo técnico · 3</div>
+<h2>Integraciones y fuentes de datos</h2>
+<p class="lead">Cuatro fuentes de datos y tres servicios de plataforma. Ninguna fuente requiere credenciales: SIMEM y la API de XM son públicas.</p>
+<div class="tw"><table><thead><tr><th>Integración</th><th>Qué aporta</th><th>Cómo entra</th></tr></thead><tbody>
+<tr><td>SIMEM <code>138ED1</code></td><td>Capacidad y volumen útil diario por embalse (m³) y región</td><td>CLI de sincronización, HTTPS</td></tr>
+<tr><td>SIMEM <code>1445AC</code></td><td>Descargas: turbinada, no turbinada, vertimiento (m³/día)</td><td>CLI de sincronización</td></tr>
+<tr><td>SIMEM <code>02B289</code></td><td>Aportes por serie de río (m³/s) y su media histórica</td><td>CLI de sincronización</td></tr>
+<tr><td>API de XM <code>VoluUtilDiarEner</code></td><td>Energía útil almacenada por embalse (kWh a GWh)</td><td>CLI de sincronización</td></tr>
+<tr><td>API de XM <code>CapaUtilDiarEner</code></td><td>Capacidad útil en energía (GWh): peso de agregación</td><td>CLI de sincronización</td></tr>
+<tr><td>Modelo de largo plazo (Outputs)</td><td>Proyección a 12 meses P10/P50/P90 por embalse y <code>TOTAL</code></td><td>Excel importado con CLI</td></tr>
+<tr><td>Identidad GOV.CO</td><td>Franja, logo del Ministerio, paleta y tipografías</td><td>Archivos en <code>frontend/public/marca/</code></td></tr>
+</tbody></table></div>
+<div class="grid2">
+<div class="card"><h4>Mapeo de ríos a embalses</h4><p>SIMEM publica aportes por serie de río. El diccionario <code>SERIE_A_EMBALSE</code> asigna cada serie a su embalse y suma las que alimentan al mismo. De las 48 series de <code>02B289</code>, 22 no se asignan (desvíos, Bajo Anchicayá y otras). El 21-sep-2026 esto da 49,49 % frente a 50,58 % con todas las series.</p></div>
+<div class="card"><h4>Servicios de plataforma</h4><p><b>GitHub</b>: repositorio público, rama <code>main</code> protegida y CI. <b>Vercel</b>: dos proyectos, el sitio por Git y la API por CLI. <b>Google Fonts</b> vía <code>next/font</code>: Nunito Sans, Montserrat y Geist Mono.</p></div>
+</div>
+</section>
+
+<!-- ===================== CARGUE ===================== -->
+<section class="sec" id="cargue" data-g="t" data-t="Modelo de cargue e integración"><div class="eyebrow" style="--c:var(--amarillo)">Módulo técnico · 4 · Nuevo</div>
+<h2>Modelo de cargue e integración de datos</h2>
+<p class="lead">Cómo llega un dato desde XM hasta un tablero: descarga, normalización, carga idempotente en DuckDB, servicio por API y lectura en el sitio. Este apartado es la base para construir tableros nuevos.</p>
+
+<h3>4.1 Diagrama de flujo de datos</h3>
+<pre class="mermaid">
+flowchart LR
+  subgraph FUENTES["Fuentes públicas"]
+    S1["SIMEM 138ED1<br/>volumen y capacidad"]
+    S2["SIMEM 1445AC<br/>descargas"]
+    S3["SIMEM 02B289<br/>aportes por río"]
+    X1["API XM<br/>energía y capacidad GWh"]
+  end
+  subgraph CARGUE["Cargue (CLI Python)"]
+    C["Clientes HTTP<br/>bloques de 30 días"] --> N["Normalización pura<br/>unidades y mapeo río→embalse"]
+    N --> U["Upsert idempotente<br/>desde última fecha − 7 días"]
+  end
+  subgraph MODELO["Modelo de largo plazo"]
+    E["Excel P10/P50/P90"] --> V["Importador con validaciones"]
+  end
+  S1 & S2 & S3 & X1 --> C
+  U --> M[("mediciones<br/>embalses<br/>fuente_datos")]
+  V --> P[("proyecciones_senda")]
+  M --> API["API FastAPI<br/>solo lectura"]
+  P --> API
+  API --> SITIO["Sitio Next.js<br/>reescritura /api/v1/*"]
+  SITIO --> T["Tableros"]
+</pre>
+
+<h3>4.2 Mapa de conexión interactivo</h3>
+<p>Toca cualquier elemento: el mapa resalta lo que lo alimenta o lo consume y muestra su ficha.</p>
+<div class="card"><div class="map" id="map"></div><div class="mapinfo" id="mapinfo"></div></div>
+
+<h3>4.3 Secuencia de una sincronización</h3>
+<pre class="mermaid">
+sequenceDiagram
+  actor O as Operador
+  participant CLI as sincronizar.py
+  participant SI as SIMEM
+  participant XM as API de XM
+  participant DB as DuckDB
+  O->>CLI: --fuente simem (API local detenida)
+  CLI->>DB: última fecha guardada
+  DB-->>CLI: 2026-09-22
+  Note over CLI: desde = última fecha − 7 días
+  CLI->>SI: 138ED1, 1445AC, 02B289 (desde..hasta)
+  SI-->>CLI: filas por embalse y día
+  loop bloques de 30 días
+    CLI->>XM: VoluUtilDiarEner y CapaUtilDiarEner
+    XM-->>CLI: kWh por embalse
+  end
+  Note over CLI: convierte m³ a Mm³, m³/día a m³/s, kWh a GWh<br/>y asigna cada río a su embalse
+  CLI->>DB: upsert de mediciones y embalses
+  CLI->>DB: fuente_datos (corte, es_real)
+  CLI-->>O: Sincronizado: 24 embalses, fecha de corte
+  O->>O: scripts/desplegar-vercel.sh
+</pre>
+
+<h3>4.4 Periodicidad</h3>
+<div class="tw"><table><thead><tr><th>Flujo</th><th>Publica la fuente</th><th>Cargue vigente</th><th>Ventana</th><th>Propuesta</th></tr></thead><tbody>
+<tr><td>SIMEM y API de XM</td><td>Diaria, con 1 a 2 días de rezago</td><td><span class="pill warn">Manual, bajo demanda</span></td><td>Última fecha guardada − 7 días</td><td><span class="pill prop">Diaria, por la mañana</span></td></tr>
+<tr><td>Modelo de largo plazo</td><td>Por corrida (última: 2026-09-23)</td><td><span class="pill warn">Manual, con el importador</span></td><td>Reemplaza toda la proyección (12 meses)</td><td><span class="pill prop">Tras cada corrida del modelo</span></td></tr>
+<tr><td>Insumo ENSO (<code>NOOA</code>)</td><td>Mensual</td><td>No se carga: lo usa el modelo</td><td>—</td><td><span class="pill prop">Actualizar antes de cada corrida</span></td></tr>
+<tr><td>Publicación de la API</td><td>—</td><td><span class="pill warn">Manual: <code>desplegar-vercel.sh</code></span></td><td>La base viaja con el despliegue</td><td><span class="pill prop">Automatizar tras cada cargue</span></td></tr>
+<tr><td>Sitio web</td><td>—</td><td><span class="pill ok">Automático por Git</span></td><td>Cada merge a <code>main</code></td><td>Sin cambios</td></tr>
+</tbody></table></div>
+<div class="note warn"><b>Estado real:</b><div>Hoy nada se actualiza solo. Las filas “Propuesta” son recomendaciones, no funcionalidad existente.</div></div>
+<div class="note ok"><b>Sin huecos:</b><div>Como el cargue incremental parte de la última fecha guardada menos 7 días, no se pierden datos aunque pasen semanas sin sincronizar; solo aumenta el tiempo de descarga.</div></div>
+<div class="card" id="sim"><h4>Simulador: ¿qué tan viejo es el dato que ve el usuario?</h4>
+<div class="simgrid">
+<label class="f">Frecuencia de sincronización<div class="seg" id="simfreq" role="group" aria-label="Frecuencia"></div></label>
+<label class="f">Rezago de publicación de XM<div class="seg" id="simlag" role="group" aria-label="Rezago"></div></label>
+<label class="f">Publicar la API<div class="seg" id="simpub" role="group" aria-label="Publicación"></div></label>
+</div>
+<div class="simgrid" style="margin-top:14px"><div><div class="big" id="sim1">—</div><small>antigüedad máxima del corte</small></div><div><div class="big" id="sim2">—</div><small>antigüedad promedio</small></div><div><div class="big" id="sim3">—</div><small>ventana de descarga en cada sincronización (días de datos)</small></div></div>
+<svg id="simsvg" class="mini" viewBox="0 0 720 96" role="img" aria-label="Línea de tiempo de 30 días con las sincronizaciones"></svg>
+<p style="font-size:13.5px;color:var(--muted);margin:6px 0 0">Antigüedad = rezago de XM + días entre sincronizaciones (+ 1 día si la API se publica al día siguiente). El corte que muestra el pie es siempre la última fecha con datos cargados.</p></div>
+
+<h3>4.5 Linaje de datos por tablero</h3>
+<p>Elige un tablero para ver el camino completo de sus datos, desde la fuente hasta el componente que los dibuja.</p>
+<div class="seg" id="linsel" role="group" aria-label="Tablero" style="margin:6px 0 10px"></div>
+<div class="lin" id="lin"></div>
+<div class="note"><div id="linnote"></div></div>
+
+<h3>4.6 Controles de calidad en el cargue</h3>
+<div class="grid2">
+<div class="card"><h4>Sincronización SIMEM/XM</h4><ul><li>Conversión de unidades con funciones puras, probadas sin red.</li><li>Upsert idempotente: repetir el cargue no duplica filas.</li><li>Datos faltantes como <code>None</code>; el peso de agregación se imputa con la capacidad publicada más cercana.</li><li>Regiones desconocidas y errores de red con mensaje explícito.</li><li>Cliente de XM en bloques de 30 días.</li></ul></div>
+<div class="card"><h4>Importador de Outputs</h4><ul><li>Columnas <code>CodigoEmbalse</code>, <code>Fecha</code>, <code>P10</code>, <code>P50</code>, <code>P90</code>.</li><li>Rechaza fechas inválidas, meses repetidos y valores fuera de 0–1 (porcentajes ya multiplicados por 100).</li><li>Rechaza bandas con P10 &gt; P50 o P50 &gt; P90.</li><li>Rechaza embalses que no existen en la base.</li><li>Reemplaza la proyección completa en una sola operación.</li></ul></div>
+</div>
+
+<h3>4.7 Cómo construir un tablero nuevo</h3>
+<p>El patrón es el mismo para todos los tableros existentes. Marca los pasos a medida que avanzas; el progreso queda en tu navegador.</p>
+<ol class="steps" id="steps"></ol>
+<pre class="code"><button class="cp" data-cp>Copiar</button># Cargar y publicar datos nuevos
+cd backend &amp;&amp; source .venv/bin/activate
+python -m infrastructure.ingesta.sincronizar --fuente simem          # con la API local detenida
+python -m infrastructure.ingesta.importar_proyeccion --xlsx "&lt;ruta&gt;/proyeccion_montecarlo_enso &lt;fecha&gt;.xlsx"
+cd .. &amp;&amp; scripts/desplegar-vercel.sh                                  # publica la API con la base actual</pre>
+</section>
+<section class="sec" id="calculos" data-g="t" data-t="Cálculos y modelos"><div class="eyebrow" style="--c:var(--azul)">Módulo técnico · 5</div>
+<h2>Cálculos y modelos</h2>
+<p class="lead">Los cálculos hidráulicos son funciones puras en <code>domain/services</code>; los agregados y las proyecciones se arman en <code>application</code>.</p>
+<h3>%V. útil y nivel de riesgo</h3>
+<pre class="code">%V_útil = volumen útil del día ÷ capacidad útil del día × 100</pre>
+<p>La capacidad es la que XM publica ese mismo día, porque la revisa con el tiempo. Los mismos umbrales se usan en todo el tablero.</p>
+<div class="card"><h4>Probador de niveles</h4>
+<label class="f">%V. útil: <span id="rk-v" style="color:var(--ink)">78</span> %<input id="rk" type="range" min="0" max="110" value="78"></label>
+<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:10px"><span class="pill ok" id="rk-p" style="font-size:15px;padding:6px 14px">Óptimo</span><span id="rk-t" style="color:var(--muted);font-size:14.5px"></span></div>
+<svg class="mini" viewBox="0 0 720 52" id="rk-svg" role="img" aria-label="Escala de niveles"></svg></div>
+<h3>Agregados nacional y regional</h3>
+<p>El %V. útil de un conjunto de embalses es el promedio ponderado por la <b>capacidad útil en energía (GWh)</b> de cada embalse ese día, como hace la métrica oficial de XM. Un embalse de caída alta almacena mucha más energía por metro cúbico que uno de caída baja.</p>
+<pre class="code">%V_agregado = Σ(%V_i × w_i) ÷ Σ w_i        con w_i = capacidad útil en energía (GWh)</pre>
+<p>Reproduce el agregado oficial del SIN con un error medio de 0,046 puntos porcentuales sobre 1.725 días. Incluye el Agregado Bogotá.</p>
+<div class="card"><h4>Ponderar por energía o promediar sin más</h4>
+<div class="simgrid"><label class="f">Embalse grande: <span id="wa-v">80</span> % · peso <span id="wa-w">300</span> GWh<input id="wa1" type="range" min="0" max="100" value="80"><input id="wa2" type="range" min="50" max="500" step="10" value="300"></label>
+<label class="f">Embalse pequeño: <span id="wb-v">40</span> % · peso <span id="wb-w">100</span> GWh<input id="wb1" type="range" min="0" max="100" value="40"><input id="wb2" type="range" min="50" max="500" step="10" value="100"></label></div>
+<div class="simgrid" style="margin-top:12px"><div><div class="big" id="wp">—</div><small>ponderado por energía (el que usa la plataforma)</small></div><div><div class="big" id="ws" style="color:var(--muted)">—</div><small>promedio simple (incorrecto)</small></div></div></div>
+<h3>Aportes, autonomía y capacidad guardada</h3>
+<pre class="code">Aportes %   = Σ aportes (m³/s) ÷ Σ media histórica (m³/s) × 100      (solo embalses con ambos datos)
+Autonomía   = volumen útil ÷ (turbinado + vertimientos − aportes)          (Mm³/día; None si aportes ≥ salidas)
+Capacidad guardada = Σ energía útil almacenada (GWh)                       (si falta, no se suma)</pre>
+<p>La autonomía no incluye evaporación porque XM no la publica, y en embalses en cadena (por ejemplo Punchiná) puede resultar engañosamente baja.</p>
+<h3>Proyección de largo plazo y pronóstico diario</h3>
+<div class="tw"><table><thead><tr><th>Elemento</th><th>Cómo se obtiene</th></tr></thead><tbody>
+<tr><td>Valor central</td><td>P50 de la corrida Monte Carlo del modelo Prophet + XGBoost con escenarios ENSO</td></tr>
+<tr><td>Banda</td><td>Escenarios P10 a P90. No es un intervalo de confianza; al inicio puede ser casi nula</td></tr>
+<tr><td>Cobertura</td><td>12 meses (oct-2026 a sep-2027) por embalse y para <code>TOTAL</code>; 1, 3, 6 y 12 meses toman los primeros meses</td></tr>
+<tr><td>Sin proyección publicada</td><td>Respaldo Holt-Winters estacional (12 periodos, tendencia amortiguada, IC 95 % por Monte Carlo) con backtest walk-forward de 6 meses contra persistencia</td></tr>
+<tr><td>Pronóstico diario</td><td>La misma proyección interpolada linealmente: cada valor mensual es el promedio de su mes, situado a mitad de mes. Nace en el último dato y llega hasta el último mes publicado (unos 358 días)</td></tr>
+<tr><td>Agregados regionales y Agregado Bogotá</td><td>Usan el respaldo Holt-Winters</td></tr>
+</tbody></table></div>
+<div class="note"><b>Horizontes:</b><div>1, 3, 6 y 12 meses en todo el tablero. La API los recibe como meses en la senda (<code>horizonte_meses</code>) y como días de 30 en el pronóstico diario (<code>horizonte</code>: 30, 90, 180, 360). Semáforo de la senda sobre el mínimo proyectado: rojo &lt; 55 %, ámbar &lt; 65 %, verde ≥ 65 %.</div></div>
+</section>
+
+<section class="sec" id="api" data-g="t" data-t="API REST"><div class="eyebrow" style="--c:var(--azul)">Módulo técnico · 6</div>
+<h2>API REST</h2>
+<p class="lead">Disponible en <code>https://plataforma-embalses-api.vercel.app</code> (local: <code>http://localhost:8000</code>) con OpenAPI en <code>/docs</code>. Todas las rutas cuelgan de <code>/api/v1</code>.</p>
+<div id="eps"></div>
+<div class="grid2"><div class="card"><h4>Códigos de respuesta</h4><ul><li><b>200</b> consulta correcta</li><li><b>404</b> embalse inexistente o sin mediciones (incluye una región inválida)</li><li><b>422</b> horizonte no permitido, parámetro no numérico o historia insuficiente (menos de 30 días para el pronóstico, menos de 9 meses para la senda)</li></ul></div>
+<div class="card"><h4>Formato de errores</h4><p>Los errores de dominio responden <code>{"detalle": …}</code> y los de validación de parámetros <code>{"detail": …}</code>. El cliente del sitio lee ambos.</p></div></div>
+</section>
+
+<section class="sec" id="plataformas" data-g="t" data-t="Plataformas y despliegue"><div class="eyebrow" style="--c:var(--azul)">Módulo técnico · 7</div>
+<h2>Plataformas, despliegue y operación</h2>
+<p class="lead">El sitio se despliega solo por Git y la API se publica a mano, porque la base de datos no está en el repositorio.</p>
+<div class="tw"><table><thead><tr><th>Componente</th><th>Plataforma</th><th>Cómo se despliega</th></tr></thead><tbody>
+<tr><td>Sitio web</td><td>Vercel, proyecto <code>plataforma-embalses</code>, raíz <code>frontend</code><br><a href="https://plataforma-embalses.vercel.app" target="_blank" rel="noopener">plataforma-embalses.vercel.app</a></td><td>Automático: cada merge a <code>main</code> es producción; cada PR genera una vista previa protegida por el login de Vercel</td></tr>
+<tr><td>API</td><td>Vercel, proyecto <code>plataforma-embalses-api</code>, sin enlace a Git<br><a href="https://plataforma-embalses-api.vercel.app/docs" target="_blank" rel="noopener">…/docs</a></td><td>Manual: <code>scripts/desplegar-vercel.sh</code></td></tr>
+<tr><td>Base de datos</td><td>Archivo DuckDB empaquetado con la API</td><td>Se copia a <code>backend/data/</code> (ignorado por git) y viaja con el despliegue</td></tr>
+<tr><td>Código y CI</td><td><a href="https://github.com/alerogoz85/plataforma-embalses" target="_blank" rel="noopener">GitHub</a>, repositorio público</td><td>Pull request y merge con squash</td></tr>
+</tbody></table></div>
+<pre class="mermaid">
+flowchart TD
+  PR["Pull request"] --> CI{"CI: backend y frontend"}
+  CI -->|"falla"| PR
+  CI -->|"verde"| M["Merge con squash a main"]
+  M --> VS["Vercel publica el sitio"]
+  L["Cargue local de datos"] --> SC["desplegar-vercel.sh"] --> VA["Vercel publica la API<br/>con la base nueva"]
+  VS -. "reescribe /api/v1/*" .-> VA
+</pre>
+<div class="grid2">
+<div class="card"><h4>Cómo encajan en Vercel</h4><ul><li>El sitio reescribe <code>/api/v1/*</code> hacia la API con la variable <code>API_URL</code>.</li><li>La API es una función Python (<code>backend/index.py</code>, 60 s máximo, Python 3.12). Al arrancar copia la base a <code>/tmp</code>, porque el disco es de solo lectura.</li><li>El paquete pesa unos 310 MB y hay arranque en frío.</li></ul></div>
+<div class="card"><h4>Variables de entorno</h4><div class="tw" style="margin:0"><table><tbody><tr><td><code>NEXT_PUBLIC_API_BASE_URL</code></td><td>Frontend: base de la API (local <code>http://localhost:8000</code>; producción <code>/</code>)</td></tr><tr><td><code>API_URL</code></td><td>Frontend: destino de la reescritura</td></tr><tr><td><code>HIDROLOGIA_DB_PATH</code></td><td>Backend: ruta de la base</td></tr><tr><td><code>CORS_ALLOWED_ORIGINS</code></td><td>Backend: orígenes permitidos</td></tr></tbody></table></div></div>
+</div>
+<h3>Procedimientos de mantenimiento</h3>
+<ol><li><b>Actualizar datos:</b> detener la API local, sincronizar y publicar la API.</li><li><b>Corrida nueva del modelo:</b> importar el Excel y publicar la API.</li><li><b>Cambiar el sitio:</b> PR con chequeos en verde y merge con squash. Si depende de endpoints nuevos, publicar la API antes del merge.</li><li><b>Nunca</b> desplegar el sitio con <code>vercel deploy</code> desde <code>frontend/</code>.</li><li><b>Credenciales:</b> <code>vercel link</code> deja un token temporal en <code>.env.local</code>; el script lo retira y <code>.env*</code> está ignorado por git.</li></ol>
+</section>
+
+<section class="sec" id="pruebas" data-g="t" data-t="Calidad y pruebas"><div class="eyebrow" style="--c:var(--azul)">Módulo técnico · 8</div>
+<h2>Calidad y pruebas</h2>
+<p class="lead">456 pruebas automatizadas, 261 de backend y 195 de frontend, sin red ni base externa, en cada pull request. Se comprobó que detectan fallos introduciendo regresiones a propósito.</p>
+<div class="grid2"><div class="card"><h4>Backend · 261 (pytest)</h4><div id="bt"></div></div><div class="card"><h4>Frontend · 195 (Vitest)</h4><div id="ft"></div></div></div>
+</section>
+
+<!-- ===================== MANUAL ===================== -->
+<section class="sec" id="mapa" data-g="m" data-t="Mapa de la pantalla"><div class="eyebrow" style="--c:var(--amarillo)">Manual de usuario · 9</div>
+<h2>Mapa de la pantalla</h2>
+<p class="lead">Se entra por <a href="https://plataforma-embalses.vercel.app" target="_blank" rel="noopener">plataforma-embalses.vercel.app</a> desde cualquier navegador actual, sin usuario ni contraseña. Toca una zona para ir a su capítulo.</p>
+<div class="shot"><div class="stage" id="map-stage"></div><div class="detail" id="map-detail">Toca un número para ver qué es cada zona y saltar a su capítulo.</div><figcaption>Tablero completo al corte del 22-sep-2026, en escritorio (1360 px).</figcaption></div>
+<div class="note"><div>En pantalla ancha el gráfico principal y la distribución regional van lado a lado; en celular todo se apila en una columna.</div></div>
+<h3>El encabezado y el pie</h3>
+<div class="shot" data-shot="header"></div>
+<ul><li><b>Corte al …:</b> fecha del último dato disponible. Todo lo que ves corresponde a ese día. XM publica con uno o dos días de rezago.</li><li><b>Botón de tema:</b> alterna claro y oscuro; se recuerda en tu navegador y, la primera vez, sigue el sistema.</li><li><b>Pie:</b> muestra <b>Datos reales</b>, la fuente y el corte. Si los datos fueran de demostración diría <b>Datos no reales</b> en ámbar.</li></ul>
+</section>
+
+<section class="sec" id="filtros" data-g="m" data-t="Filtros"><div class="eyebrow" style="--c:var(--amarillo)">Manual de usuario · 10</div>
+<h2>Filtros</h2>
+<p class="lead">Cuatro campos iguales y un botón. Cada uno tiene un botón ⓘ con su explicación.</p>
+<div class="shot" data-shot="filtros"></div>
+<div class="tw"><table><thead><tr><th>Filtro</th><th>Qué cambia</th><th>Qué no cambia</th></tr></thead><tbody>
+<tr><td>Región</td><td>Tarjetas, distribución regional, tabla y lista de embalses</td><td>La senda de largo plazo (su selector lista los embalses de la región)</td></tr>
+<tr><td>Embalse</td><td>El gráfico principal</td><td>Tarjetas y tabla</td></tr>
+<tr><td>Desde / Hasta</td><td>El tramo histórico del gráfico principal (por defecto 180 días)</td><td>Los indicadores y la senda; la proyección siempre parte del último dato</td></tr>
+</tbody></table></div>
+<ul><li>Al cambiar de región, el embalse pasa solo al primero de esa región (Prado al elegir Centro).</li><li>“Todos los embalses” es una elección válida: el gráfico muestra el total nacional o, con región, el agregado de esa región.</li><li>“Desde” no puede pasar de “Hasta”, y viceversa.</li><li><b>Restablecer filtros</b> devuelve región y embalse a “Todos” y las fechas a 180 días.</li></ul>
+<h3>Estados que conviene ver</h3>
+<div class="gal"><figure><img data-i="filtros-todos" alt="Filtros con Todas las regiones y Todos los embalses"><figcaption>Todas las regiones + Todos los embalses: el gráfico pasa al total nacional.</figcaption></figure>
+<figure><img data-i="region-centro" alt="Región Centro con Todos los embalses"><figcaption>Región Centro + Todos los embalses: tarjetas y gráfico recalculan para esa región.</figcaption></figure></div>
+</section>
+
+<section class="sec" id="tarjetas" data-g="m" data-t="Tarjetas de indicadores"><div class="eyebrow" style="--c:var(--amarillo)">Manual de usuario · 11</div>
+<h2>Tarjetas de indicadores</h2>
+<p class="lead">Cuatro tarjetas de igual tamaño resumen el estado del sistema en el último corte.</p>
+<div class="shot" data-shot="kpis"></div>
+<div class="tw"><table><thead><tr><th>Tarjeta</th><th>Cómo leerla</th><th>Al 22-sep-2026</th></tr></thead><tbody>
+<tr><td>% Volumen útil nacional</td><td>Porcentaje de la capacidad útil que está llena, ponderado por energía. El cambio frente a ayer y a 7 días va en verde si sube y en rojo si baja</td><td class="num">77,5 % · −0,34 p.p. diario · −1,47 p.p. semanal</td></tr>
+<tr><td>Aportes (% media histórica)</td><td>100 % es un año típico; menos indica un periodo más seco</td><td class="num">46,3 %</td></tr>
+<tr><td>Capacidad guardada</td><td>Energía almacenada hoy en el volumen útil</td><td class="num">13.553 GWh</td></tr>
+<tr><td>Riesgo del sistema</td><td>Insignia del nivel y número de embalses monitoreados</td><td>Óptimo · 24 embalses</td></tr>
+</tbody></table></div>
+<div class="note warn"><b>Ojo:</b><div>Las tarjetas siguen el filtro de región. Con Centro, el volumen es 70,0 %, los aportes 60,5 %, la capacidad 4.450 GWh y hay 6 embalses. El título de la primera tarjeta sigue diciendo “nacional” aunque el valor sea el de la región.</div></div>
+<p>Un guion “—” significa que XM no publicó el dato; nunca es un cero.</p>
+</section>
+
+<section class="sec" id="principal" data-g="m" data-t="Gráfico principal"><div class="eyebrow" style="--c:var(--amarillo)">Manual de usuario · 12</div>
+<h2>Gráfico principal: %V. útil vs. aportes y proyección</h2>
+<p class="lead">La historia reciente y el futuro esperado del embalse elegido. Con “Todos los embalses” muestra el total nacional o el de la región.</p>
+<div class="shot" data-shot="main"></div>
+<div class="tw"><table><thead><tr><th>Elemento</th><th>Aspecto</th><th>Significado</th></tr></thead><tbody>
+<tr><td>% Volumen útil</td><td>Línea azul continua</td><td>Serie diaria del porcentaje de capacidad llena</td></tr>
+<tr><td>Aportes (% media histórica)</td><td>Línea amarilla</td><td>Puede superar 100 % y tiene huecos donde XM no publica</td></tr>
+<tr><td>Proyección %V. útil</td><td>Azul oscura punteada</td><td>Camino esperado desde el último dato</td></tr>
+<tr><td>Escenarios P10–P90 (ENSO)</td><td>Banda azul clara</td><td>Escenarios pesimista y optimista; nace sin ancho y puede ser angosta</td></tr>
+</tbody></table></div>
+<ul><li><b>1m, 3m, 6m, 12m:</b> cuánto se proyecta: 30, 90, 180 o 360 días. Con 12 meses llega a mediados de septiembre de 2027.</li><li>Si el subtítulo dice <b>“escenarios P10–P90”</b>, la banda no es un intervalo de confianza. Si dice <b>“IC 95%”</b>, es el respaldo Holt-Winters (Agregado Bogotá y agregados regionales), que no incorpora el clima.</li><li>El eje vertical se ajusta a los datos: los picos de aportes lo estiran.</li></ul>
+<div class="gal"><figure><img data-i="main-total-12m" alt="Total nacional a 12 meses"><figcaption>Total nacional a 12 meses: baja hasta ~35 % en marzo de 2027 y se recupera después.</figcaption></figure></div>
+</section>
+
+<section class="sec" id="regional" data-g="m" data-t="Distribución regional"><div class="eyebrow" style="--c:var(--amarillo)">Manual de usuario · 13</div>
+<h2>Distribución regional del %V. útil</h2>
+<p class="lead">Barras horizontales de menor a mayor. Cada barra promedia los embalses de la región ponderados por energía.</p>
+<div class="shot" data-shot="region"></div>
+<ul><li>El color sigue el riesgo: verde óptimo, ámbar alerta, rojo crítico y rojo oscuro reboce. Hoy todas están en verde.</li><li>Al pasar el cursor por una barra aparece su valor. Con una región elegida solo se muestra esa región.</li></ul>
+<div class="tw"><table><thead><tr><th>Región</th><th>%V. útil</th><th>Aportes (% media)</th><th>Energía útil (GWh)</th><th>Embalses</th></tr></thead><tbody>
+<tr><td>Caldas</td><td class="num">61,6 %</td><td class="num">25,2 %</td><td class="num">156</td><td>1</td></tr><tr><td>Valle</td><td class="num">65,6 %</td><td class="num">57,9 %</td><td class="num">514</td><td>3</td></tr><tr><td>Caribe</td><td class="num">68,5 %</td><td class="num">51,3 %</td><td class="num">96</td><td>1</td></tr><tr><td>Centro</td><td class="num">70,0 %</td><td class="num">60,5 %</td><td class="num">4.450</td><td>6</td></tr><tr><td>Antioquia</td><td class="num">77,2 %</td><td class="num">28,9 %</td><td class="num">4.714</td><td>10</td></tr><tr><td>Oriente</td><td class="num">94,3 %</td><td class="num">71,2 %</td><td class="num">3.623</td><td>3</td></tr>
+</tbody></table></div>
+<p>Oriente está a menos de un punto del umbral de Reboce (95 %). Caldas y Antioquia tienen los aportes más bajos frente a su media.</p>
+</section>
+
+<section class="sec" id="senda" data-g="m" data-t="Senda de largo plazo"><div class="eyebrow" style="--c:var(--amarillo)">Manual de usuario · 14</div>
+<h2>Senda del volumen útil: proyección de largo plazo</h2>
+<p class="lead">El %V. útil mensual observado desde enero de 2022 y su proyección, por defecto para el total nacional.</p>
+<div class="shot" data-shot="senda"></div>
+<div class="card"><h4>Lector de la senda nacional (datos reales del modelo)</h4>
+<div class="seg" id="sd-h" role="group" aria-label="Horizonte"></div>
+<div class="simgrid" style="margin-top:12px"><div><div class="big" id="sd-min">—</div><small id="sd-mes">mínimo proyectado</small></div><div><span class="pill" id="sd-pill" style="font-size:14px;padding:5px 12px">—</span><div style="font-size:13.5px;color:var(--muted);margin-top:6px" id="sd-txt"></div></div></div>
+<svg id="sd-svg" class="mini" viewBox="0 0 720 220" role="img" aria-label="Proyección del total nacional"></svg></div>
+<div class="tw"><table><thead><tr><th>Control</th><th>Qué hace</th></tr></thead><tbody>
+<tr><td>Selector de embalse</td><td>“Total nacional” (por defecto) o un embalse; independiente del filtro de embalse</td></tr>
+<tr><td>1m, 3m, 6m, 12m</td><td>Meses proyectados; por defecto 12m</td></tr>
+<tr><td>Último observado</td><td>%V. útil del último mes con datos (el mes en curso es un promedio parcial): 79,0 % en sep-2026</td></tr>
+<tr><td>Mínimo proyectado</td><td>Valor esperado más bajo del horizonte, coloreado por el semáforo de la senda: 35,4 % en mar-2027</td></tr>
+</tbody></table></div>
+<ul><li><b>Semáforo de la senda:</b> rojo bajo 55 %, ámbar bajo 65 %, verde desde 65 %. Es distinto del riesgo diario porque juzga un mínimo futuro.</li><li>Con la proyección del modelo aparece un recuadro azul “Sobre esta proyección” en lugar de la tabla de validación, porque los Outputs no traen validación fuera de muestra.</li><li>Con el respaldo Holt-Winters (Agregado Bogotá) aparece la tabla walk-forward: modelo, MAE y R² contra la persistencia.</li></ul>
+<div class="gal"><figure><img data-i="senda-3m" alt="Senda a 3 meses"><figcaption>Horizonte 3m: el mínimo proyectado es 63,7 % en diciembre y cae en ámbar.</figcaption></figure><figure><img data-i="senda-bogota" alt="Senda del Agregado Bogotá con validación"><figcaption>Agregado Bogotá: respaldo Holt-Winters con su tabla de validación.</figcaption></figure></div>
+</section>
+
+<section class="sec" id="tabla" data-g="m" data-t="Tabla de embalses"><div class="eyebrow" style="--c:var(--amarillo)">Manual de usuario · 15</div>
+<h2>Tabla de embalses y reportes</h2>
+<p class="lead">Una fila por embalse con el dato más reciente. Sigue el filtro de región: con Centro muestra 6 filas.</p>
+<div class="shot" data-shot="tabla"></div>
+<div class="tw"><table><thead><tr><th>Columna</th><th>Qué muestra</th></tr></thead><tbody>
+<tr><td>Embalse</td><td>Nombre; el Agregado Bogotá lleva la etiqueta “Agregado”</td></tr><tr><td>Región</td><td>Región hidrológica</td></tr>
+<tr><td>% Vol. útil</td><td>Porcentaje de agua útil con su insignia de riesgo</td></tr><tr><td>Aportes (% media)</td><td>“—” en Muna y en el Agregado Bogotá</td></tr>
+<tr><td>Vertimientos / Turbinado m³/s</td><td>Caudal descargado sin generar / caudal que pasa por turbinas</td></tr>
+<tr><td>Energía útil GWh</td><td>Energía almacenada según XM</td></tr>
+<tr><td>Autonomía (días)</td><td>Estimación de días hasta agotar el volumen útil; “—” si los aportes superan las salidas; engañosa en embalses en cadena como Punchiná</td></tr>
+<tr><td>Reporte</td><td>CSV y JSON con la serie diaria de los últimos 180 días</td></tr>
+</tbody></table></div>
+<ul><li><b>Ordenar:</b> clic en un encabezado; otro clic invierte. Arranca por % Vol. útil de menor a mayor.</li><li><b>Buscar:</b> por nombre o región mientras escribes.</li><li><b>Seleccionar:</b> clic en una fila la resalta y cambia el gráfico principal. Los enlaces CSV/JSON no cambian la selección.</li></ul>
+<pre class="code"><button class="cp" data-cp>Copiar</button>fecha,pct_volumen_util,energia_util_gwh,aportes_m3s,aportes_pct_media,vertimientos_m3s,turbinado_m3s</pre>
+<p>Archivo <code>&lt;CODIGO&gt;_reporte.csv</code> (por ejemplo <code>PENOL_reporte.csv</code>). Una celda vacía es un dato no publicado, nunca un cero. Para otro rango: <code>GET /api/v1/embalses/{id}/reporte?formato=csv&amp;fecha_inicio=…&amp;fecha_fin=…</code>.</p>
+</section>
+
+<section class="sec" id="ayuda" data-g="m" data-t="Ayuda, tema y preguntas"><div class="eyebrow" style="--c:var(--amarillo)">Manual de usuario · 16</div>
+<h2>Ayuda contextual, tema y preguntas frecuentes</h2>
+<div class="grid2"><div><h3>Botones de ayuda ⓘ</h3><p>Cada encabezado técnico, filtro, selector y columna tiene un botón circular azul claro.</p><div class="tw"><table><tbody><tr><td>Cursor encima</td><td>Aparece la explicación; se oculta al salir</td></tr><tr><td>Tecla Tab</td><td>Se muestra al enfocar</td></tr><tr><td>Toque en celular</td><td>Abre; tocar fuera cierra</td></tr><tr><td>Escape, scroll o redimensionar</td><td>Cierra</td></tr></tbody></table></div></div>
+<figure style="margin:0"><img data-i="ayuda-hover" alt="Ayuda contextual al pasar el cursor" style="border-radius:12px;border:1px solid var(--line)"><figcaption style="font-size:13px;color:var(--muted);padding-top:6px">Ayuda de la tarjeta de volumen útil.</figcaption></figure></div>
+<h3>Tema oscuro y celular</h3>
+<div class="gal"><figure><img data-i="oscuro" alt="Tablero en tema oscuro"><figcaption>Tema oscuro: los colores de riesgo se ajustan para mantener el contraste.</figcaption></figure><figure><img data-i="movil" alt="Tablero en celular" style="max-width:300px;margin:0 auto"><figcaption>Celular: una sola columna; la tabla se desplaza horizontalmente.</figcaption></figure></div>
+<h3>Preguntas frecuentes</h3>
+<details><summary>¿Por qué el corte no es el día de hoy?</summary><div>XM publica con uno o dos días de rezago y la base se actualiza al sincronizar. La fecha del último dato está bajo el título y en el pie.</div></details>
+<details><summary>¿Por qué la primera tarjeta dice “nacional” si elegí una región?</summary><div>El título es fijo; el valor corresponde a la región elegida. Con “Todas las regiones” es el nacional.</div></details>
+<details><summary>¿Qué significa un guion “—”?</summary><div>Que XM no publicó ese dato (por ejemplo, aportes de Muna). Nunca es un cero.</div></details>
+<details><summary>¿Por qué el total proyecta bajar a 35 % si hoy está en 77 %?</summary><div>El modelo incorpora escenarios de El Niño: el insumo climático prevé El Niño con probabilidad del 100 % de octubre de 2026 a febrero de 2027, lo que reduce los aportes esperados. Es una proyección, no un dato observado.</div></details>
+<details><summary>¿Por qué la banda casi no se ve al inicio?</summary><div>Los escenarios P10–P90 solo varían el clima; en los primeros meses casi coinciden. No es un intervalo de confianza.</div></details>
+<details><summary>¿Por qué el Agregado Bogotá o una región muestran “IC 95%”?</summary><div>Para ellos el modelo de largo plazo no publica proyección y se usa Holt-Winters, que solo mira la serie del volumen.</div></details>
+<details><summary>¿Por qué la primera carga tarda unos segundos?</summary><div>La API se duerme tras un rato sin uso y la primera consulta la reactiva.</div></details>
+<details><summary>¿Cada cuánto se actualizan los datos?</summary><div>No es automático: se actualizan cuando el equipo técnico sincroniza y publica la API. El pie muestra el corte vigente.</div></details>
+<details><summary>¿Son proyecciones oficiales?</summary><div>No. Los datos observados son públicos de XM/SIMEM; las proyecciones son de un modelo del proyecto y los archivos entregados no traen validación fuera de muestra.</div></details>
+</section>
+
+<!-- ===================== ANEXOS ===================== -->
+<section class="sec" id="limites" data-g="a" data-t="Límites y glosario"><div class="eyebrow" style="--c:var(--muted)">Anexos · 17</div>
+<h2>Límites conocidos y glosario</h2>
+<div class="tw"><table><thead><tr><th>Tema</th><th>Detalle</th></tr></thead><tbody>
+<tr><td>Actualización</td><td>Manual: sincronizar en local y volver a publicar la API</td></tr>
+<tr><td>Cobertura de la proyección</td><td>12 meses (oct-2026 a sep-2027); sin proyección por región ni para el Agregado Bogotá</td></tr>
+<tr><td>Validación</td><td>Los Outputs no traen validación fuera de muestra; el ajuste dentro de muestra del total nacional es de 2,0 pp de error medio</td></tr>
+<tr><td>Banda</td><td>Escenarios P10–P90 que solo varían el clima; en 69 de 288 casos tiene ancho cero</td></tr>
+<tr><td>Prophet</td><td>En los 24 embalses el componente Prophet es una constante igual al último valor observado; el aporte del modelo es el ajuste de XGBoost</td></tr>
+<tr><td>Aportes</td><td>26 de 48 series de río; Muna y el Agregado Bogotá no tienen</td></tr>
+<tr><td>Valores sobre 100 %</td><td>El histórico por embalse puede superar 100 % (1.988 filas, sobre todo Playas); hoy ninguno lo supera</td></tr>
+<tr><td>Datos de origen</td><td>El dataset oficial <code>1d3ef8</code> trae valores atípicos (0 % el 20-ago-2023 en varios embalses); la plataforma calcula el % desde volumen y capacidad</td></tr>
+<tr><td>Rendimiento</td><td>Paquete de API de unos 310 MB y arranque en frío</td></tr>
+<tr><td>Identidad</td><td>Los logos son del Ministerio de Minas y Energía y se usan solo con su autorización; la plataforma no es un producto oficial</td></tr>
+</tbody></table></div>
+<label class="search" style="max-width:360px;display:block;margin:14px 0 6px"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="gq" type="search" placeholder="Buscar en el glosario…" aria-label="Buscar en el glosario"></label>
+<div class="tw"><table id="gl"><thead><tr><th>Término</th><th>Significado</th></tr></thead><tbody></tbody></table></div>
+</section>
+
+<section class="sec" id="refs" data-g="a" data-t="Fuentes"><div class="eyebrow" style="--c:var(--muted)">Anexos · 18</div>
+<h2>Fuentes y referencias</h2>
+<p>Cifras y comportamientos salen del código y la base de la plataforma al 24-sep-2026, de las pruebas automatizadas y de las comparaciones contra los insumos y resultados del modelo de largo plazo. SIMEM y la API de XM se consumen mediante los clientes del backend; no se consultaron sus portales para redactar esta guía.</p>
+<ul><li><a href="https://github.com/alerogoz85/plataforma-embalses" target="_blank" rel="noopener">Repositorio, README y pruebas</a></li><li><a href="https://plataforma-embalses.vercel.app" target="_blank" rel="noopener">Sitio en producción</a> · <a href="https://plataforma-embalses-api.vercel.app/docs" target="_blank" rel="noopener">API y OpenAPI</a></li><li><a href="https://www.minenergia.gov.co/es/" target="_blank" rel="noopener">Ministerio de Minas y Energía</a>: paleta GOV.CO, tipografías y logos</li><li>Insumos del modelo (<code>138ED1</code>, <code>1445AC</code>, <code>02B289</code>, <code>1d3ef8</code>, <code>NOOA</code>) y resultados (<code>resultados 20260923.xlsx</code>, <code>proyeccion_montecarlo_enso 20260923.xlsx</code>) en la carpeta <code>1. Modelo niveles de embalses</code> del proyecto de modelado</li></ul>
+</section>
+</div>
+</main>
+</div>
+<div class="zoom" id="zoom" role="dialog" aria-label="Imagen ampliada"><button id="zx">Cerrar</button><img alt=""></div>
+<script>
+const IMG={"general": "/informacion/img/general.jpg", "header": "/informacion/img/header.jpg", "filtros": "/informacion/img/filtros.jpg", "filtros-todos": "/informacion/img/filtros-todos.jpg", "kpis": "/informacion/img/kpis.jpg", "main12": "/informacion/img/main12.jpg", "main-total-12m": "/informacion/img/main-total-12m.jpg", "region": "/informacion/img/region.jpg", "region-centro": "/informacion/img/region-centro.jpg", "senda": "/informacion/img/senda.jpg", "senda-3m": "/informacion/img/senda-3m.jpg", "senda-bogota": "/informacion/img/senda-bogota.jpg", "tabla": "/informacion/img/tabla.jpg", "ayuda-hover": "/informacion/img/ayuda-hover.jpg", "oscuro": "/informacion/img/oscuro.jpg", "movil": "/informacion/img/movil.jpg"};
+const SHOTS={"general": {"img": "general", "w": 1360, "h": 2738, "ox": 0, "oy": 0, "alt": "Tablero completo", "cap": "", "spots": [{"r": [0, 0, 1360, 119], "t": "Encabezado", "d": "Franja GOV.CO, logo del Ministerio, título, fecha de corte y botón de tema.", "go": "mapa"}, {"r": [64, 143, 1232, 156], "t": "Filtros", "d": "Región, embalse, rango de fechas y botón Restablecer.", "go": "filtros"}, {"r": [64, 320, 1232, 132], "t": "Tarjetas de indicadores", "d": "Volumen útil nacional, aportes, capacidad guardada y riesgo del sistema.", "go": "tarjetas"}, {"r": [64, 472, 816, 396], "t": "Gráfico principal", "d": "%V. útil y aportes históricos con la proyección a 1, 3, 6 o 12 meses.", "go": "principal"}, {"r": [896, 472, 400, 396], "t": "Distribución regional", "d": "Barras por región hidrológica, de menor a mayor.", "go": "regional"}, {"r": [64, 888, 1232, 570], "t": "Senda de largo plazo", "d": "Serie mensual desde 2022 y proyección de 12 meses.", "go": "senda"}, {"r": [64, 1478, 1232, 1129], "t": "Tabla de embalses", "d": "24 embalses con sus indicadores y descargas CSV/JSON.", "go": "tabla"}, {"r": [0, 2630, 1360, 107], "t": "Pie de página", "d": "Procedencia de los datos y fecha de corte.", "go": "mapa"}]}, "header": {"img": "header", "w": 1360, "h": 123, "ox": 0, "oy": 0, "alt": "Encabezado", "cap": "Encabezado del tablero.", "spots": [{"r": [64, 6, 79, 24], "t": "Franja GOV.CO", "d": "Identidad institucional del Estado colombiano.", "a": [1, 0.5, 16, 0]}, {"r": [72, 48, 83, 56], "t": "Logo del Ministerio", "d": "Se usa con autorización del Ministerio; la plataforma no es un producto oficial.", "a": [1, 0.5, 16, 0]}, {"r": [196, 58, 428, 36], "t": "Título y fecha de corte", "d": "“Corte al …” es el último día con datos; todo lo demás corresponde a esa fecha.", "a": [1, 0.5, 16, 0]}, {"r": [1260, 58, 36, 36], "t": "Botón de tema", "d": "Alterna entre tema claro y oscuro; se recuerda en tu navegador.", "a": [0, 0.5, -16, 0]}]}, "filtros": {"img": "filtros", "w": 1248, "h": 173, "ox": 56, "oy": 135, "alt": "Filtros", "cap": "Tarjeta de filtros con sus cuatro campos y el botón Restablecer.", "spots": [{"r": [85, 186, 282, 40], "t": "Región", "d": "Limita tarjetas, distribución regional, tabla y lista de embalses. Al cambiarla se elige el primer embalse de esa región.", "a": [0, 1, 0, 0]}, {"r": [388, 186, 282, 40], "t": "Embalse", "d": "Elige el embalse del gráfico principal, o “Todos los embalses” para ver el total nacional o el de la región.", "a": [0, 1, 0, 0]}, {"r": [690, 186, 282, 40], "t": "Desde", "d": "Primer día del histórico del gráfico principal (por defecto, 180 días atrás).", "a": [0, 1, 0, 0]}, {"r": [992, 186, 282, 40], "t": "Hasta", "d": "Último día del histórico; la proyección siempre parte del último dato.", "a": [0, 1, 0, 0]}, {"r": [352, 164, 16, 16], "t": "Botón de ayuda ⓘ", "d": "Pasa el cursor para leer qué hace el filtro; se oculta al salir.", "a": [0, 0.5, -16, 0]}, {"r": [1127, 242, 148, 36], "t": "Restablecer filtros", "d": "Región y embalse a “Todos” y fechas al rango por defecto.", "a": [0, 0.5, -16, 0]}]}, "kpis": {"img": "kpis", "w": 1248, "h": 148, "ox": 56, "oy": 312, "alt": "Tarjetas de indicadores", "cap": "Las cuatro tarjetas al corte del 22-sep-2026.", "spots": [{"r": [64, 320, 296, 132], "t": "% Volumen útil nacional", "d": "77,5 %, ponderado por energía. Bajo el valor, el cambio frente a ayer y a 7 días: rojo si baja, verde si sube.", "a": [1, 1, -16, -16]}, {"r": [376, 320, 296, 132], "t": "Aportes (% media histórica)", "d": "46,3 %: por debajo de 100 % es un periodo más seco que el típico.", "a": [1, 1, -16, -16]}, {"r": [688, 320, 296, 132], "t": "Capacidad guardada", "d": "13.553 GWh de energía almacenada hoy en el volumen útil.", "a": [1, 1, -16, -16]}, {"r": [1045, 372, 201, 62], "t": "Riesgo del sistema", "d": "Insignia del nivel (Óptimo) y cantidad de embalses monitoreados.", "a": [1, 1, -16, -16]}, {"r": [331, 338, 16, 16], "t": "Botón de ayuda ⓘ", "d": "En la esquina superior derecha de cada tarjeta: explica el cálculo.", "a": [0, 0.5, -16, 0]}]}, "main": {"img": "main12", "w": 832, "h": 412, "ox": 56, "oy": 464, "alt": "Gráfico principal", "cap": "Gráfico principal de Guatapé (Peñol) con horizonte de 1 mes.", "spots": [{"r": [85, 492, 541, 20], "t": "Título", "d": "Indica qué se está viendo: un embalse, el total nacional o una región.", "a": [1, 0.5, 16, 0]}, {"r": [85, 514, 541, 32], "t": "Modelo de la proyección", "d": "“escenarios P10–P90” es la proyección del modelo de largo plazo; “IC 95%” sería el respaldo Holt-Winters.", "a": [1, 0.5, 16, 0]}, {"r": [660, 492, 175, 30], "t": "Horizonte 1m · 3m · 6m · 12m", "d": "Cuánto se proyecta: 30, 90, 180 o 360 días. El activo va en azul.", "a": [0.5, 1, 0, 10]}, {"r": [81, 562, 782, 288], "t": "Áreas del gráfico", "d": "Azul: %V. útil. Amarillo: aportes (% de su media). Punteada: proyección. El eje se ajusta a los datos.", "a": [1, 1, -16, -16]}, {"r": [85, 832, 770, 18], "t": "Leyenda", "d": "Escenarios P10–P90 (banda clara), % Volumen útil, aportes y proyección.", "a": [1, 0.5, 16, 0]}, {"r": [843, 500, 16, 16], "t": "Botón de ayuda ⓘ", "d": "Explica el gráfico y su proyección.", "a": [0, 0.5, -16, 0]}]}, "region": {"img": "region", "w": 416, "h": 412, "ox": 888, "oy": 464, "alt": "Distribución regional", "cap": "Barras por región al corte del 22-sep-2026.", "spots": [{"r": [917, 492, 297, 20], "t": "Título y orden", "d": "Regiones hidrológicas de XM, de menor a mayor %V. útil.", "a": [1, 0.5, 16, 0]}, {"r": [913, 546, 366, 256], "t": "Barras", "d": "Largo = % de capacidad llena; color = nivel de riesgo (hoy todas en verde). Respeta el filtro de región.", "a": [1, 1, -16, -16]}]}, "senda": {"img": "senda", "w": 1248, "h": 586, "ox": 56, "oy": 880, "alt": "Senda de largo plazo", "cap": "Senda del total nacional con horizonte de 12 meses.", "spots": [{"r": [888, 908, 156, 32], "t": "Selector de embalse", "d": "“Total nacional” o un embalse; independiente del filtro de embalse.", "a": [0, 1, 0, 0]}, {"r": [1076, 910, 175, 30], "t": "Horizonte 1m · 3m · 6m · 12m", "d": "Meses proyectados; por defecto 12.", "a": [0.5, 1, 0, 10]}, {"r": [85, 962, 589, 90], "t": "Último observado", "d": "79,0 % en sep-2026. El mes en curso es un promedio parcial.", "a": [1, 1, -16, -16]}, {"r": [686, 962, 589, 90], "t": "Mínimo proyectado", "d": "35,4 % en mar-2027, en rojo por el semáforo de la senda.", "a": [1, 1, -16, -16]}, {"r": [85, 1053, 330, 24], "t": "Semáforo de la senda", "d": "Rojo bajo 55 %, ámbar bajo 65 %, verde desde 65 %.", "a": [1, 0.5, 16, 0]}, {"r": [81, 1094, 1198, 264], "t": "Serie mensual", "d": "Línea continua: observado desde 2022. Punteada: proyección. Banda: escenarios P10–P90.", "a": [1, 1, -16, -16]}, {"r": [85, 1374, 1190, 63], "t": "Sobre esta proyección", "d": "Explica el origen del modelo y por qué no hay tabla de validación.", "a": [1, 0.5, -14, 0]}, {"r": [1259, 916, 16, 16], "t": "Botón de ayuda ⓘ", "d": "Explica la senda de largo plazo.", "a": [0, 0.5, -16, 0]}]}, "tabla": {"img": "tabla", "w": 1248, "h": 656, "ox": 56, "oy": 1470, "alt": "Tabla de embalses", "cap": "Primeras filas de la tabla de embalses, ordenada por % Vol. útil.", "spots": [{"r": [1093, 1498, 158, 30], "t": "Búsqueda", "d": "Filtra por nombre o región mientras escribes.", "a": [0, 0.5, -16, 0]}, {"r": [85, 1520, 98, 16], "t": "Contador", "d": "“24 de 24 registros”: cuántas filas se ven de las disponibles.", "a": [1, 0.5, 16, 0]}, {"r": [358, 1548, 146, 52], "t": "Encabezado ordenable", "d": "Clic para ordenar por la columna; otro clic invierte. Arranca por % Vol. útil de menor a mayor.", "a": [0.5, 0, 0, -10]}, {"r": [424, 1612, 65, 20], "t": "Insignia de riesgo", "d": "Óptimo, Alerta, Crítico o Reboce según el %V. útil.", "a": [1, 0.5, 16, 0]}, {"r": [1060, 1548, 140, 52], "t": "Autonomía (días)", "d": "Estimación de días hasta agotar el volumen útil; “—” si los aportes superan las salidas.", "a": [0.5, 0, 0, -10]}, {"r": [1199, 1601, 96, 41], "t": "Reporte CSV / JSON", "d": "Descarga la serie diaria de 180 días de ese embalse.", "a": [0, 0.5, -16, 0]}, {"r": [65, 1601, 1230, 41], "t": "Fila seleccionable", "d": "Clic en una fila para ver ese embalse en el gráfico principal.", "a": [0, 0.5, -16, 0]}]}};
+const SENDA={"ultimo": {"mes": "2026-09", "pct_volumen_util": 78.99}, "proy": [{"mes": "2026-10", "valor_esperado": 76.28, "limite_inferior": 76.28, "limite_superior": 76.28}, {"mes": "2026-11", "valor_esperado": 71.94, "limite_inferior": 71.94, "limite_superior": 71.94}, {"mes": "2026-12", "valor_esperado": 63.73, "limite_inferior": 63.73, "limite_superior": 63.73}, {"mes": "2027-01", "valor_esperado": 49.69, "limite_inferior": 49.69, "limite_superior": 49.76}, {"mes": "2027-02", "valor_esperado": 38.49, "limite_inferior": 38.49, "limite_superior": 38.69}, {"mes": "2027-03", "valor_esperado": 35.35, "limite_inferior": 35.35, "limite_superior": 36.35}, {"mes": "2027-04", "valor_esperado": 38.75, "limite_inferior": 38.75, "limite_superior": 40.57}, {"mes": "2027-05", "valor_esperado": 44.48, "limite_inferior": 44.48, "limite_superior": 47.64}, {"mes": "2027-06", "valor_esperado": 50.09, "limite_inferior": 50.09, "limite_superior": 54.98}, {"mes": "2027-07", "valor_esperado": 53.94, "limite_inferior": 53.58, "limite_superior": 58.85}, {"mes": "2027-08", "valor_esperado": 56.2, "limite_inferior": 55.06, "limite_superior": 60.05}, {"mes": "2027-09", "valor_esperado": 56.28, "limite_inferior": 55.02, "limite_superior": 59.95}]};
+
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=(n,d=1)=>n.toLocaleString('es-CO',{minimumFractionDigits:d,maximumFractionDigits:d});
+
+/* ---------- navegación ---------- */
+const GROUPS={t:['Módulo técnico','var(--azul)'],m:['Manual de usuario','var(--amarillo)'],a:['Anexos','var(--muted)']};
+(function(){
+  const nav=$('#nav'); let n=0, html='', cur='';
+  $$('section.sec').forEach(s=>{n++; const g=s.dataset.g; if(g!==cur){cur=g; html+=`<h4 style="--c:${GROUPS[g][1]}">${GROUPS[g][0]}</h4>`}
+    html+=`<a href="#${s.id}" data-id="${s.id}"><span>${n}</span>${esc(s.dataset.t)}</a>`});
+  nav.innerHTML=html;
+  $('#q').addEventListener('input',e=>{const q=e.target.value.trim().toLowerCase(); $$('#nav a').forEach(a=>a.hidden=q&&!a.textContent.toLowerCase().includes(q))});
+  const links=Object.fromEntries($$('#nav a').map(a=>[a.dataset.id,a]));
+  const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){$$('#nav a.on').forEach(a=>a.classList.remove('on')); links[e.target.id]?.classList.add('on')}})},{rootMargin:'-20% 0px -70% 0px'});
+  $$('section.sec').forEach(s=>io.observe(s));
+  $$('#nav a').forEach(a=>a.addEventListener('click',()=>document.body.classList.remove('open')));
+  addEventListener('scroll',()=>{const h=document.documentElement; $('#bar').style.width=(100*scrollY/Math.max(1,h.scrollHeight-innerHeight))+'%'},{passive:true});
+  $('#menu').onclick=()=>document.body.classList.add('open'); $('#scrim').onclick=()=>document.body.classList.remove('open');
+  const esOscuro=()=>{const r=document.documentElement; return r.dataset.theme==='dark'||(!r.dataset.theme&&matchMedia('(prefers-color-scheme:dark)').matches)};
+  $('#theme').onclick=()=>{const r=document.documentElement; r.dataset.theme=esOscuro()?'light':'dark'; store.set('tema',r.dataset.theme); if(window.renderMermaid) window.renderMermaid()};
+  const t=store.get('tema'); if(t==='dark'||t==='light') document.documentElement.dataset.theme=t;
+})();
+
+/* ---------- pestañas genéricas ---------- */
+$$('.tabs').forEach(t=>{const btns=$$('button',t); const panels=[]; let el=t.nextElementSibling; while(el&&el.classList.contains('tabpanel')){panels.push(el); el=el.nextElementSibling}
+  btns.forEach((b,i)=>b.onclick=()=>{btns.forEach((x,j)=>x.setAttribute('aria-selected',j===i)); panels.forEach((p,j)=>p.hidden=j!==i)})});
+
+/* ---------- copiar ---------- */
+document.addEventListener('click',e=>{const b=e.target.closest('[data-cp]'); if(!b) return; const pre=b.closest('pre'); const txt=pre.innerText.replace(/^Copiar\n?/,'').trim();
+  const done=()=>{b.textContent='Copiado'; setTimeout(()=>b.textContent='Copiar',1400)};
+  (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(done).catch(()=>{const r=document.createRange(); r.selectNodeContents(pre); const s=getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent='Seleccionado'});});
+
+/* ---------- capturas con indicadores ---------- */
+function stage(cfg,onPick){
+  const W=cfg.w,H=cfg.h; const wrap=document.createElement('div'); wrap.className='stage';
+  const img=new Image(); img.src=IMG[cfg.img]; img.alt=cfg.alt||''; wrap.appendChild(img);
+  const els=[]; cfg.spots.forEach((s,i)=>{const [x,y,w,h]=s.r; const L=(x-cfg.ox)/W*100, T=(y-cfg.oy)/H*100; const A=s.a||[0,0,0,0];
+    const box=document.createElement('div'); box.className='box'; box.style.cssText=`left:${L}%;top:${T}%;width:${w/W*100}%;height:${h/H*100}%`; wrap.appendChild(box);
+    const b=document.createElement('button'); b.className='hs'; b.textContent=i+1; b.style.cssText=`left:${(x+A[0]*w+A[2]-cfg.ox)/W*100}%;top:${(y+A[1]*h+A[3]-cfg.oy)/H*100}%`; b.setAttribute('aria-label',s.t); b.onclick=()=>onPick(i); wrap.appendChild(b); els.push({b,box})});
+  return {wrap,els};
+}
+$$('.shot[data-shot]').forEach(host=>{const cfg=SHOTS[host.dataset.shot]; let cur=-1;
+  const {wrap,els}=stage(cfg,i=>pick(i)); host.appendChild(wrap);
+  const detail=document.createElement('div'); detail.className='detail'; host.appendChild(detail);
+  const leg=document.createElement('div'); leg.className='legend'; host.appendChild(leg);
+  cfg.spots.forEach((s,i)=>{const b=document.createElement('button'); b.innerHTML=`<span class="n">${i+1}</span><div><b>${esc(s.t)}</b><span class="t">${esc(s.d)}</span></div>`; b.onclick=()=>pick(i); leg.appendChild(b)});
+  const cap=document.createElement('figcaption'); cap.textContent=cfg.cap; host.appendChild(cap);
+  function pick(i){cur=(cur===i)?-1:i; els.forEach((e,j)=>{e.b.classList.toggle('on',j===cur); e.box.classList.toggle('on',j===cur)}); $$('button',leg).forEach((b,j)=>b.classList.toggle('on',j===cur));
+    detail.innerHTML=cur<0?'Toca un número o una fila de la lista para ver el detalle de ese elemento.':`<b>${cur+1}. ${esc(cfg.spots[cur].t)}</b> ${esc(cfg.spots[cur].d)}`}
+  pick(0);
+});
+(function(){const cfg=SHOTS.general; const {wrap,els}=stage(cfg,i=>go(i)); $('#map-stage').appendChild(wrap); const det=$('#map-detail');
+  function go(i){els.forEach((e,j)=>{e.b.classList.toggle('on',j===i); e.box.classList.toggle('on',j===i)}); const s=cfg.spots[i]; det.innerHTML=`<b>${i+1}. ${esc(s.t)}</b> ${esc(s.d)} <a href="#${s.go}">Ir al capítulo →</a>`}
+  go(0)})();
+$$('img[data-i]').forEach(i=>{i.src=IMG[i.dataset.i]; i.loading='lazy'});
+const zoom=$('#zoom'); document.addEventListener('click',e=>{const im=e.target.closest('.gal img, figure>img'); if(im){$('img',zoom).src=im.src; zoom.classList.add('on')}}); zoom.onclick=e=>{if(e.target!==$('img',zoom)) zoom.classList.remove('on')}; addEventListener('keydown',e=>{if(e.key==='Escape') zoom.classList.remove('on')});
+
+/* ---------- diccionario de datos ---------- */
+const DICT=[['embalse_id','texto','Código XM del embalse (<code>embalses.id</code>)','Obligatorio'],['fecha','fecha','SIMEM 138ED1','Obligatorio'],
+['volumen_util_mm3','Mm³','SIMEM 138ED1, volumen útil diario ÷ 1.000.000','La fila no se crea'],['capacidad_util_mm3','Mm³','SIMEM 138ED1, capacidad útil del día','La fila no se crea'],
+['energia_util_gwh','GWh','API de XM <code>VoluUtilDiarEner</code> (kWh a GWh)','None (“—”)'],['capacidad_util_energia_gwh','GWh','API de XM <code>CapaUtilDiarEner</code>; peso de agregación','Se imputa con la capacidad publicada más cercana'],
+['aportes_m3s','m³/s','SIMEM 02B289, suma de las series de río de ese embalse','None (“—”)'],['aportes_media_historica_m3s','m³/s','SIMEM 02B289, media histórica','None (“—”)'],
+['vertimientos_m3s','m³/s','SIMEM 1445AC, vertimiento (m³/día ÷ 86.400)','None (“—”)'],['turbinado_m3s','m³/s','SIMEM 1445AC, descarga turbinada (m³/día ÷ 86.400)','None (“—”)']];
+(function(){const tb=$('#dict tbody'); const draw=q=>{tb.innerHTML=DICT.filter(r=>!q||r.join(' ').toLowerCase().includes(q)).map(r=>`<tr><td><code>${r[0]}</code></td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('')||'<tr><td colspan="4">Sin coincidencias</td></tr>'}; draw(''); $('#dq').oninput=e=>draw(e.target.value.trim().toLowerCase())})();
+
+/* ---------- mapa de integración ---------- */
+const NODES={
+ s1:{c:0,t:'SIMEM 138ED1',s:'volumen y capacidad',rol:'Capacidad y volumen útil diario por embalse',canal:'HTTPS, API pública de SIMEM',per:'Publica a diario, con 1 a 2 días de rezago',cmd:'sincronizar.py --fuente simem',falla:'Error de red explícito; volver a ejecutar es seguro (upsert idempotente)'},
+ s2:{c:0,t:'SIMEM 1445AC',s:'descargas',rol:'Turbinado, no turbinado y vertimiento (m³/día)',canal:'HTTPS, API pública de SIMEM',per:'Diaria, 1 a 2 días de rezago',cmd:'sincronizar.py --fuente simem',falla:'Sin dato queda None, nunca cero'},
+ s3:{c:0,t:'SIMEM 02B289',s:'aportes por río',rol:'Aportes por serie de río y su media histórica',canal:'HTTPS, API pública de SIMEM',per:'Diaria, 1 a 2 días de rezago',cmd:'sincronizar.py --fuente simem',falla:'22 de 48 series no se asignan a un embalse; Muna y Agregado Bogotá quedan sin aportes'},
+ x1:{c:0,t:'API de XM',s:'energía y capacidad GWh',rol:'Energía útil y capacidad útil en energía por embalse',canal:'HTTPS, API pública de XM, máximo ~30 días por consulta',per:'Diaria, 1 a 2 días de rezago',cmd:'sincronizar.py --fuente simem',falla:'Si falta la energía, el peso se imputa con la capacidad más cercana'},
+ o1:{c:0,t:'Excel del modelo',s:'P10 / P50 / P90',rol:'Proyección a 12 meses por embalse y TOTAL (Prophet + XGBoost con ENSO)',canal:'Archivo .xlsx local',per:'Una vez por corrida del modelo (la última: 2026-09-23)',cmd:'importar_proyeccion.py --xlsx …',falla:'El importador rechaza el archivo completo si algo no cuadra'},
+ c1:{c:1,t:'Sincronizador',s:'sincronizar.py',rol:'Descarga, normaliza y guarda las mediciones',canal:'CLI Python; API local detenida',per:'Manual. Ventana: última fecha guardada − 7 días',cmd:'python -m infrastructure.ingesta.sincronizar --fuente simem',falla:'--reiniciar borra mediciones, embalses y fuente_datos (no la proyección)'},
+ c2:{c:1,t:'Importador',s:'importar_proyeccion.py',rol:'Valida y carga la proyección de largo plazo',canal:'CLI Python; requiere openpyxl (requirements-dev)',per:'Manual, tras cada corrida del modelo',cmd:'python -m infrastructure.ingesta.importar_proyeccion --xlsx …',falla:'Reemplaza toda la proyección de una vez; no se borra con --reiniciar'},
+ d1:{c:2,t:'mediciones',s:'41.090 filas',rol:'Una fila por embalse y día desde 2022-01-01',canal:'DuckDB embebido',per:'Se actualiza en cada sincronización',cmd:'tabla mediciones',falla:'Clave (embalse_id, fecha): el upsert evita duplicados'},
+ d2:{c:2,t:'embalses y fuente_datos',s:'catálogo y procedencia',rol:'24 embalses con región; fuente, corte y si son datos reales',canal:'DuckDB embebido',per:'En cada sincronización',cmd:'tablas embalses y fuente_datos',falla:'Una base de esquema anterior se rechaza con error explícito'},
+ d3:{c:2,t:'proyecciones_senda',s:'288 filas',rol:'P10, P50, P90 por embalse y mes',canal:'DuckDB embebido',per:'En cada importación',cmd:'tabla proyecciones_senda',falla:'Sin filas para un embalse, la API usa el respaldo Holt-Winters'},
+ a1:{c:3,t:'API FastAPI',s:'casos de uso, solo lectura',rol:'Calcula indicadores, agregados y proyecciones al responder',canal:'HTTPS, /api/v1/*, JSON',per:'Bajo demanda; la base viaja con el despliegue',cmd:'scripts/desplegar-vercel.sh',falla:'Arranque en frío tras inactividad; 404 y 422 con mensaje'},
+ a2:{c:3,t:'Reescritura del sitio',s:'/api/v1/* → API',rol:'El navegador solo habla con el dominio del sitio',canal:'rewrites de Next.js (API_URL)',per:'En cada petición',cmd:'next.config.ts',falla:'Sin API_URL no hay reescritura'},
+ t1:{c:4,t:'Tarjetas',s:'4 indicadores'},t2:{c:4,t:'Gráfico principal',s:'histórico + proyección'},t3:{c:4,t:'Distribución regional',s:'barras por región'},t4:{c:4,t:'Senda de largo plazo',s:'mensual + proyección'},t5:{c:4,t:'Tabla de embalses',s:'24 filas + reportes'},t6:{c:4,t:'Filtros y pie',s:'catálogo y procedencia'}};
+const EDGES=[['s1','c1'],['s2','c1'],['s3','c1'],['x1','c1'],['o1','c2'],['c1','d1'],['c1','d2'],['c2','d3'],['d1','a1'],['d2','a1'],['d3','a1'],['a1','a2'],['a2','t1'],['a2','t2'],['a2','t3'],['a2','t4'],['a2','t5'],['a2','t6']];
+const CONSUMO={t1:'Sirve el resumen nacional: KPI, deltas y riesgo.',t2:'Serie diaria, aportes y proyección (Outputs o respaldo).',t3:'Resumen por región ponderado por energía.',t4:'Serie mensual y proyección de 12 meses.',t5:'Último dato por embalse y reportes CSV/JSON.',t6:'Catálogo de embalses y procedencia de los datos.'};
+(function(){const cols=['Fuentes','Cargue','Almacenamiento','Servicio','Tableros']; const m=$('#map'); m.innerHTML=cols.map((c,i)=>`<div class="col"><h5>${c}</h5>${Object.entries(NODES).filter(([k,v])=>v.c===i).map(([k,v])=>`<button class="node" data-k="${k}"><b>${v.t}</b><small>${v.s}</small></button>`).join('')}</div>`).join('');
+  const adj=(k,dir)=>EDGES.filter(e=>e[dir?0:1]===k).map(e=>e[dir?1:0]);
+  const walk=(k,dir,seen=new Set())=>{adj(k,dir).forEach(n=>{if(!seen.has(n)){seen.add(n); walk(n,dir,seen)}}); return seen};
+  const info=$('#mapinfo');
+  function sel(k){const rel=new Set([...walk(k,true),...walk(k,false),k]); $$('.node',m).forEach(n=>{const id=n.dataset.k; n.classList.toggle('on',id===k); n.classList.toggle('rel',id!==k&&rel.has(id)); n.classList.toggle('dim',!rel.has(id))});
+    const v=NODES[k]; info.innerHTML=v.rol?[['Qué es',v.rol],['Canal',v.canal],['Periodicidad',v.per],['Comando o recurso',`<code>${esc(v.cmd)}</code>`],['Si falla',v.falla]].map(([a,b])=>`<div class="kv"><small>${a}</small>${b}</div>`).join(''):`<div class="kv"><small>Tablero</small><b>${v.t}</b><br>${CONSUMO[k]} Elige la pestaña de linaje (4.5) para ver el camino completo.</div>`}
+  $$('.node',m).forEach(n=>n.onclick=()=>sel(n.dataset.k)); sel('c1');})();
+
+/* ---------- simulador de periodicidad ---------- */
+(function(){const F=[1,2,3,7,14,30], st={f:1,l:1,p:0};
+  const mk=(id,opts,key,lab)=>{const el=$(id); el.innerHTML=opts.map(o=>`<button data-v="${o}" aria-pressed="${st[key]==o}">${lab(o)}</button>`).join(''); $$('button',el).forEach(b=>b.onclick=()=>{st[key]=+b.dataset.v; $$('button',el).forEach(x=>x.setAttribute('aria-pressed',x===b)); draw()})};
+  mk('#simfreq',F,'f',v=>v===1?'Diaria':v===7?'Semanal':v===30?'Mensual':`Cada ${v} días`); mk('#simlag',[1,2],'l',v=>`${v} día${v>1?'s':''}`); mk('#simpub',[0,1],'p',v=>v?'Al día siguiente':'El mismo día');
+  function draw(){const max=st.l+st.f+st.p, avg=st.l+st.f/2+st.p; $('#sim1').innerHTML=`${max} <small>día${max>1?'s':''}</small>`; $('#sim2').innerHTML=`${fmt(avg,1)} <small>días</small>`; $('#sim3').innerHTML=`${st.f+7} <small>días por descarga · ${fmt(30/st.f,st.f===1||30%st.f===0?0:1)}/mes</small>`;
+    const x=d=>20+d*22.3; let s=`<line x1="20" y1="58" x2="700" y2="58" stroke="var(--line)" stroke-width="2"/>`;
+    for(let d=0;d<=30;d+=5) s+=`<text x="${x(d)}" y="84" text-anchor="middle" font-size="11" fill="var(--muted)">${d===30?'hoy':'−'+(30-d)+' d'}</text>`;
+    const last=Math.floor(30/st.f)*st.f, corte=last-st.l; s+=`<rect x="${x(corte)}" y="46" width="${Math.max(2,x(30)-x(corte))}" height="24" rx="6" fill="var(--ambar-bg)" stroke="var(--ambar)"/><text x="${(x(corte)+x(30))/2}" y="62" text-anchor="middle" font-size="11.5" font-weight="700" fill="var(--ambar)">${max===0?'':(30-corte+st.p)+' d'}</text>`;
+    for(let d=0;d<=30;d+=st.f) s+=`<circle cx="${x(d)}" cy="58" r="${st.f===1?3:6}" fill="var(--amarillo)" stroke="var(--surface)" stroke-width="2"/>`;
+    s+=`<text x="20" y="22" font-size="12" fill="var(--muted)">Puntos amarillos: sincronizaciones. Banda ámbar: antigüedad del corte visible hoy.</text><text x="${x(corte)}" y="40" text-anchor="middle" font-size="11" font-weight="700" fill="var(--azul-osc)">corte</text>`; $('#simsvg').innerHTML=s}
+  draw()})();
+
+/* ---------- linaje ---------- */
+const LIN={
+ 'Tarjetas':[['Fuente','SIMEM 138ED1 · 02B289<br>API de XM (energía)'],['Tabla y campos','<code>mediciones</code>: volumen, capacidad, energía, aportes'],['Caso de uso','<code>ObtenerResumenNacional</code>'],['Endpoint','<code>GET /embalses/resumen</code>'],['Hook','<code>useResumenNacional</code>'],['Componente','<code>KpiCard</code>, <code>SistemaRiesgoCard</code>']],
+ 'Gráfico principal':[['Fuente','SIMEM 138ED1 · 02B289<br>Excel del modelo'],['Tabla y campos','<code>mediciones</code> + <code>proyecciones_senda</code>'],['Caso de uso','<code>ObtenerDetalleEmbalse</code> y <code>GenerarPrediccion</code> (+ <code>SeriesAgregadas</code>)'],['Endpoint','<code>GET /embalses/{id}</code> y <code>/{id}/prediccion</code>'],['Hook','<code>useEmbalseDetalle</code>, <code>usePrediccion</code>'],['Componente','<code>MainChart</code>']],
+ 'Distribución regional':[['Fuente','SIMEM 138ED1<br>API de XM (peso GWh)'],['Tabla y campos','<code>embalses.region</code> + <code>mediciones</code>'],['Caso de uso','<code>ObtenerResumenNacional</code> (regiones)'],['Endpoint','<code>GET /embalses/resumen</code>'],['Hook','<code>useResumenNacional</code>'],['Componente','<code>RegionBarChart</code>']],
+ 'Senda de largo plazo':[['Fuente','SIMEM 138ED1 · API de XM<br>Excel del modelo'],['Tabla y campos','<code>mediciones</code> + <code>proyecciones_senda</code>'],['Caso de uso','<code>ObtenerSendaVolumen</code>'],['Endpoint','<code>GET /senda-volumen</code>'],['Hook','<code>useSendaVolumen</code>'],['Componente','<code>SendaVolumenPanel</code>']],
+ 'Tabla y reportes':[['Fuente','SIMEM 138ED1 · 1445AC · 02B289<br>API de XM'],['Tabla y campos','<code>mediciones</code> (todos los campos)'],['Caso de uso','<code>ObtenerResumenNacional</code> y <code>ObtenerDetalleEmbalse</code>'],['Endpoint','<code>GET /embalses/resumen</code> y <code>/{id}/reporte</code>'],['Hook','<code>useResumenNacional</code>'],['Componente','<code>EmbalsesTable</code>']],
+ 'Filtros y pie':[['Fuente','Catálogo de embalses<br>Procedencia de la carga'],['Tabla y campos','<code>embalses</code> y <code>fuente_datos</code>'],['Caso de uso','<code>ObtenerResumenNacional</code> y <code>ObtenerFuenteDatos</code>'],['Endpoint','<code>GET /embalses/resumen</code> y <code>/fuente-datos</code>'],['Hook','<code>useResumenNacional</code>, <code>useFuenteDatos</code>'],['Componente','<code>FiltersPanel</code> y pie de página']]};
+const LNOTE={'Tarjetas':'El %V. útil se pondera por la capacidad en energía; los deltas comparan con ayer y con 7 días atrás. Con un filtro de región, todo se recalcula solo con esos embalses.','Gráfico principal':'Con un embalse concreto se lee su serie; con “Todos los embalses” se construye la serie agregada (TOTAL o REGION:<nombre>). La proyección sale de Outputs cuando existe y, si no, de Holt-Winters.','Distribución regional':'Es la misma respuesta del resumen; el orden de menor a mayor se hace en el sitio.','Senda de largo plazo':'El histórico mensual sale de promediar la serie diaria; la proyección, de Outputs. Agregado Bogotá usa el respaldo con validación walk-forward.','Tabla y reportes':'Los aportes, vertimientos y turbinado vienen de 02B289 y 1445AC; los reportes CSV/JSON entregan 180 días por defecto.','Filtros y pie':'Los filtros se arman con la lista de embalses del resumen; el pie muestra fuente, fecha de corte y si los datos son reales.'};
+(function(){const sel=$('#linsel'), box=$('#lin'), note=$('#linnote'); const keys=Object.keys(LIN);
+  sel.innerHTML=keys.map((k,i)=>`<button data-k="${k}" aria-pressed="${i===0}">${k}</button>`).join('');
+  function draw(k){box.innerHTML=LIN[k].map(([h,b])=>`<div class="st"><h5>${h}</h5>${b}</div>`).join(''); note.textContent=LNOTE[k]; $$('button',sel).forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===k))}
+  $$('button',sel).forEach(b=>b.onclick=()=>draw(b.dataset.k)); draw(keys[0])})();
+
+/* ---------- pasos para un tablero nuevo ---------- */
+const STEPS=[['Definir la pregunta y la métrica','Qué decisión apoya el tablero y a qué nivel se responde: embalse, región o nacional.'],
+['Ubicar el dato','Revisa el diccionario (sección 2). Si falta un campo, añádelo a la normalización, al esquema y a la sincronización; un dato ausente es None.'],
+['Escribir el cálculo puro','En <code>domain/services</code>, con pruebas de fórmula, casos límite y None.'],
+['Crear el caso de uso y el DTO','En <code>application</code>, apoyado en los repositorios; usa <code>SeriesAgregadas</code> si el tablero agrega embalses.'],
+['Exponer el endpoint','En <code>presentation/api/routers</code>, con validación de parámetros y errores <code>detalle</code>.'],
+['Conectar el cliente','Tipos y función en <code>lib/api</code> y un hook con <code>useAsyncResource</code>.'],
+['Construir el componente','Estados de carga, error y vacío; tokens de color; botón ⓘ con su texto en <code>ayudas.tsx</code>.'],
+['Probar','Pruebas HTTP, de hook, de componente y de página; mutaciones de sanidad; lint y build.'],
+['Documentar y publicar','README y esta guía; PR con chequeos en verde; publicar la API antes del merge si hay endpoints nuevos.']];
+(function(){const ol=$('#steps'); let done=[]; try{done=JSON.parse(store.get('guia-pasos')||'[]')}catch(e){}
+  ol.innerHTML=STEPS.map((s,i)=>`<li class="${done.includes(i)?'done':''}"><div><b>${s[0]}</b><span>${s[1]}</span></div><input type="checkbox" id="st${i}" aria-label="Paso ${i+1} hecho" ${done.includes(i)?'checked':''}></li>`).join('');
+  $$('input',ol).forEach((c,i)=>c.onchange=()=>{c.closest('li').classList.toggle('done',c.checked); done=done.filter(x=>x!==i); if(c.checked) done.push(i); store.set('guia-pasos',JSON.stringify(done))})})();
+
+/* ---------- probador de niveles ---------- */
+(function(){const r=$('#rk'); const L=[[95,'Reboce','bad','Riesgo de vertimiento: el embalse está casi lleno.'],[30,'Óptimo','ok','Operación normal.'],[15,'Alerta de sequía','warn','Nivel bajo; conviene vigilar.'],[-1,'Crítico','bad','Nivel muy bajo.']];
+  function draw(){const v=+r.value; $('#rk-v').textContent=v; const lv=v>=95?L[0]:v>=30?L[1]:v>=15?L[2]:L[3]; const p=$('#rk-p'); p.textContent=lv[1]; p.className='pill '+lv[2]; $('#rk-t').textContent=lv[3];
+    const x=q=>10+q/110*700, seg=[[0,15,'var(--rojo)','Crítico'],[15,30,'var(--ambar)','Alerta'],[30,95,'var(--verde)','Óptimo'],[95,110,'#8C1130','Reboce']];
+    $('#rk-svg').innerHTML=seg.map(s=>`<rect x="${x(s[0])}" y="14" width="${x(s[1])-x(s[0])-2}" height="14" rx="4" fill="${s[2]}" opacity=".85"/><text x="${(x(s[0])+x(s[1]))/2}" y="46" text-anchor="middle" font-size="11" fill="var(--muted)">${s[3]}</text>`).join('')+`<path d="M${x(v)} 4 l-6 -1 l6 12 l6 -12z" fill="var(--ink)"/>`}
+  r.oninput=draw; draw()})();
+/* ---------- ponderación ---------- */
+(function(){const g=id=>$('#'+id); const ids=['wa1','wa2','wb1','wb2'];
+  function draw(){const [a,wa,b,wb]=ids.map(i=>+g(i).value); g('wa-v').textContent=a; g('wa-w').textContent=wa; g('wb-v').textContent=b; g('wb-w').textContent=wb; g('wp').textContent=fmt((a*wa+b*wb)/(wa+wb))+' %'; g('ws').textContent=fmt((a+b)/2)+' %'}
+  ids.forEach(i=>g(i).oninput=draw); draw()})();
+
+/* ---------- lector de la senda ---------- */
+(function(){const P=SENDA.proy, H=[1,3,6,12]; let h=12; const seg=$('#sd-h'); seg.innerHTML=H.map(v=>`<button data-v="${v}" aria-pressed="${v===12}">${v} ${v===1?'mes':'meses'}</button>`).join('');
+  const MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'], lab=m=>{const [y,mm]=m.split('-'); return MES[+mm-1]+' '+y};
+  function draw(){const sub=P.slice(0,h); const mn=sub.reduce((a,b)=>b.valor_esperado<a.valor_esperado?b:a); $('#sd-min').textContent=fmt(mn.valor_esperado)+' %'; $('#sd-mes').textContent='mínimo proyectado en '+lab(mn.mes);
+    const c=mn.valor_esperado<55?['bad','Rojo (bajo 55 %)']:mn.valor_esperado<65?['warn','Ámbar (bajo 65 %)']:['ok','Verde (desde 65 %)']; const p=$('#sd-pill'); p.className='pill '+c[0]; p.textContent=c[1]; $('#sd-txt').textContent='Último observado: '+fmt(SENDA.ultimo.pct_volumen_util)+' % en '+lab(SENDA.ultimo.mes)+'.';
+    const X=i=>60+i*(620/12), Y=v=>190-v*1.7; let s=''; [0,25,50,75,100].forEach(v=>s+=`<line x1="52" x2="712" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-dasharray="3 4"/><text x="46" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${v}%</text>`);
+    s+=`<rect x="52" y="${Y(55)}" width="660" height="${Y(0)-Y(55)}" fill="var(--rojo)" opacity=".06"/><line x1="52" x2="712" y1="${Y(55)}" y2="${Y(55)}" stroke="var(--rojo)" stroke-dasharray="5 4" opacity=".6"/><text x="58" y="${Y(55)-5}" text-anchor="start" font-size="10.5" fill="var(--rojo)">umbral rojo 55 %</text>`;
+    const pts=[[0,SENDA.ultimo.pct_volumen_util,SENDA.ultimo.pct_volumen_util,SENDA.ultimo.pct_volumen_util],...P.map((q,i)=>[i+1,q.valor_esperado,q.limite_inferior,q.limite_superior])];
+    const vis=pts.slice(0,h+1); s+=`<path d="M${vis.map(q=>X(q[0])+','+Y(q[3])).join(' L')} L${[...vis].reverse().map(q=>X(q[0])+','+Y(q[2])).join(' L')}Z" fill="var(--azul)" opacity=".16"/>`;
+    s+=`<path d="M${pts.map(q=>X(q[0])+','+Y(q[1])).join(' L')}" fill="none" stroke="var(--azul-osc)" stroke-width="2" stroke-dasharray="5 4" opacity=".35"/><path d="M${vis.map(q=>X(q[0])+','+Y(q[1])).join(' L')}" fill="none" stroke="var(--azul-osc)" stroke-width="3"/>`;
+    const mi=pts.findIndex(q=>q[1]===mn.valor_esperado); s+=`<circle cx="${X(mi)}" cy="${Y(mn.valor_esperado)}" r="6" fill="var(--amarillo)" stroke="var(--surface)" stroke-width="2"/>`;
+    pts.forEach((q,i)=>{if(i%2===0||i===12) s+=`<text x="${X(i)}" y="212" text-anchor="middle" font-size="10.5" fill="var(--muted)">${i===0?lab(SENDA.ultimo.mes):lab(P[i-1].mes)}</text>`}); $('#sd-svg').innerHTML=s}
+  $$('button',seg).forEach(b=>b.onclick=()=>{h=+b.dataset.v; $$('button',seg).forEach(x=>x.setAttribute('aria-pressed',x===b)); draw()}); draw()})();
+
+/* ---------- endpoints ---------- */
+const EPS=[
+['GET','/salud','Comprobación de estado para monitoreo.','—','curl "https://plataforma-embalses-api.vercel.app/api/v1/salud"','{"estado": "ok"}'],
+['GET','/fuente-datos','Procedencia de los datos: fuente, fecha de corte, momento de actualización y si son reales.','—','curl "https://plataforma-embalses-api.vercel.app/api/v1/fuente-datos"','{"fuente": "SIMEM / XM", "es_real": true, "fecha_corte": "2026-09-22", …}'],
+['GET','/embalses/resumen','KPI nacionales, resumen por región y lista de embalses del último corte.','region (repetible), embalse (repetible), fecha','curl "https://plataforma-embalses-api.vercel.app/api/v1/embalses/resumen?region=Centro"','{"kpis": {"pct_volumen_util_nacional": 77.52, …}, "regiones": […], "embalses": […]}'],
+['GET','/embalses','Listado de embalses con su serie.','region, fecha_inicio, fecha_fin','curl "https://plataforma-embalses-api.vercel.app/api/v1/embalses?region=Oriente"','[{"resumen": {…}, "serie_historica": […]}]'],
+['GET','/embalses/{id}','Último dato y serie histórica (por defecto 180 días). Acepta TOTAL y REGION:<nombre> (con “:” codificado, REGION%3ACentro).','fecha_inicio, fecha_fin','curl "https://plataforma-embalses-api.vercel.app/api/v1/embalses/REGION%3ACentro"','{"resumen": {"id": "REGION:Centro", "pct_volumen_util": 69.99, …}, "serie_historica": […]}'],
+['GET','/embalses/{id}/prediccion','Pronóstico diario. origen = outputs (nivel_confianza null) o holt_winters (0,95).','horizonte en días: 30, 90, 180 o 360','curl "https://plataforma-embalses-api.vercel.app/api/v1/embalses/PENOL/prediccion?horizonte=360"','{"origen": "outputs", "nivel_confianza": null, "puntos": [{"fecha": "2026-09-23", "valor_esperado": …}, …]}'],
+['GET','/embalses/{id}/reporte','Descarga de la serie diaria en CSV o JSON.','formato (csv|json), fecha_inicio, fecha_fin','curl -O "https://plataforma-embalses-api.vercel.app/api/v1/embalses/PENOL/reporte?formato=csv"','fecha,pct_volumen_util,energia_util_gwh,aportes_m3s,…'],
+['GET','/regiones','Resumen por región hidrológica.','—','curl "https://plataforma-embalses-api.vercel.app/api/v1/regiones"','[{"region": "Centro", "pct_volumen_util": 69.99, …}]'],
+['GET','/senda-volumen','Senda mensual observada y proyectada, con origen_proyeccion, horizonte_efectivo_meses y validación walk-forward del respaldo.','embalse (id o TOTAL), horizonte_meses: 1, 3, 6 o 12','curl "https://plataforma-embalses-api.vercel.app/api/v1/senda-volumen?horizonte_meses=3"','{"ultimo_observado": {"mes": "2026-09", …}, "minimo_proyectado": {…}, "proyeccion": [{"mes": "2026-10", "valor_esperado": 76.28, …}]}']];
+$('#eps').innerHTML=EPS.map(e=>`<details><summary><span><span class="pill info">${e[0]}</span> <code>/api/v1${e[1]}</code></span><span style="font-weight:400;color:var(--muted);font-size:13.5px">${esc(e[2].split('.')[0])}</span></summary><div><p>${esc(e[2])}</p><p><b>Parámetros:</b> ${esc(e[3])}</p><pre class="code"><button class="cp" data-cp>Copiar</button>${esc(e[4])}</pre><p><b>Respuesta (forma):</b></p><pre class="code">${esc(e[5])}</pre></div></details>`).join('');
+
+/* ---------- pruebas ---------- */
+const BT=[['test_api_http.py',72,'Contrato HTTP: endpoints, códigos, agregados, OpenAPI y CORS'],['test_senda_volumen.py',34,'Senda, horizontes 1/3/6/12, Outputs y respaldo'],['test_domain_calculos.py',28,'%V. útil, riesgo, aportes, autonomía'],['test_fuente_simem_xm.py',26,'Conversión de unidades, mapeo río→embalse'],['test_series_agregadas.py',20,'Agregados nacional y regional'],['test_sincronizacion_y_persistencia.py',19,'Cargue idempotente y repositorios DuckDB'],['test_proyeccion_diaria.py',18,'Interpolación mensual→diaria'],['test_proyeccion_outputs.py',18,'Importador de Outputs'],['test_agregacion.py',15,'Agregación mensual y por energía'],['test_holt_winters_estacional.py',7,'Respaldo estadístico'],['test_arranque_vercel.py',4,'Copia de la base a /tmp']];
+const FT=[['SendaVolumenPanel',29,'Semáforo, proyección de Outputs y respaldo'],['graficos',23,'Gráfico regional y principal'],['page',22,'Página completa y filtros'],['EmbalsesTable',22,'Orden, búsqueda y reportes'],['client',20,'URLs, parámetros y errores'],['tarjetas',15,'Indicadores y semáforo'],['InfoButton',13,'Ayuda por hover, foco y toque'],['formatters',12,'Formato de números y riesgo'],['FiltersPanel',11,'Filtros y Restablecer'],['useAsyncResource',10,'Carga, cancelación y errores'],['dates, ThemeToggle, ayudas',18,'Fechas locales, tema y cobertura de ayuda']];
+const tbl=(a,mx)=>'<div class="tw" style="margin:0"><table><tbody>'+a.map(r=>`<tr><td><code>${r[0]}</code></td><td class="num" style="width:120px"><div style="display:flex;gap:8px;align-items:center"><b>${r[1]}</b><span style="display:block;height:6px;border-radius:3px;background:var(--azul);width:${r[1]/mx*56}px"></span></div></td><td style="font-size:13.5px;color:var(--muted)">${r[2]}</td></tr>`).join('')+'</tbody></table></div>';
+$('#bt').innerHTML=tbl(BT,72); $('#ft').innerHTML=tbl(FT,29);
+
+/* ---------- glosario ---------- */
+const GL=[['SIN','Sistema Interconectado Nacional'],['XM','Operador del SIN y del mercado de energía de Colombia'],['SIMEM','Sistema de Información del Mercado de Energía Mayorista; fuente de datos públicos de XM'],['%V. útil','Volumen útil dividido por capacidad útil, en porcentaje'],['Volumen útil','Agua que se puede usar para generar, por encima del nivel mínimo técnico'],['Aportes','Caudal que llega a los embalses desde sus ríos (m³/s)'],['Media histórica','Promedio histórico de los aportes para esa fecha; es la referencia (100 %)'],['Vertimiento','Agua que se descarga sin pasar por las turbinas'],['Turbinado','Agua que pasa por las turbinas para generar energía'],['GWh','Gigavatio-hora; energía equivalente al agua almacenada'],['p.p.','Puntos porcentuales: diferencia entre dos porcentajes'],['ENSO','El Niño–Oscilación del Sur: ciclo climático El Niño y La Niña'],['ONI','Índice Niño Oceánico: mide qué tan fuerte es El Niño o La Niña'],['P10, P50, P90','Percentiles de los escenarios simulados: 10 %, 50 % (central) y 90 %'],['Holt-Winters','Modelo estadístico de suavizado exponencial con tendencia y estacionalidad'],['Prophet + XGBoost','Modelo de largo plazo: Prophet aporta la base y XGBoost corrige el residuo'],['Walk-forward','Validación que entrena solo con el pasado y predice el mes siguiente'],['MAE','Error absoluto medio'],['R²','Proporción de la variación real explicada por el modelo'],['Persistencia','Línea base ingenua: repetir el último valor observado'],['Reboce','Nivel de 95 % o más: riesgo de vertimiento'],['Upsert','Insertar o actualizar según la clave; repetir el cargue no duplica filas'],['Idempotente','Que ejecutarlo varias veces deja el mismo resultado']];
+(function(){const tb=$('#gl tbody'); const draw=q=>{tb.innerHTML=GL.filter(r=>!q||r.join(' ').toLowerCase().includes(q)).map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')||'<tr><td colspan="2">Sin coincidencias</td></tr>'}; draw(''); $('#gq').oninput=e=>draw(e.target.value.trim().toLowerCase())})();
+
+</script>
+
+<!--claude-mermaid-runtime-begin:3477-->
+<style>.mermaid-diagram{margin-block:4px}.mermaid-diagram svg{display:block;margin:0 auto;max-width:100%;height:auto}</style>
+<script src="/_runtime/mermaid-11.16.1.min.js"></script>
+<script>(function(){
+var CFG={"palettes":{"light":{"surface":"#f4efe4","text":"#42392e","line":"#8a7f6d","border":"#7a6c52","bg":"#fffdf8"},"dark":{"surface":"#262b34","text":"#f2f3f5","line":"#a8adb8","border":"#9aa4b8","bg":"#1f232b"}}};
+if(typeof mermaid==='undefined')return;
+var pres=Array.prototype.slice.call(document.querySelectorAll('pre.mermaid')).filter(function(p){if(p.hasAttribute('data-claude-mermaid-claimed'))return false;p.setAttribute('data-claude-mermaid-claimed','1');return true;});
+if(!pres.length)return;
+var mq=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)'):null;
+var root=document.documentElement;
+var items=pres.map(function(pre){
+var mount=document.createElement('div');mount.className='mermaid-diagram';
+return {pre:pre,mount:mount,src:pre.textContent||''};
+});
+var seq=0;
+var renderGen=0;
+var lastKey='';
+function pageBg(fallback){
+var els=[document.body,document.documentElement];
+for(var i=0;i<els.length;i++){
+var c=els[i]&&getComputedStyle(els[i]).backgroundColor;
+if(c&&c!=='transparent'&&c!=='rgba(0, 0, 0, 0)')return c;
+}
+return fallback;
+}
+function render(){
+var theme=root.getAttribute('data-theme');
+var dark=theme==='dark'||(!!(mq&&mq.matches)&&theme!=='light');
+var pal=dark?CFG.palettes.dark:CFG.palettes.light;
+var bg=pageBg(pal.bg);
+var key=(dark?'d':'l')+'|'+bg;
+if(key===lastKey)return;
+lastKey=key;
+var gen=++renderGen;
+var font=getComputedStyle(document.body).fontFamily||'sans-serif';
+var nat={useMaxWidth:false};
+mermaid.initialize({
+startOnLoad:false,securityLevel:'strict',theme:'base',
+flowchart:nat,sequence:nat,er:nat,state:nat,class:nat,pie:nat,
+gantt:nat,journey:nat,timeline:nat,gitGraph:nat,mindmap:nat,xyChart:nat,
+quadrantChart:nat,sankey:nat,c4:nat,requirement:nat,block:nat,
+packet:nat,kanban:nat,architecture:nat,radar:nat,
+themeVariables:{background:bg,mainBkg:pal.surface,primaryColor:pal.surface,
+primaryTextColor:pal.text,lineColor:pal.line,primaryBorderColor:pal.border,
+nodeBorder:pal.border,clusterBorder:pal.border,edgeLabelBackground:bg,
+clusterBkg:'rgba(127,127,127,0.07)',titleColor:pal.text,
+darkMode:dark,rowOdd:bg,rowEven:'rgba(127,127,127,0.07)',
+attributeBackgroundColorOdd:bg,attributeBackgroundColorEven:'rgba(127,127,127,0.07)',
+fontSize:'16px',fontFamily:font},
+themeCSS:'.node rect, .node circle, .node polygon, .node path, .cluster rect { stroke-width: 2px; }'
+});
+items.forEach(function(it){
+var id='claude-mermaid-'+seq++;
+mermaid.render(id,it.src).then(function(r){
+if(gen!==renderGen)return;
+var prev=it.pre.previousElementSibling;
+if(prev&&prev.className==='mermaid-diagram'&&prev!==it.mount)return;
+it.mount.innerHTML=r.svg;
+if(!it.mount.parentNode)it.pre.parentNode.insertBefore(it.mount,it.pre);
+it.pre.style.display='none';
+},function(){
+var scratch=document.getElementById(id);
+if(scratch)scratch.parentNode.removeChild(scratch);
+scratch=document.getElementById('d'+id);
+if(scratch)scratch.parentNode.removeChild(scratch);
+if(gen!==renderGen)return;
+if(it.mount.parentNode)it.mount.parentNode.removeChild(it.mount);
+it.pre.style.display='';
+});
+});
+}
+render();
+if(mq&&mq.addEventListener)mq.addEventListener('change',render);
+if(typeof MutationObserver!=='undefined')new MutationObserver(render).observe(root,{attributes:true,attributeFilter:['data-theme']});
+})();</script>
+<!--claude-mermaid-runtime-end-->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+(function(){
+  // Los diagramas se dibujan con mermaid; se conserva el texto original para redibujarlos al cambiar de tema.
+  var bloques=Array.prototype.slice.call(document.querySelectorAll('pre.mermaid'));
+  bloques.forEach(function(b){b.setAttribute('data-src',b.textContent)});
+  window.renderMermaid=function(){
+    if(!window.mermaid) return;
+    var r=document.documentElement, oscuro=r.dataset.theme==='dark'||(!r.dataset.theme&&matchMedia('(prefers-color-scheme:dark)').matches);
+    mermaid.initialize({startOnLoad:false,theme:oscuro?'dark':'neutral',securityLevel:'strict'});
+    bloques.forEach(function(b){b.removeAttribute('data-processed'); b.textContent=b.getAttribute('data-src')});
+    mermaid.run({nodes:bloques}).catch(function(){});
+  };
+  if(document.readyState==='complete') window.renderMermaid(); else addEventListener('load',window.renderMermaid);
+})();
+</script>
+</body>
+</html>

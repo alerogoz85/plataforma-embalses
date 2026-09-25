@@ -259,8 +259,10 @@ plataforma-embalses/
 ├── frontend/
 │   ├── app/                      # Next.js App Router (layout, page, globals.css con los tokens de la identidad visual)
 │   ├── public/marca/             # Logos GOV.CO y Ministerio de Minas y Energía (el favicon del navegador es el del Ministerio: app/favicon.ico)
+│   ├── public/informacion.html   # Guía técnica y manual de usuario (página estática, servida en /informacion)
+│   ├── public/informacion/img/   # Capturas del tablero usadas por la guía
 │   ├── components/
-│   │   ├── layout/                # Header (franja GOV.CO + logo), ThemeToggle
+│   │   ├── layout/                # Header (franja GOV.CO + logo, acceso «Información»), ThemeToggle
 │   │   ├── dashboard/              # KpiCard, SistemaRiesgoCard, RiskBadge, FiltersPanel, MainChart, RegionBarChart, SendaVolumenPanel, EmbalsesTable, ayudas.tsx (textos de ayuda)
 │   │   └── ui/                     # Card, Skeleton, InfoButton (botón ⓘ)
 │   ├── tests/                    # Pruebas (Vitest + Testing Library): utils, api, hooks, components, app, mocks, fixtures
@@ -507,7 +509,7 @@ repositorios en memoria; DuckDB se prueba aparte). La descarga real de SIMEM/XM
 se verificó manualmente (carga completa e incremental) y contra el agregado
 oficial de XM, pero no en las pruebas automáticas, que no usan red.
 
-### Frontend — 195 pruebas (Vitest + React Testing Library + jsdom)
+### Frontend — 198 pruebas (Vitest + React Testing Library + jsdom)
 
 Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 ([`tests/mocks/fetch.ts`](frontend/tests/mocks/fetch.ts)) con datos de ejemplo
@@ -527,6 +529,7 @@ Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 | `components/SendaVolumenPanel.test.tsx` | 29 | Semáforo del mínimo proyectado en los umbrales exactos, datos del gráfico, tabla de validación, selectores, estados de carga y error; proyección de Outputs (banda P10–P90, nota en lugar de la tabla, aviso si la corrida publica menos meses de los pedidos); horizontes 1/3/6/12 |
 | `components/ThemeToggle.test.tsx` | 6 | Preferencia guardada vs. del sistema, clase `dark`, sincronía entre botones |
 | `app/page.test.tsx` | 22 | Página completa con la API simulada: KPIs, procedencia real/no real, selección automática, rango de 180 días, **cambio de región sin dejar un embalse de otra región seleccionado**, «Todos los embalses» que dibuja el total nacional o el agregado de la región, restablecer filtros (región, embalse y fechas), error de API |
+| `components/Header.test.tsx` | 3 | Acceso «Información» (enlace a `/informacion` en pestaña nueva, junto al botón de tema) y fecha de corte |
 | `app/ayudas.test.tsx` | 6 | Catálogo de ayudas (títulos únicos, sin textos obsoletos) y auditoría: todo encabezado, columna, filtro y tarjeta tiene su ⓘ y todos abren y cierran |
 
 Recharts se sustituye por un doble
@@ -615,6 +618,18 @@ Las pruebas encontraron **tres defectos reales**, ya corregidos:
   así que el resultado (a veces la persistencia empata o gana) no es
   decorativo. La senda usa sus propios umbrales de riesgo (rojo <55%, ámbar
   <65%), distintos de los del estado diario.
+- **Guía dentro de la aplicación**: el encabezado tiene un acceso «Información»
+  (junto al botón de tema) que abre `/informacion` en una pestaña nueva. Es una
+  página estática ([`public/informacion.html`](frontend/public/informacion.html)),
+  no una ruta de Next: `next.config.ts` la reescribe de `/informacion` a
+  `/informacion.html`. Reúne el módulo técnico (arquitectura, datos, integraciones,
+  modelo de cargue con diagramas y periodicidad, cálculos, API, plataformas,
+  pruebas) y el manual de usuario con capturas reales y marcadores interactivos.
+  Comparte con el tablero el tema claro/oscuro (clave `tema` de `localStorage`) y
+  dibuja los diagramas con mermaid desde jsDelivr. **Es documentación a mano:** las
+  cifras están al corte del 22-sep-2026 y hay que actualizarlas al editar el
+  archivo; las coordenadas de los marcadores están en la constante `SHOTS` y las
+  capturas en `public/informacion/img/`.
 - **Filtros y «Todos los embalses»**: elegir «Todos los embalses» (o pulsar
   «Restablecer filtros», que además vuelve a Todas las regiones y al rango de
   180 días) es una elección explícita y se mantiene. El gráfico principal

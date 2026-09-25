@@ -6,7 +6,11 @@ const API_URL = process.env.API_URL?.replace(/\/+$/, "");
 
 const nextConfig: NextConfig = {
   async rewrites() {
-    return API_URL ? [{ source: "/api/v1/:path*", destination: `${API_URL}/api/v1/:path*` }] : [];
+    return [
+      // Guia de la plataforma: pagina estatica en public/informacion.html
+      { source: "/informacion", destination: "/informacion.html" },
+      ...(API_URL ? [{ source: "/api/v1/:path*", destination: `${API_URL}/api/v1/:path*` }] : []),
+    ];
   },
 };
 
