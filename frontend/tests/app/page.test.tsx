@@ -22,7 +22,7 @@ async function pagina() {
   const api = simularApi();
   render(<DashboardPage />);
   await screen.findByText("77.5%");
-  await waitFor(() => expect(tituloGrafico()).toHaveTextContent("Guavio"));
+  await waitFor(() => expect(tituloGrafico()).toHaveTextContent("Total nacional"));
   return api;
 }
 
@@ -100,18 +100,25 @@ describe("DashboardPage procedencia de los datos", () => {
 });
 
 describe("DashboardPage seleccion de embalse", () => {
-  it("selecciona automaticamente el primer embalse y carga su serie y proyeccion", async () => {
+  it("al cargar, los filtros quedan en Todas las regiones y Todos los embalses, y todo en el total nacional", async () => {
     const { llamadas } = await pagina();
-    expect(selectorEmbalse()).toHaveValue("GUAVIO");
-    expect(llamadas.some((u) => u.pathname === "/api/v1/embalses/GUAVIO")).toBe(true);
-    expect(llamadas.some((u) => u.pathname === "/api/v1/embalses/GUAVIO/prediccion")).toBe(true);
+    expect(selectorRegion()).toHaveValue("");
+    expect(selectorEmbalse()).toHaveValue("");
+    // el selector de la senda tambien abre en "Total nacional"
+    const selectores = screen.getAllByRole("combobox");
+    expect(selectores[selectores.length - 1]).toHaveValue("TOTAL");
+    expect(llamadas.some((u) => u.pathname === "/api/v1/embalses/TOTAL")).toBe(true);
+    expect(llamadas.some((u) => u.pathname === "/api/v1/embalses/TOTAL/prediccion")).toBe(true);
+    expect(llamadas.some((u) => u.pathname === "/api/v1/senda-volumen" && u.searchParams.get("embalse") === "TOTAL")).toBe(true);
+    // no se pidio ningun embalse individual
+    expect(llamadas.some((u) => /\/api\/v1\/embalses\/[A-Z0-9_]+$/.test(u.pathname) && !u.pathname.endsWith("/TOTAL") && !u.pathname.endsWith("/resumen"))).toBe(false);
   });
 
   it("pide por defecto los ultimos 180 dias hasta hoy (calendario local)", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date(2026, 8, 23, 21, 30)); // 21:30 hora local
     const { llamadas } = await pagina();
-    const detalle = llamadas.find((u) => u.pathname === "/api/v1/embalses/GUAVIO")!;
+    const detalle = llamadas.find((u) => u.pathname === "/api/v1/embalses/TOTAL")!;
     expect(detalle.searchParams.get("fecha_fin")).toBe(hoyISO());
     expect(detalle.searchParams.get("fecha_fin")).toBe("2026-09-23");
     expect(detalle.searchParams.get("fecha_inicio")).toBe(fechaHaceDias(180));
@@ -148,7 +155,8 @@ describe("DashboardPage filtro de region", () => {
 
   it("no deja seleccionado un embalse de otra region: pasa al primero de la region", async () => {
     await pagina();
-    expect(selectorEmbalse()).toHaveValue("GUAVIO");
+    await userEvent.selectOptions(selectorEmbalse(), "GUAVIO");
+    await waitFor(() => expect(tituloGrafico()).toHaveTextContent("Guavio"));
 
     await userEvent.selectOptions(selectorRegion(), "Centro");
 
@@ -180,9 +188,11 @@ describe("DashboardPage filtro de region", () => {
     );
   });
 
-  it("mientras carga la lista no pide el total: espera a elegir el primer embalse", async () => {
+  it("al elegir una region el grafico pasa al primer embalse de la region, sin pedir el agregado regional", async () => {
     const { llamadas } = await pagina();
-    expect(llamadas.some((u) => u.pathname === "/api/v1/embalses/TOTAL")).toBe(false);
+    await userEvent.selectOptions(selectorRegion(), "Centro");
+    await waitFor(() => expect(selectorEmbalse()).toHaveValue("PRADO"));
+    expect(llamadas.some((u) => u.pathname === "/api/v1/embalses/REGION%3ACentro")).toBe(false);
   });
 
   it("'Restablecer filtros' devuelve region, embalse y fechas a Todos / valores por defecto", async () => {

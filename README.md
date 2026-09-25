@@ -653,9 +653,11 @@ Las pruebas encontraron **tres defectos reales**, ya corregidos:
   muestra entonces el **agregado**: el total nacional (`TOTAL`) o el de la región
   elegida (`REGION:<nombre>`), con %V. útil ponderado por energía, aportes como
   total/total y la proyección (Outputs para el total nacional; respaldo
-  Holt-Winters sobre la serie agregada para una región). Sin esa elección, un
-  embalse nulo se auto-corrige al primero de la lista (carga inicial y cambio de
-  región), y el gráfico espera a que eso ocurra en lugar de pedir el total.
+  Holt-Winters sobre la serie agregada para una región). **Al cargar la página** los filtros abren en «Todas las
+  regiones» y «Todos los embalses» (y la senda en «Total nacional»), así que el gráfico
+  principal muestra el total nacional. Al elegir una región, el filtro de embalse pasa
+  al primer embalse de esa región (un embalse nulo sin «Todos» se auto-corrige al
+  primero de la lista).
 - **Ayuda contextual (ⓘ)**: cada encabezado técnico, filtro, selector de
   horizonte y columna de tabla tiene un botón
   [`InfoButton`](frontend/components/ui/InfoButton.tsx) con una explicación
