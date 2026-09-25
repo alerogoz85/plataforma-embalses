@@ -5,15 +5,23 @@ from enum import Enum
 
 
 class NivelRiesgo(str, Enum):
-    OPTIMO = "OPTIMO"
-    ALERTA = "ALERTA"
+    NORMAL = "NORMAL"
+    ESTABLE = "ESTABLE"
+    ALERTA_TEMPRANA = "ALERTA_TEMPRANA"
+    SITUACION_DELICADA = "SITUACION_DELICADA"
     CRITICO = "CRITICO"
-    REBOCE = "REBOCE"
 
 
-UMBRAL_CRITICO = 15.0
-UMBRAL_ALERTA = 30.0
-UMBRAL_REBOCE = 95.0
+# Clasificacion del %V. util (misma para embalses, regiones y sistema):
+#   Normal              > 80 %
+#   Estable             70 % a 80 %  (80 incluido)
+#   Alerta temprana     60 % a < 70 %
+#   Situacion delicada  50 % a < 60 %
+#   Critico             < 50 %
+UMBRAL_NORMAL = 80.0
+UMBRAL_ESTABLE = 70.0
+UMBRAL_ALERTA_TEMPRANA = 60.0
+UMBRAL_SITUACION_DELICADA = 50.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,13 +39,15 @@ class Porcentaje:
 
     @property
     def nivel_riesgo(self) -> NivelRiesgo:
-        if self.valor >= UMBRAL_REBOCE:
-            return NivelRiesgo.REBOCE
-        if self.valor < UMBRAL_CRITICO:
-            return NivelRiesgo.CRITICO
-        if self.valor < UMBRAL_ALERTA:
-            return NivelRiesgo.ALERTA
-        return NivelRiesgo.OPTIMO
+        if self.valor > UMBRAL_NORMAL:
+            return NivelRiesgo.NORMAL
+        if self.valor >= UMBRAL_ESTABLE:
+            return NivelRiesgo.ESTABLE
+        if self.valor >= UMBRAL_ALERTA_TEMPRANA:
+            return NivelRiesgo.ALERTA_TEMPRANA
+        if self.valor >= UMBRAL_SITUACION_DELICADA:
+            return NivelRiesgo.SITUACION_DELICADA
+        return NivelRiesgo.CRITICO
 
     def __str__(self) -> str:
         return f"{self.valor:.2f}%"

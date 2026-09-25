@@ -44,10 +44,20 @@ export function formatearMes(mes: string): string {
 }
 
 const ETIQUETAS_RIESGO: Record<NivelRiesgo, string> = {
-  OPTIMO: "Óptimo",
-  ALERTA: "Alerta de sequía",
+  NORMAL: "Normal",
+  ESTABLE: "Estable",
+  ALERTA_TEMPRANA: "Alerta temprana",
+  SITUACION_DELICADA: "Situación delicada",
   CRITICO: "Crítico",
-  REBOCE: "Reboce",
+};
+
+/** Rango de %V. util de cada nivel, tal como se muestra en las ayudas y en la guia. */
+export const RANGO_RIESGO: Record<NivelRiesgo, string> = {
+  NORMAL: "> 80 %",
+  ESTABLE: "70 – 80 %",
+  ALERTA_TEMPRANA: "60 – 70 %",
+  SITUACION_DELICADA: "50 – 60 %",
+  CRITICO: "< 50 %",
 };
 
 export function etiquetaRiesgo(nivel: NivelRiesgo): string {
@@ -55,8 +65,9 @@ export function etiquetaRiesgo(nivel: NivelRiesgo): string {
 }
 
 export const COLOR_VAR_RIESGO: Record<NivelRiesgo, { texto: string; fondo: string; borde: string }> = {
-  OPTIMO: { texto: "var(--color-optimo)", fondo: "var(--color-optimo-bg)", borde: "var(--color-optimo)" },
-  ALERTA: { texto: "var(--color-alerta)", fondo: "var(--color-alerta-bg)", borde: "var(--color-alerta)" },
-  CRITICO: { texto: "var(--color-critico)", fondo: "var(--color-critico-bg)", borde: "var(--color-critico)" },
-  REBOCE: { texto: "var(--color-reboce)", fondo: "var(--color-reboce-bg)", borde: "var(--color-reboce)" },
+  NORMAL: { texto: "var(--riesgo-normal)", fondo: "var(--riesgo-normal-bg)", borde: "var(--riesgo-normal)" },
+  ESTABLE: { texto: "var(--riesgo-estable)", fondo: "var(--riesgo-estable-bg)", borde: "var(--riesgo-estable)" },
+  ALERTA_TEMPRANA: { texto: "var(--riesgo-alerta-temprana)", fondo: "var(--riesgo-alerta-temprana-bg)", borde: "var(--riesgo-alerta-temprana)" },
+  SITUACION_DELICADA: { texto: "var(--riesgo-delicada)", fondo: "var(--riesgo-delicada-bg)", borde: "var(--riesgo-delicada)" },
+  CRITICO: { texto: "var(--riesgo-critico)", fondo: "var(--riesgo-critico-bg)", borde: "var(--riesgo-critico)" },
 };

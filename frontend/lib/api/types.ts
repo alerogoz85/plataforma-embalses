@@ -1,4 +1,5 @@
-export type NivelRiesgo = "OPTIMO" | "ALERTA" | "CRITICO" | "REBOCE";
+// Clasificacion del %V. util: Normal >80, Estable 70-80, Alerta temprana 60-70, Situacion delicada 50-60, Critico <50.
+export type NivelRiesgo = "NORMAL" | "ESTABLE" | "ALERTA_TEMPRANA" | "SITUACION_DELICADA" | "CRITICO";
 
 export interface EmbalseResumen {
   id: string;
