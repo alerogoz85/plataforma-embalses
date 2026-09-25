@@ -9,6 +9,11 @@ la proyección del modelo de largo plazo (Prophet + XGBoost, escenarios ENSO).
 Backend con arquitectura hexagonal y dashboard Next.js con ayuda contextual (ⓘ)
 en cada encabezado técnico.
 
+**Guía técnica y manual de usuario:** botón «Información» del encabezado, o directamente
+[plataforma-embalses.vercel.app/informacion](https://plataforma-embalses.vercel.app/informacion)
+(cargue e integración de datos con diagramas y periodicidad, cálculos, API, plataformas
+y un manual con capturas de cada tablero).
+
 > **Los datos son reales**, descargados de SIMEM y de la API de XM con un
 > comando de sincronización, y se guardan en una base DuckDB local (la API no
 > llama a servicios externos en cada consulta). El pie del dashboard muestra
