@@ -9,9 +9,11 @@ interface KpiCardProps {
   icono?: ReactNode;
   acento?: string;
   ayuda?: { titulo: string; contenido: ReactNode };
+  /** Linea de contexto bajo el valor (p. ej. un rango o una comparacion), distinta del delta coloreado. */
+  detalle?: ReactNode;
 }
 
-export function KpiCard({ etiqueta, valor, delta, icono, acento, ayuda }: KpiCardProps) {
+export function KpiCard({ etiqueta, valor, delta, icono, acento, ayuda, detalle }: KpiCardProps) {
   return (
     <div className="relative flex h-full flex-col justify-between gap-3 rounded-2xl border border-border bg-background-elevated p-5 transition-shadow hover:shadow-md">
       {ayuda && (
@@ -32,6 +34,7 @@ export function KpiCard({ etiqueta, valor, delta, icono, acento, ayuda }: KpiCar
             </span>
           )}
         </div>
+        {detalle && <p className="mt-1.5 text-xs tabular-nums text-foreground-muted">{detalle}</p>}
         {delta && (
           <p
             className="mt-1.5 text-xs font-medium tabular-nums"

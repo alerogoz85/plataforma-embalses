@@ -8,6 +8,7 @@ from application.use_cases.obtener_senda_volumen import (
     PASO_DIAS_MENSUAL,
     ObtenerSendaVolumenUseCase,
 )
+from domain.entities.region import NombreRegion
 from domain.exceptions import (
     DatosHistoricosInsuficientesError,
     EmbalseNoEncontradoError,
@@ -98,6 +99,64 @@ class TestSendaTotalNacional:
         embalse = crear_embalse("A")
         caso, _ = _caso([embalse], serie_mensual_constante(embalse, _rampa()))
         assert caso.ejecutar().embalse_id == "TOTAL"
+
+
+class TestSendaRegional:
+    """'REGION:<nombre>' es el agregado de los embalses de una region (mismo metodo que TOTAL)."""
+
+    def _mundo(self):
+        a = crear_embalse("A", NombreRegion.CENTRO)
+        b = crear_embalse("B", NombreRegion.CENTRO)
+        c = crear_embalse("C", NombreRegion.VALLE)
+        mediciones = (
+            serie_mensual_constante(a, [100.0] * MESES, capacidad_energia_gwh=300)
+            + serie_mensual_constante(b, [0.0] * MESES, capacidad_energia_gwh=100)
+            + serie_mensual_constante(c, [50.0] * MESES, capacidad_energia_gwh=100)
+        )
+        return [a, b, c], mediciones
+
+    def test_pondera_solo_los_embalses_de_la_region(self):
+        embalses, mediciones = self._mundo()
+        caso, _ = _caso(embalses, mediciones)
+        senda = caso.ejecutar("REGION:Centro")
+        assert senda.embalse_id == "REGION:Centro" and senda.nombre == "Región Centro"
+        # (100*300 + 0*100) / 400 = 75; con Valle seria 70
+        assert senda.ultimo_observado.pct_volumen_util == pytest.approx(75.0, abs=0.01)
+
+    def test_otra_region_da_otra_serie(self):
+        embalses, mediciones = self._mundo()
+        caso, _ = _caso(embalses, mediciones)
+        assert caso.ejecutar("REGION:Valle").ultimo_observado.pct_volumen_util == pytest.approx(50.0, abs=0.01)
+
+    def test_sin_proyeccion_publicada_usa_el_respaldo_con_validacion(self):
+        embalses, mediciones = self._mundo()
+        caso, forecasting = _caso(embalses, mediciones)
+        senda = caso.ejecutar("REGION:Centro", horizonte_meses=6)
+        assert senda.origen_proyeccion == "holt_winters" and len(senda.validacion) == 2
+        assert len(senda.proyeccion) == 6 and len(forecasting.llamadas) > 0
+
+    def test_no_usa_la_proyeccion_publicada_del_total(self):
+        embalses, mediciones = self._mundo()
+        caso = ObtenerSendaVolumenUseCase(
+            EmbalseRepositoryEnMemoria(embalses),
+            MedicionRepositoryEnMemoria(mediciones),
+            ForecastingPersistencia(),
+            ProyeccionSendaRepositoryEnMemoria(crear_proyeccion_publicada("TOTAL")),
+        )
+        assert caso.ejecutar("REGION:Centro").origen_proyeccion == "holt_winters"
+        assert caso.ejecutar("TOTAL").origen_proyeccion == "outputs"
+
+    def test_una_region_inexistente_es_un_embalse_no_encontrado(self):
+        embalses, mediciones = self._mundo()
+        caso, _ = _caso(embalses, mediciones)
+        with pytest.raises(EmbalseNoEncontradoError):
+            caso.ejecutar("REGION:Marte")
+
+    def test_una_region_sin_embalses_no_tiene_mediciones(self):
+        embalses, mediciones = self._mundo()
+        caso, _ = _caso(embalses, mediciones)
+        with pytest.raises(SinMedicionesError):
+            caso.ejecutar("REGION:Caribe")
 
 
 class TestSendaErrores:

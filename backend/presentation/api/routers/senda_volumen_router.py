@@ -22,7 +22,7 @@ HORIZONTES_PERMITIDOS_MESES = {1, 3, 6, 12}
 def obtener_senda_volumen(
     embalse: str = Query(
         default=ID_TOTAL_NACIONAL,
-        description="Id de embalse, o 'TOTAL' para el agregado nacional ponderado",
+        description="Id de embalse, 'TOTAL' (agregado nacional) o 'REGION:<nombre>' (agregado de una region), ponderados por energia",
     ),
     horizonte_meses: int = Query(default=12, description="Horizonte en meses (1, 3, 6 o 12)"),
     caso_de_uso: ObtenerSendaVolumenUseCase = Depends(obtener_senda_volumen_use_case),

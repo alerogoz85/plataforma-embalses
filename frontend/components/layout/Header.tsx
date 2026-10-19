@@ -1,8 +1,27 @@
 import Image from "next/image";
+import Link from "next/link";
 
 import { ThemeToggle } from "./ThemeToggle";
 
-export function Header({ fechaCorte }: { fechaCorte?: string }) {
+interface HeaderProps {
+  /** Fecha de corte de los datos (tablero de embalses). Se ignora si se pasa `subtitulo`. */
+  fechaCorte?: string;
+  /** Titulo del tablero; por defecto el de embalses. */
+  titulo?: string;
+  /** Segunda linea del encabezado; sustituye al "Corte al ..." de embalses. */
+  subtitulo?: string;
+  /** Muestra el enlace "Tableros" que vuelve al panel principal (false en el propio panel). */
+  enlacePanel?: boolean;
+}
+
+const ENLACE = "flex h-9 items-center gap-1.5 rounded-xl border border-border bg-background-elevated px-3 text-xs font-semibold text-foreground-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-marca)]";
+
+export function Header({
+  fechaCorte,
+  titulo = "Plataforma de Monitoreo y Predicción de Embalses",
+  subtitulo,
+  enlacePanel = true,
+}: HeaderProps) {
   return (
     <header className="sticky top-0 z-10">
       {/* Franja superior GOV.CO, como en minenergia.gov.co */}
@@ -34,22 +53,28 @@ export function Header({ fechaCorte }: { fechaCorte?: string }) {
                 className="text-sm font-bold leading-tight sm:text-base"
                 style={{ color: "var(--color-marca-oscuro)" }}
               >
-                Plataforma de Monitoreo y Predicción de Embalses
+                {titulo}
               </h1>
               <p className="text-xs text-foreground-muted">
-                {fechaCorte ? `Corte al ${fechaCorte}` : "Cargando corte de información…"}
+                {subtitulo ?? (fechaCorte ? `Corte al ${fechaCorte}` : "Cargando corte de información…")}
               </p>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {/* Guia de la plataforma (documentacion tecnica y manual de usuario), en una pestana aparte
                 para no perder los filtros del tablero. Es una pagina estatica: public/informacion.html */}
-            <a
-              href="/informacion"
-              target="_blank"
-              rel="noopener"
-              className="flex h-9 items-center gap-1.5 rounded-xl border border-border bg-background-elevated px-3 text-xs font-semibold text-foreground-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-marca)]"
-            >
+            {enlacePanel && (
+              <Link href="/" className={ENLACE}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="3" y="3" width="7" height="7" rx="1" />
+                  <rect x="14" y="3" width="7" height="7" rx="1" />
+                  <rect x="3" y="14" width="7" height="7" rx="1" />
+                  <rect x="14" y="14" width="7" height="7" rx="1" />
+                </svg>
+                Tableros
+              </Link>
+            )}
+            <a href="/informacion" target="_blank" rel="noopener" className={ENLACE}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="9" />
                 <path d="M12 11v5" />

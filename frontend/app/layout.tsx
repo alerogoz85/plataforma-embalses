@@ -19,8 +19,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Monitoreo de Embalses",
-  description: "Plataforma empresarial de monitoreo y predicción de embalses e hidrología",
+  title: { default: "Tableros Analíticos", template: "%s · Tableros Analíticos" },
+  description: "Tableros analíticos del Ministerio de Minas y Energía: embalses e hidrología y carbón térmico",
 };
 
 const SCRIPT_TEMA = `

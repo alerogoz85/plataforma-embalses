@@ -1,7 +1,7 @@
 "use client";
 
-import { InfoButton } from "@/components/ui/InfoButton";
-import { AYUDAS, type Ayuda } from "./ayudas";
+import { Campo } from "@/components/ui/Campo";
+import { AYUDAS } from "./ayudas";
 import type { EmbalseResumen } from "@/lib/api/types";
 import { REGIONES } from "@/lib/api/types";
 
@@ -101,47 +101,6 @@ export function FiltersPanel({
         </button>
       </div>
 
-      <style jsx>{`
-        :global(.campo-select) {
-          border: 1px solid var(--border-strong);
-          background: var(--background);
-          color: var(--foreground);
-          border-radius: 0.6rem;
-          padding: 0 0.75rem;
-          font-size: 0.85rem;
-          width: 100%;
-          height: 2.5rem;
-        }
-        :global(.campo-select:focus) {
-          outline: 2px solid var(--color-marca);
-          outline-offset: 1px;
-        }
-      `}</style>
-    </div>
-  );
-}
-
-function Campo({
-  etiqueta,
-  ayuda,
-  children,
-}: {
-  etiqueta: string;
-  ayuda: Ayuda;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex min-w-0 flex-col gap-1.5">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-foreground-muted">
-          {etiqueta}
-        </span>
-        <InfoButton titulo={ayuda.titulo}>{ayuda.contenido}</InfoButton>
-      </div>
-      <label className="flex flex-col">
-        <span className="sr-only">{etiqueta}</span>
-        {children}
-      </label>
     </div>
   );
 }

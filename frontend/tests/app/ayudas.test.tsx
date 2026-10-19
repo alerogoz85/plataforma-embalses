@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import DashboardPage from "@/app/page";
+import DashboardPage from "@/app/embalses/page";
 import { AYUDAS } from "@/components/dashboard/ayudas";
 import { simularApi } from "./rutas";
 

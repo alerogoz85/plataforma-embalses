@@ -13,8 +13,7 @@ import {
   YAxis,
 } from "recharts";
 
-import type { EmbalseResumen } from "@/lib/api/types";
-import { HORIZONTES_SENDA_VOLUMEN, ID_TOTAL_NACIONAL, type HorizonteSendaVolumen } from "@/lib/api/types";
+import { HORIZONTES_SENDA_VOLUMEN, type HorizonteSendaVolumen } from "@/lib/api/types";
 import { useSendaVolumen } from "@/lib/hooks/useSendaVolumen";
 import { formatearMes, formatearPorcentaje } from "@/lib/utils/formatters";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -40,8 +39,8 @@ function colorMinimoProyectado(valor: number): string {
   return "var(--color-optimo)";
 }
 
-export function SendaVolumenPanel({ embalses }: { embalses: EmbalseResumen[] }) {
-  const [embalseId, setEmbalseId] = useState<string>(ID_TOTAL_NACIONAL);
+/** La senda sigue los filtros del tablero: `embalseId` es un embalse, "TOTAL" o "REGION:<nombre>". */
+export function SendaVolumenPanel({ embalseId }: { embalseId: string }) {
   const [horizonte, setHorizonte] = useState<HorizonteSendaVolumen>(12);
   const senda = useSendaVolumen(embalseId, horizonte);
   const esOutputs = senda.datos?.origen_proyeccion === "outputs";
@@ -90,19 +89,6 @@ export function SendaVolumenPanel({ embalses }: { embalses: EmbalseResumen[] }) 
         }
         action={
           <div className="flex flex-wrap items-center gap-2">
-            <InfoButton titulo={AYUDAS.selectorSenda.titulo}>{AYUDAS.selectorSenda.contenido}</InfoButton>
-            <select
-              value={embalseId}
-              onChange={(e) => setEmbalseId(e.target.value)}
-              className="rounded-lg border border-border-strong bg-background px-2.5 py-1.5 text-xs text-foreground outline-none"
-            >
-              <option value={ID_TOTAL_NACIONAL}>Total nacional</option>
-              {embalses.map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.nombre}
-                </option>
-              ))}
-            </select>
             <InfoButton titulo={AYUDAS.horizonteSenda.titulo}>{AYUDAS.horizonteSenda.contenido}</InfoButton>
             <div className="flex gap-1 rounded-lg border border-border p-0.5">
               {HORIZONTES_SENDA_VOLUMEN.map((h) => (

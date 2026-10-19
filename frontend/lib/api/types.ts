@@ -135,3 +135,142 @@ export interface FuenteDatos {
   fecha_corte: string | null;
   actualizado_en: string | null;
 }
+
+// ---------------------------------------------------------------- Modelo de carbon termico
+// Espejo de los DTO de /api/v1/carbon/*. Consumo en GBTU/dia; inventario y consumo mensual en kt;
+// aportes y uso del techo en %. Las bandas son escenarios P10/P50/P90, no intervalos de confianza.
+
+export interface BandaCarbon {
+  p10: number;
+  p50: number;
+  p90: number;
+}
+
+export interface PuntoCarbon {
+  fecha: string;
+  carbon_gbtu_dia: number;
+  mes_completo: boolean;
+  fuente: string | null;
+}
+
+export interface TrimestreCarbon {
+  trimestre: string;
+  meses: number;
+  carbon_mt: BandaCarbon;
+  dentro_del_horizonte: boolean;
+}
+
+export interface ResumenCarbon {
+  origen: string;
+  poder_calorifico_mbtu_t: number;
+  techo_gbtu_dia: number;
+  maximo_historico: PuntoCarbon;
+  ultimo_observado: PuntoCarbon;
+  horizonte_meses: number;
+  pico: {
+    fecha: string;
+    carbon_gbtu_dia: BandaCarbon;
+    uso_techo_p50_pct: number;
+    prob_supera_maximo_pct: number;
+  };
+  inventario_pico: { fecha: string; dias_inventario: number; kt_p50: number; kt_p90: number } | null;
+  trimestres: TrimestreCarbon[];
+  criterios_cumplidos: number;
+  criterios_total: number;
+}
+
+export interface HistoricoCarbon {
+  fecha: string;
+  carbon_gbtu_dia: number;
+  techo_gbtu_dia: number | null;
+  uso_techo_pct: number | null;
+  aportes_pct_media: number | null;
+  roni: number | null;
+  fuente: string;
+  mes_completo: boolean;
+}
+
+export interface ProyeccionCarbon {
+  fecha: string;
+  dias: number;
+  roni: BandaCarbon;
+  aportes_pct_media: BandaCarbon;
+  uso_techo_pct: BandaCarbon;
+  carbon_gbtu_dia: BandaCarbon;
+  carbon_kt_mes: BandaCarbon;
+  prob_supera_maximo_pct: number;
+  observado_parcial_gbtu_dia: number | null;
+}
+
+export interface SerieCarbon {
+  techo_gbtu_dia: number;
+  maximo_historico_gbtu_dia: number;
+  poder_calorifico_mbtu_t: number;
+  horizonte_meses: number;
+  historico: HistoricoCarbon[];
+  proyeccion: ProyeccionCarbon[];
+}
+
+export interface InventarioMensual {
+  fecha: string;
+  dias_inventario: number;
+  kt_p50: number;
+  kt_p90: number;
+}
+
+export interface ComparacionXm {
+  fecha: string;
+  modelo: BandaCarbon;
+  techo_gbtu_dia: number;
+  xm_estocastico_gbtu_dia: number | null;
+  xm_historicas_min_gbtu_dia: number | null;
+  xm_historicas_max_gbtu_dia: number | null;
+}
+
+export interface ErrorHorizonteCarbon {
+  horizonte_meses: number;
+  pronosticos: number;
+  mae_modelo: number;
+  mae_persistencia: number;
+  mae_estacional: number;
+  mae_climatologia: number;
+  sesgo_modelo: number;
+}
+
+export interface EpisodioCarbon {
+  episodio: string;
+  inicio: string;
+  fin: string;
+  meses: number;
+  real_gbtu_dia: number;
+  p50_gbtu_dia: number;
+  error_total_pct: number;
+  mae_modelo: number;
+  mae_ingenuo: number;
+  cobertura_p10_p90_pct: number;
+}
+
+export interface CriterioCarbon {
+  criterio: string;
+  resultado: string;
+  cumple: boolean;
+  interpretacion: string;
+}
+
+export interface ValidacionCarbon {
+  errores_horizonte: ErrorHorizonteCarbon[];
+  episodios: EpisodioCarbon[];
+  criterios_cumplidos: number;
+  criterios_total: number;
+  veredicto: CriterioCarbon[];
+  supuestos: { nombre: string; valor: string }[];
+}
+
+// Listas cerradas: son las mismas que valida la API (cualquier otro valor responde 422).
+export const HORIZONTES_CARBON = [1, 3, 6, 9] as const;
+export type HorizonteCarbon = (typeof HORIZONTES_CARBON)[number];
+export const HISTORIAS_CARBON = [12, 36, 60, 0] as const; // 0 = toda la historia
+export type HistoriaCarbon = (typeof HISTORIAS_CARBON)[number];
+export const DIAS_INVENTARIO = [15, 30, 45, 60] as const;
+export type DiasInventario = (typeof DIAS_INVENTARIO)[number];
+export type UnidadCarbon = "gbtu" | "kt";

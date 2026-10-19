@@ -10,9 +10,9 @@ export const AYUDAS = {
     titulo: "Filtro de región",
     contenido: (
       <p>
-        Limita los indicadores, la distribución regional y la tabla a los embalses de una región
-        hidrológica. Al cambiar de región se selecciona automáticamente el primer embalse de esa
-        región. La senda de largo plazo tiene su propio selector.
+        Filtra todo el tablero (tarjetas, gráfico principal, distribución regional, senda de largo
+        plazo y tabla) a los embalses de una región hidrológica. Al cambiarla, el filtro de embalse
+        vuelve a “Todos los embalses” y se ve el agregado de la región.
       </p>
     ),
   },
@@ -20,9 +20,11 @@ export const AYUDAS = {
     titulo: "Filtro de embalse",
     contenido: (
       <p>
-        Elige el embalse que se muestra en el gráfico principal (serie histórica y proyección).
-        Solo lista los embalses de la región seleccionada. También puedes elegirlo haciendo clic en
-        una fila de la tabla.
+        Filtra todo el tablero a un solo embalse: tarjetas, gráfico principal, distribución
+        regional (solo su región), senda de largo plazo y tabla. “Todos los embalses” muestra el
+        total nacional o, con una región elegida, el agregado de esa región. Solo lista los
+        embalses de la región seleccionada; también puedes elegirlo con un clic en una fila de la
+        tabla.
       </p>
     ),
   },
@@ -30,8 +32,9 @@ export const AYUDAS = {
     titulo: "Fecha inicial",
     contenido: (
       <p>
-        Primer día de la serie histórica del gráfico principal. Por defecto son los últimos 180
-        días. No afecta los indicadores, que siempre usan el último corte disponible, ni la senda
+        Primer día de la serie histórica diaria del gráfico principal. Por defecto son los últimos
+        180 días. No afecta a las tarjetas, la distribución regional ni la tabla, que muestran el
+        último corte disponible, ni a la senda de largo plazo, que siempre muestra toda la historia
         mensual.
       </p>
     ),
@@ -199,16 +202,6 @@ export const AYUDAS = {
         Meses hacia adelante que proyecta el modelo desde el último dato: 1, 3, 6 o 12 (meses de
         30 días). A mayor horizonte, más se ensancha la banda de confianza porque crece la
         incertidumbre y, con la tendencia amortiguada, la curva se aplana.
-      </p>
-    ),
-  },
-  selectorSenda: {
-    titulo: "Embalse de la senda",
-    contenido: (
-      <p>
-        &quot;Total nacional&quot; es el agregado ponderado de todos los embalses; también puedes
-        ver la senda de un embalse individual. Este selector es independiente de los filtros de
-        arriba.
       </p>
     ),
   },

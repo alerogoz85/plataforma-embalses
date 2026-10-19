@@ -45,3 +45,13 @@ class EsquemaIncompatibleError(DomainError):
 
 class FuenteDatosError(DomainError):
     """Falla al obtener o interpretar datos de una fuente externa."""
+
+
+class ModeloCarbonNoCargadoError(DomainError):
+    """No se ha importado ninguna corrida del modelo de carbon termico."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            "El modelo de carbon termico aun no esta cargado; ejecuta "
+            "infrastructure.ingesta.importar_modelo_carbon"
+        )

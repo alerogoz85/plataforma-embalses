@@ -409,6 +409,14 @@ class TestSendaVolumen:
         assert cuerpo["origen_proyeccion"] == "holt_winters"
         assert cuerpo["horizonte_efectivo_meses"] == 12
 
+    def test_la_senda_acepta_el_agregado_de_una_region(self, cliente):
+        cuerpo = cliente.get("/api/v1/senda-volumen", params={"embalse": "REGION:Antioquia"}).json()
+        assert cuerpo["embalse_id"] == "REGION:Antioquia" and cuerpo["nombre"] == "Región Antioquia"
+        assert cuerpo["origen_proyeccion"] == "holt_winters" and len(cuerpo["proyeccion"]) == 12
+
+    def test_la_senda_de_una_region_inexistente_da_404(self, cliente):
+        assert cliente.get("/api/v1/senda-volumen", params={"embalse": "REGION:Marte"}).status_code == 404
+
     def test_embalse_inexistente_da_404(self, cliente):
         assert cliente.get("/api/v1/senda-volumen", params={"embalse": "NOPE"}).status_code == 404
 

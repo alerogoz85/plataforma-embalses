@@ -9,6 +9,13 @@ from pathlib import Path
 from application.ports.output.forecasting_port import ForecastingPort
 from application.use_cases.generar_prediccion import GenerarPrediccionUseCase
 from application.use_cases.listar_embalses import ListarEmbalsesUseCase
+from application.use_cases.modelo_carbon import (
+    ObtenerComparacionXmUseCase,
+    ObtenerInventarioCarbonUseCase,
+    ObtenerResumenCarbonUseCase,
+    ObtenerSerieCarbonUseCase,
+    ObtenerValidacionCarbonUseCase,
+)
 from application.use_cases.obtener_detalle_embalse import ObtenerDetalleEmbalseUseCase
 from application.use_cases.obtener_fuente_datos import ObtenerFuenteDatosUseCase
 from application.use_cases.obtener_resumen_nacional import ObtenerResumenNacionalUseCase
@@ -16,12 +23,14 @@ from application.use_cases.obtener_senda_volumen import ObtenerSendaVolumenUseCa
 from domain.repositories.embalse_repository import EmbalseRepository
 from domain.repositories.medicion_repository import MedicionRepository
 from domain.repositories.metadatos_repository import MetadatosRepository
+from domain.repositories.modelo_carbon_repository import ModeloCarbonRepository
 from domain.repositories.proyeccion_senda_repository import ProyeccionSendaRepository
 from infrastructure.ml.holt_winters_forecasting_service import HoltWintersForecastingService
 from infrastructure.persistence.duckdb_connection import DuckDBConnection
 from infrastructure.persistence.duckdb_embalse_repository import DuckDBEmbalseRepository
 from infrastructure.persistence.duckdb_medicion_repository import DuckDBMedicionRepository
 from infrastructure.persistence.duckdb_metadatos_repository import DuckDBMetadatosRepository
+from infrastructure.persistence.duckdb_modelo_carbon_repository import DuckDBModeloCarbonRepository
 from infrastructure.persistence.duckdb_proyeccion_senda_repository import DuckDBProyeccionSendaRepository
 
 _RUTA_BACKEND = Path(__file__).resolve().parents[2]
@@ -113,3 +122,34 @@ def obtener_senda_volumen_use_case() -> ObtenerSendaVolumenUseCase:
 @lru_cache
 def obtener_fuente_datos_use_case() -> ObtenerFuenteDatosUseCase:
     return ObtenerFuenteDatosUseCase(obtener_metadatos_repository())
+
+
+# --- Modelo de carbon termico -------------------------------------------------
+@lru_cache
+def obtener_modelo_carbon_repository() -> ModeloCarbonRepository:
+    return DuckDBModeloCarbonRepository(obtener_conexion())
+
+
+@lru_cache
+def obtener_resumen_carbon_use_case() -> ObtenerResumenCarbonUseCase:
+    return ObtenerResumenCarbonUseCase(obtener_modelo_carbon_repository())
+
+
+@lru_cache
+def obtener_serie_carbon_use_case() -> ObtenerSerieCarbonUseCase:
+    return ObtenerSerieCarbonUseCase(obtener_modelo_carbon_repository())
+
+
+@lru_cache
+def obtener_inventario_carbon_use_case() -> ObtenerInventarioCarbonUseCase:
+    return ObtenerInventarioCarbonUseCase(obtener_modelo_carbon_repository())
+
+
+@lru_cache
+def obtener_comparacion_xm_use_case() -> ObtenerComparacionXmUseCase:
+    return ObtenerComparacionXmUseCase(obtener_modelo_carbon_repository())
+
+
+@lru_cache
+def obtener_validacion_carbon_use_case() -> ObtenerValidacionCarbonUseCase:
+    return ObtenerValidacionCarbonUseCase(obtener_modelo_carbon_repository())

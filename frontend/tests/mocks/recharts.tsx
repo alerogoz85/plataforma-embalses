@@ -64,6 +64,10 @@ export const XAxis = ({ domain, dataKey }: Props) => {
   );
 };
 
+export const ReferenceLine = ({ y, label }: Props) => (
+  <div data-testid="reference-line" data-y={String(y)} data-label={typeof label === "string" ? label : String((label as { value?: string } | undefined)?.value ?? "")} />
+);
+
 const Nada = () => null;
 export const CartesianGrid = Nada;
 export const Tooltip = Nada;
