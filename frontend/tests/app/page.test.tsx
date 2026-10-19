@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import DashboardPage from "@/app/page";
+import DashboardPage from "@/app/embalses/page";
 import { fechaHaceDias, hoyISO } from "@/lib/utils/dates";
 import { EMBALSES_EJEMPLO, FUENTE_REAL, crearEmbalse } from "../fixtures";
 import { simularFetch } from "../mocks/fetch";

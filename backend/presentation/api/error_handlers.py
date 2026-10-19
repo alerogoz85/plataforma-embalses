@@ -7,6 +7,7 @@ from domain.exceptions import (
     DatosHistoricosInsuficientesError,
     DomainError,
     EmbalseNoEncontradoError,
+    ModeloCarbonNoCargadoError,
     SinMedicionesError,
 )
 
@@ -18,6 +19,10 @@ def registrar_manejadores_excepciones(app: FastAPI) -> None:
 
     @app.exception_handler(SinMedicionesError)
     async def _manejar_sin_mediciones(request: Request, exc: SinMedicionesError):
+        return JSONResponse(status_code=404, content={"detalle": str(exc)})
+
+    @app.exception_handler(ModeloCarbonNoCargadoError)
+    async def _manejar_modelo_carbon_no_cargado(request: Request, exc: ModeloCarbonNoCargadoError):
         return JSONResponse(status_code=404, content={"detalle": str(exc)})
 
     @app.exception_handler(DatosHistoricosInsuficientesError)

@@ -135,3 +135,19 @@ h1, h2, h3 {
   background-size: 800px 100%;
   animation: shimmer 1.4s linear infinite;
 }
+
+/* Control de formulario comun a los filtros de todos los tableros (select y fecha). */
+.campo-select {
+  border: 1px solid var(--border-strong);
+  background: var(--background);
+  color: var(--foreground);
+  border-radius: 0.6rem;
+  padding: 0 0.75rem;
+  font-size: 0.85rem;
+  width: 100%;
+  height: 2.5rem;
+}
+.campo-select:focus {
+  outline: 2px solid var(--color-marca);
+  outline-offset: 1px;
+}

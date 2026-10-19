@@ -7,11 +7,17 @@ from application.ports.output.forecasting_port import ForecastingPort, PuntoFore
 from domain.entities.embalse import Embalse
 from domain.entities.medicion_hidrologica import MedicionHidrologica
 from domain.entities.metadatos_datos import MetadatosDatos
+from domain.entities.modelo_carbon import (
+    ComparacionXM, CriterioValidez, EpisodioValidacion, ErrorPorHorizonte, HistoricoCarbonMensual,
+    InventarioCarbon, PaqueteModeloCarbon, ProyeccionCarbonMensual, SupuestoCarbon, TrimestreCarbon,
+)
 from domain.entities.proyeccion_senda import ProyeccionSendaMensual
 from domain.entities.region import NombreRegion, Region
 from domain.repositories.embalse_repository import EmbalseRepository
 from domain.repositories.medicion_repository import MedicionRepository
 from domain.repositories.metadatos_repository import MetadatosRepository
+from domain.repositories.modelo_carbon_repository import ModeloCarbonRepository
+from domain.value_objects.banda import Banda
 from domain.repositories.proyeccion_senda_repository import ProyeccionSendaRepository
 from domain.value_objects.caudal import Caudal
 from domain.value_objects.volumen import Volumen
@@ -196,3 +202,90 @@ class ForecastingPersistencia(ForecastingPort):
             )
             for i in range(horizonte_periodos)
         ]
+
+
+# --- Modelo de carbon termico --------------------------------------------------
+class ModeloCarbonRepositoryEnMemoria(ModeloCarbonRepository):
+    def __init__(self, paquete: Optional[PaqueteModeloCarbon] = None) -> None:
+        self.paquete = paquete
+
+    def obtener(self) -> Optional[PaqueteModeloCarbon]:
+        return self.paquete
+
+    def reemplazar(self, paquete: PaqueteModeloCarbon) -> None:
+        self.paquete = paquete
+
+
+P50_CARBON = [298.0, 295.0, 370.0, 380.0, 389.0, 377.0, 356.0, 351.0, 313.0]  # oct-2026 a jun-2027
+TECHO_CARBON = 400.0
+PODER_CALORIFICO = 26.27
+
+
+def _mes(anio: int, mes: int) -> date:
+    return date(anio + (mes - 1) // 12, (mes - 1) % 12 + 1, 1)
+
+
+def crear_paquete_carbon() -> PaqueteModeloCarbon:
+    """Una corrida del modelo pequena pero completa: 24 meses de historia (el ultimo
+    parcial), 9 de proyeccion con pico en febrero de 2027 y los extras de validacion."""
+    historico = [
+        HistoricoCarbonMensual(
+            _mes(2024, 11 + i), 200.0 + 5 * i, TECHO_CARBON, 50.0 + i, 60.0 + i, 1.0 if i % 2 else None,
+            "Sinergox" if i < 20 else "Estimado", i < 23, 30 if i < 23 else 15,
+        )
+        for i in range(24)
+    ]
+    # el record mensual es el mes 22 (ago-2026): 310 GBTU/dia
+    historico[22] = HistoricoCarbonMensual(_mes(2026, 9), 310.0, TECHO_CARBON, 77.5, 55.0, 1.5, "Estimado", True, 30)
+    proyeccion = [
+        ProyeccionCarbonMensual(
+            fecha=_mes(2026, 10 + i), dias=30, techo_gbtu_dia=TECHO_CARBON,
+            roni=Banda(2.0, 2.4, 2.8), aportes_pct_media=Banda(30.0 + i, 50.0 + i, 70.0 + i),
+            uso_techo_pct=Banda(p50 - 60, p50, p50 + 30), carbon_gbtu_dia=Banda(p50 - 60, p50, p50 + 30),
+            carbon_kt_mes=Banda((p50 - 60) * 1.14, p50 * 1.14, (p50 + 30) * 1.14),
+            prob_supera_maximo_pct=min(95.0, p50 / 4), observado_parcial_gbtu_dia=213.0 if i == 0 else None,
+        )
+        for i, p50 in enumerate(P50_CARBON)
+    ]
+    # los porcentajes de uso del ejemplo se escalan al techo para que sean verosimiles
+    proyeccion = [
+        ProyeccionCarbonMensual(
+            m.fecha, m.dias, m.techo_gbtu_dia, m.roni, m.aportes_pct_media,
+            Banda(*(round(v / TECHO_CARBON * 100, 2) for v in (m.uso_techo_pct.p10, m.uso_techo_pct.p50, m.uso_techo_pct.p90))),
+            m.carbon_gbtu_dia, m.carbon_kt_mes, m.prob_supera_maximo_pct, m.observado_parcial_gbtu_dia,
+        )
+        for m in proyeccion
+    ]
+    return PaqueteModeloCarbon(
+        origen="Modelo de prueba", poder_calorifico_mbtu_t=PODER_CALORIFICO,
+        historico=historico, proyeccion=proyeccion,
+        trimestres=[
+            TrimestreCarbon("2026Q4", 3, Banda(0.8, 1.1, 1.3)),
+            TrimestreCarbon("2027Q1", 3, Banda(1.1, 1.3, 1.4)),
+            TrimestreCarbon("2027Q2", 3, Banda(0.8, 1.2, 1.3)),
+        ],
+        inventario=[
+            InventarioCarbon(m.fecha, dias, round(m.carbon_gbtu_dia.p50 * dias * 0.038, 3), round(m.carbon_gbtu_dia.p90 * dias * 0.038, 3))
+            for m in proyeccion for dias in (15, 30, 45, 60)
+        ],
+        comparacion_xm=[
+            ComparacionXM(m.fecha, m.carbon_gbtu_dia, TECHO_CARBON, 465.0, 231.0, 233.0) for m in proyeccion
+        ],
+        errores_horizonte=[
+            ErrorPorHorizonte(h, 60, 45.0 + h, 50.0 + 5 * h, 110.0, 88.0, -4.0) for h in (1, 3, 6, 9)
+        ],
+        episodios=[
+            EpisodioValidacion("El Nino 2023-2024", date(2023, 7, 1), date(2024, 2, 1), 8, 271.0, 258.0, -4.7, 58.0, 95.0, 87.5),
+            EpisodioValidacion("El Nino 2018-2019", date(2018, 10, 1), date(2019, 4, 1), 7, 188.0, 261.0, 39.0, 73.0, 115.0, 85.7),
+        ],
+        veredicto=[
+            CriterioValidez("Coeficientes significativos", "p=0.000", True, "Relaciones no casuales"),
+            CriterioValidez("RESET de Ramsey", "p=0.59", True, "Forma funcional adecuada"),
+            CriterioValidez("CUSUM", "p=0.96", True, "Coeficientes estables"),
+            CriterioValidez("Breusch-Pagan", "p=0.001", False, "Varianza cambiante"),
+        ],
+        supuestos=[
+            SupuestoCarbon("Poder calorífico [MBTU/t]", "26.27"), SupuestoCarbon("Simulaciones", "20000"),
+            SupuestoCarbon("Factor de ampliación de residuos (calibrado)", "1.5"),
+        ],
+    )

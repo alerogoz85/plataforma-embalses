@@ -1,10 +1,15 @@
 import type {
+  ComparacionXm,
   EmbalseDetalle,
   FuenteDatos,
+  InventarioMensual,
   Prediccion,
   RegionResumen,
+  ResumenCarbon,
   ResumenNacional,
   SendaVolumen,
+  SerieCarbon,
+  ValidacionCarbon,
 } from "./types";
 
 // En desarrollo apunta al backend local. En produccion se define "/" para llamar
@@ -102,6 +107,31 @@ export function obtenerSendaVolumen(
 ): Promise<SendaVolumen> {
   const query = construirQuery({ embalse: embalseId, horizonte_meses: horizonteMeses });
   return obtenerJSON<SendaVolumen>(`/api/v1/senda-volumen${query}`, signal);
+}
+
+// ---- Modelo de carbon termico (solo lectura; los parametros son listas cerradas que la API valida)
+export function obtenerResumenCarbon(horizonteMeses: number, dias: number, signal?: AbortSignal): Promise<ResumenCarbon> {
+  const query = construirQuery({ horizonte_meses: horizonteMeses, dias });
+  return obtenerJSON<ResumenCarbon>(`/api/v1/carbon/resumen${query}`, signal);
+}
+
+export function obtenerSerieCarbon(historiaMeses: number, horizonteMeses: number, signal?: AbortSignal): Promise<SerieCarbon> {
+  const query = construirQuery({ historia_meses: historiaMeses, horizonte_meses: horizonteMeses });
+  return obtenerJSON<SerieCarbon>(`/api/v1/carbon/serie${query}`, signal);
+}
+
+export function obtenerInventarioCarbon(horizonteMeses: number, dias: number, signal?: AbortSignal): Promise<InventarioMensual[]> {
+  const query = construirQuery({ horizonte_meses: horizonteMeses, dias });
+  return obtenerJSON<InventarioMensual[]>(`/api/v1/carbon/inventario${query}`, signal);
+}
+
+export function obtenerComparacionXm(horizonteMeses: number, signal?: AbortSignal): Promise<ComparacionXm[]> {
+  const query = construirQuery({ horizonte_meses: horizonteMeses });
+  return obtenerJSON<ComparacionXm[]>(`/api/v1/carbon/comparacion-xm${query}`, signal);
+}
+
+export function obtenerValidacionCarbon(signal?: AbortSignal): Promise<ValidacionCarbon> {
+  return obtenerJSON<ValidacionCarbon>("/api/v1/carbon/validacion", signal);
 }
 
 export function urlReporte(embalseId: string, formato: "csv" | "json", rango: { fechaInicio?: string; fechaFin?: string } = {}): string {

@@ -1,4 +1,4 @@
-# Plataforma de Monitoreo y Predicción de Embalses
+# Plataforma de Tableros Analíticos (Embalses y Carbón térmico)
 
 [![CI](https://github.com/alerogoz85/plataforma-embalses/actions/workflows/ci.yml/badge.svg)](https://github.com/alerogoz85/plataforma-embalses/actions/workflows/ci.yml)
 
@@ -8,6 +8,11 @@ Plataforma de monitoreo hidrológico con **datos reales y públicos de XM/SIMEM*
 la proyección del modelo de largo plazo (Prophet + XGBoost, escenarios ENSO).
 Backend con arquitectura hexagonal y dashboard Next.js con ayuda contextual (ⓘ)
 en cada encabezado técnico.
+
+La página principal (`/`) es un **panel de acceso a tableros**: el primero es el de
+**Embalses** (`/embalses`) y el segundo el del **Modelo de carbón térmico** (`/carbon`),
+construido con la misma estructura (encabezado, filtros globales, tarjetas, gráficos) y
+la misma arquitectura y seguridad. Ver [Tableros y modelo de carbón térmico](#tableros-y-modelo-de-carbón-térmico).
 
 **Guía técnica y manual de usuario:** botón «Información» del encabezado, o directamente
 [plataforma-embalses.vercel.app/informacion](https://plataforma-embalses.vercel.app/informacion)
@@ -32,6 +37,7 @@ y un manual con capturas de cada tablero).
 - [Datos y fuentes](#datos-y-fuentes)
 - [Modelo de cálculo hídrico](#modelo-de-cálculo-hídrico)
 - [Alcance y límites](#alcance-y-límites)
+- [Tableros y modelo de carbón térmico](#tableros-y-modelo-de-carbón-térmico)
 - [Estructura del repositorio](#estructura-del-repositorio)
 - [Cómo ejecutar el proyecto](#cómo-ejecutar-el-proyecto)
 - [Despliegue en Vercel](#despliegue-en-vercel)
@@ -256,6 +262,68 @@ y
 - La API solo lee de la base local: para tener datos al día hay que ejecutar la
   sincronización.
 
+## Tableros y modelo de carbón térmico
+
+### Panel y rutas
+
+| Ruta | Qué es |
+|---|---|
+| `/` | Panel principal: una tarjeta de acceso por tablero (primero Embalses, luego Carbón térmico) |
+| `/embalses` | Tablero de monitoreo de embalses |
+| `/carbon` | Tablero del modelo de carbón térmico |
+| `/informacion` | Guía técnica y manual de usuario (página estática) |
+
+Los tableros se registran en [`frontend/lib/tableros.ts`](frontend/lib/tableros.ts); el panel
+se dibuja a partir de esa lista, así que **agregar un tablero nuevo = una entrada en el registro
++ una carpeta en `app/`**. Todos comparten `Header` (con el enlace «Tableros» de vuelta al panel),
+`Footer`, `Card`, `KpiCard`, `Campo` (filtro con ⓘ) y los tokens de la identidad GOV.CO.
+
+### Qué muestra el tablero de carbón
+
+El modelo encadena **ENOS (RONI) → aportes hídricos → uso del techo térmico → consumo de
+carbón** y simula 20 000 trayectorias (Monte Carlo) para entregar escenarios **P10 / P50 / P90**
+de oct-2026 a jun-2027 (9 meses). Techo físico 403,3 GBTU/día; récord histórico 340,5 (mar-2024);
+poder calorífico 26,27 MBTU/t (kt/día = GBTU/día ÷ 26,27).
+
+Estructura (igual que embalses): encabezado → **filtros globales** → 4 tarjetas → gráficos → detalle.
+
+- **Filtros globales** (un solo estado en la página, aplican a todos los bloques que dependen de ellos):
+  *Historia* (12/36/60 meses o toda), *Horizonte* (1/3/6/9 meses), *Unidad* (GBTU/día o kt/día),
+  *Días de inventario* (15/30/45/60) y *Restablecer filtros*.
+- **Tarjetas:** pico esperado con su rango P10–P90, uso del techo (semáforo: holgado < 85 %, ajustado
+  85–100 %, supera el techo > 100 %), probabilidad de superar el récord e inventario del pico.
+- **Gráficos:** consumo histórico y proyección con banda y líneas de techo y récord; consumo por
+  trimestre (los trimestres parciales se atenúan); inventario requerido por mes; modelo frente al caso
+  estocástico de XM (avisa cuando XM supera el techo físico).
+- **Detalle:** validación (criterios cumplidos —35 de 38—, error por horizonte frente a métodos ingenuos,
+  episodios críticos) y supuestos con limitaciones. Cada elemento técnico tiene su botón ⓘ.
+
+> Las bandas P10–P90 son **escenarios** de ENOS y aportes, **no intervalos de confianza**. El mes en
+> curso no se dibuja como observado: se informa aparte lo observado hasta la fecha.
+
+### Arquitectura (misma que embalses)
+
+| Capa | Piezas del carbón |
+|---|---|
+| `domain/` | `Banda`, entidades de `modelo_carbon` y `PaqueteModeloCarbon` (valida vacíos, claves repetidas y poder calorífico), puerto `ModeloCarbonRepository` |
+| `application/` | DTOs y 5 casos de uso (`ObtenerResumenCarbon`, `…Serie…`, `…Inventario…`, `…ComparacionXm…`, `…Validacion…`) |
+| `infrastructure/` | Tablas `carbon_*` en DuckDB, `DuckDBModeloCarbonRepository` (reemplazo transaccional), importador (`importar_modelo_carbon`) |
+| `presentation/` | `carbon_router.py` (`/api/v1/carbon/*`); el error de dominio se traduce a 404 en `error_handlers.py` |
+
+En el frontend: `lib/api` (tipos y cliente) → `lib/hooks/useCarbon.ts` (un hook por endpoint sobre
+`useAsyncResource`) → `lib/utils/carbon.ts` (funciones puras: unidades, semáforo, series) →
+`components/carbon/*` → `app/carbon/page.tsx`. Los textos de ayuda están aparte en `ayudasCarbon.tsx`.
+
+### Seguridad
+
+- **Solo lectura:** todos los endpoints son `GET`; el resto de métodos responde 405 y CORS solo permite `GET`.
+- **Entradas cerradas:** cada parámetro se valida contra una lista fija (`horizonte_meses` ∈ {1,3,6,9},
+  `historia_meses` ∈ {0,12,36,60}, `dias` ∈ {15,30,45,60}); cualquier otro valor, incluido texto,
+  responde 422 con los valores permitidos. La interfaz solo ofrece esas opciones.
+- **Sin texto libre en SQL:** consultas parametrizadas; la API solo lee la base local y no llama a servicios externos.
+- **Importación segura:** el importador valida los archivos antes de escribir y reemplaza en una transacción (rollback si falla).
+- **Sin secretos** en el código ni en el repositorio; los mensajes de error no exponen rutas ni trazas.
+
 ## Estructura del repositorio
 
 ```
@@ -274,19 +342,22 @@ plataforma-embalses/
 │   ├── tests/                    # Pruebas (pytest)
 │   └── requirements*.txt
 ├── frontend/
-│   ├── app/                      # Next.js App Router (layout, page, globals.css con los tokens de la identidad visual)
+│   ├── app/                      # Next.js App Router: page.tsx (panel de tableros), embalses/ y carbon/ (un tablero por ruta), globals.css con los tokens de la identidad visual
 │   ├── public/marca/             # Logos GOV.CO y Ministerio de Minas y Energía (el favicon del navegador es el del Ministerio: app/favicon.ico)
 │   ├── public/informacion.html   # Guía técnica y manual de usuario (página estática, servida en /informacion)
 │   ├── public/informacion/img/   # Capturas del tablero usadas por la guía
 │   ├── components/
-│   │   ├── layout/                # Header (franja GOV.CO + logo, acceso «Información»), ThemeToggle
+│   │   ├── layout/                # Header (franja GOV.CO + logo, accesos «Tableros» e «Información»), Footer, ThemeToggle
+│   │   ├── panel/                  # TableroCard (acceso a cada tablero del panel)
 │   │   ├── dashboard/              # KpiCard, SistemaRiesgoCard, RiskBadge, FiltersPanel, MainChart, RegionBarChart, SendaVolumenPanel, EmbalsesTable, ayudas.tsx (textos de ayuda)
-│   │   └── ui/                     # Card, Skeleton, InfoButton (botón ⓘ)
+│   │   ├── carbon/                 # Tablero de carbón: FiltrosCarbon, KpisCarbon, SerieCarbonChart, TrimestresChart, InventarioChart, ComparacionXmChart, ValidacionCarbonPanel, SupuestosCarbon, ayudasCarbon.tsx
+│   │   └── ui/                     # Card, Campo (filtro con ⓘ), Skeleton, InfoButton (botón ⓘ)
 │   ├── tests/                    # Pruebas (Vitest + Testing Library): utils, api, hooks, components, app, mocks, fixtures
 │   └── lib/
 │       ├── api/                    # client.ts, types.ts (espejo de los DTOs del backend)
-│       ├── hooks/                  # useAsyncResource, useResumenNacional, useEmbalseDetalle, usePrediccion, useSendaVolumen, useFuenteDatos
-│       └── utils/                  # formatters.ts, dates.ts
+│       ├── hooks/                  # useAsyncResource, useResumenNacional, useEmbalseDetalle, usePrediccion, useSendaVolumen, useFuenteDatos, useCarbon
+│       ├── tableros.ts             # Registro de tableros del panel (agregar uno = una entrada)
+│       └── utils/                  # formatters.ts, dates.ts, carbon.ts (unidades, semáforo, series)
 ├── scripts/                       # desplegar-vercel.sh (publica la API en Vercel)
 ├── data/                          # hidrologia.duckdb (generado por la sincronización, no versionado)
 └── README.md
@@ -346,6 +417,21 @@ Reemplaza la proyección completa, valida el archivo (columnas, fechas, fraccion
 0–1, `P10 ≤ P50 ≤ P90`, sin meses repetidos, embalses existentes) y no se borra con
 `--reiniciar`. Luego hay que volver a publicar la API para que Vercel la incluya.
 
+#### Modelo de carbón térmico
+
+El tablero de carbón lee la corrida vigente del modelo (proyecto `Modelo de carbón térmico`).
+Se importa con (API detenida; necesita `openpyxl`, incluido en `requirements-dev.txt`):
+
+```bash
+python -m infrastructure.ingesta.importar_modelo_carbon --carpeta "../../Modelo de carbón térmico"
+```
+
+La carpeta debe traer `resultados/proyeccion_carbon.xlsx`, `resultados/evaluacion/evaluacion_modelo.xlsx`
+y `datos/base/base_mensual_nacional.parquet`. El importador **valida todo antes de escribir**,
+reemplaza la corrida anterior en una sola transacción (si algo falla no queda a medias) y no se
+borra con `--reiniciar`. Sin importar el modelo, `/api/v1/carbon/*` responde 404 con la instrucción.
+Luego hay que volver a publicar la API (`scripts/desplegar-vercel.sh`).
+
 Levanta la API:
 
 ```bash
@@ -363,7 +449,7 @@ cp .env.example .env.local   # ajusta NEXT_PUBLIC_API_BASE_URL si es necesario
 npm run dev
 ```
 
-Abre `http://localhost:3000`.
+Abre `http://localhost:3000`: el panel de tableros (`/`), el de embalses (`/embalses`) y el de carbón (`/carbon`).
 
 ### 3. Pruebas
 
@@ -451,6 +537,11 @@ Prefijo base: `/api/v1`
 | GET | `/embalses/{id}/reporte` | Descarga CSV o JSON de la serie histórica. Query: `formato`, `fecha_inicio`, `fecha_fin` |
 | GET | `/regiones` | Agregado por región hidrológica |
 | GET | `/senda-volumen` | Senda mensual observada + proyectada de %V. útil. La proyección es la del modelo de Outputs (`origen_proyeccion = outputs`, banda P10–P90, hasta 12 meses, sin validación) o, sin ella, el respaldo Holt-Winters con validación walk-forward (`holt_winters`). Incluye `horizonte_efectivo_meses`. Query: `embalse` (id, `TOTAL` o `REGION:<nombre>`; para una región no hay proyección de Outputs y se usa el respaldo Holt-Winters), `horizonte_meses` = 1, 3, 6 o 12 |
+| GET | `/carbon/resumen` | Indicadores del modelo de carbón: pico esperado (P10/P50/P90), uso del techo, probabilidad de superar el récord, inventario del pico, trimestres y criterios cumplidos. Query: `horizonte_meses` = 1, 3, 6 o 9; `dias` (inventario) = 15, 30, 45 o 60 |
+| GET | `/carbon/serie` | Historia mensual y proyección del consumo (GBTU/día) con banda P10–P90. Query: `historia_meses` = 12, 36, 60 o 0 (toda); `horizonte_meses` = 1, 3, 6 o 9 |
+| GET | `/carbon/inventario` | kt de carbón requeridos por mes (P50 y P90). Query: `horizonte_meses`, `dias` |
+| GET | `/carbon/comparacion-xm` | Modelo frente al caso estocástico de XM y el techo. Query: `horizonte_meses` |
+| GET | `/carbon/validacion` | Criterios de validez (35 de 38), error por horizonte, episodios críticos y supuestos |
 | GET | `/fuente-datos` | Procedencia de los datos (fuente, si son reales, fecha de corte, última actualización) |
 | GET | `/salud` | Health check |
 
@@ -458,7 +549,7 @@ Los campos que la fuente no publica se devuelven como `null`. Errores de
 dominio se traducen a HTTP de forma centralizada en
 [`presentation/api/error_handlers.py`](backend/presentation/api/error_handlers.py):
 `EmbalseNoEncontradoError`/`SinMedicionesError` → 404,
-`DatosHistoricosInsuficientesError` → 422, cualquier otro `DomainError` → 400.
+`DatosHistoricosInsuficientesError` → 422, `ModeloCarbonNoCargadoError` → 404, cualquier otro `DomainError` → 400.
 
 ## Pruebas
 
@@ -493,9 +584,9 @@ gh pr create --fill                # abrir el pull request
 gh pr merge --squash --delete-branch   # cuando los checks estén en verde
 ```
 
-### Backend — 273 pruebas (pytest)
+### Backend — 362 pruebas (pytest)
 
-273 pruebas con pytest, sin red ni base de datos externa (repositorios,
+362 pruebas con pytest, sin red ni base de datos externa (repositorios,
 fuente y pronóstico en memoria —ver [`tests/fakes.py`](backend/tests/fakes.py)—, y
 DuckDB sobre archivos temporales). Las pruebas HTTP usan `TestClient` de FastAPI
 (requiere `httpx`, incluido en `requirements-dev.txt`):
@@ -511,6 +602,8 @@ DuckDB sobre archivos temporales). Las pruebas HTTP usan `TestClient` de FastAPI
 | `test_holt_winters_estacional.py` | 7 | Ciclo anual, fallback con <24 meses, pasos de fecha, acotamiento 0–100 |
 | `test_fuente_simem_xm.py` | 26 | Conversión de unidades (m³→Mm³, m³/día→m³/s, kWh→GWh), mapeo río→embalse, agregado Bogotá y `AGREGADO_SIN`, datos faltantes como `None`, imputación del peso, región desconocida, cliente XM en bloques de 30 días, errores de red |
 | `test_api_http.py` | 74 | Contrato HTTP sobre la app real con los casos de uso reales y repositorios en memoria: los 9 endpoints, códigos 404/405/422 y su `detalle`, filtros y validación de parámetros, `null` en datos no publicados, CSV/JSON descargable (celdas vacías, no ceros), la ruta `/resumen` frente a `/{id}`, forma del JSON de la senda (origen de la proyección y horizonte efectivo), OpenAPI y CORS (origen permitido, otros rechazados, preflight solo GET) |
+| `test_modelo_carbon.py` | 42 | Modelo de carbón: `Banda` P10≤P50≤P90, validación del paquete (vacíos, claves repetidas, poder calorífico), casos de uso (pico dentro del horizonte, uso del techo, probabilidad, inventario = consumo × días, trimestres parciales, horizontes/historias/días fuera de lista), lectura y validación de los archivos del modelo, repositorio DuckDB (ida y vuelta, reemplazo transaccional con rollback, `--reiniciar` no lo borra) |
+| `test_api_carbon.py` | 47 | Contrato HTTP de los 5 endpoints `/carbon/*`: forma del JSON, valores por defecto, 404 «modelo no cargado», 422 con la lista de valores permitidos por cada parámetro, solo GET (405 en el resto), OpenAPI |
 | `test_arranque_vercel.py` | 4 | Copia de la base empaquetada a `/tmp` (no pisa copias existentes, error claro si falta) |
 | `test_sincronizacion_y_persistencia.py` | 19 | Sincronización completa/incremental/idempotente, procedencia, ida y vuelta en DuckDB con nulos, upsert, esquema heredado (rechazo y `--reiniciar`) |
 
@@ -526,7 +619,7 @@ repositorios en memoria; DuckDB se prueba aparte). La descarga real de SIMEM/XM
 se verificó manualmente (carga completa e incremental) y contra el agregado
 oficial de XM, pero no en las pruebas automáticas, que no usan red.
 
-### Frontend — 206 pruebas (Vitest + React Testing Library + jsdom)
+### Frontend — 264 pruebas (Vitest + React Testing Library + jsdom)
 
 Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 ([`tests/mocks/fetch.ts`](frontend/tests/mocks/fetch.ts)) con datos de ejemplo
@@ -546,7 +639,11 @@ Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 | `components/SendaVolumenPanel.test.tsx` | 32 | Semáforo del mínimo proyectado en los umbrales exactos, datos del gráfico, tabla de validación, sin selector propio (sigue el ámbito de los filtros), estados de carga y error; proyección de Outputs (banda P10–P90, nota en lugar de la tabla, aviso si la corrida publica menos meses de los pedidos); horizontes 1/3/6/12 |
 | `components/ThemeToggle.test.tsx` | 6 | Preferencia guardada vs. del sistema, clase `dark`, sincronía entre botones |
 | `app/page.test.tsx` | 23 | Página completa con la API simulada: KPIs, procedencia real/no real, filtros por defecto en «Todos» con el total nacional, rango de 180 días, **filtros globales**: elegir un embalse o una región filtra tarjetas, gráfico principal, distribución regional, senda y tabla; al cambiar de región el embalse vuelve a «Todos»; las fechas solo mueven el histórico diario; restablecer filtros; error de API |
-| `components/Header.test.tsx` | 3 | Acceso «Información» (enlace a `/informacion` en pestaña nueva, junto al botón de tema) y fecha de corte |
+| `components/Header.test.tsx` | 7 | Accesos «Tableros» (vuelve al panel, ausente en el propio panel) e «Información» (`/informacion` en pestaña nueva), orden junto al botón de tema, título/subtítulo personalizables y fecha de corte |
+| `panel/panel.test.tsx` | 6 | Panel principal: embalses primero y carbón segundo, un acceso por tablero con nombre accesible y procedencia, ids y rutas únicos |
+| `utils/carbon.test.ts` | 16 | Conversión GBTU/día ↔ kt/día, semáforo del uso del techo en los umbrales exactos (85 y 100 %), etiquetas de trimestre y mes, serie con punto puente sin el mes en curso, comparación con XM |
+| `carbon/clienteCarbon.test.ts` | 8 | URLs y parámetros de los 5 endpoints, la historia `0` se envía, errores 404/422 como `ApiError` |
+| `carbon/carbon.test.tsx` | 24 | Página de carbón con la API simulada: valores por defecto, resumen pedido una sola vez, tarjetas, **cada filtro vuelve a consultar solo lo que le corresponde** (horizonte → 4 endpoints; días → resumen e inventario; historia → serie; unidad → sin red), restablecer, opciones = lista cerrada de la API, ayudas ⓘ, errores por bloque, techo/récord/banda del gráfico, aviso del mes en curso y de XM sobre el techo, validación accesible |
 | `app/ayudas.test.tsx` | 6 | Catálogo de ayudas (títulos únicos, sin textos obsoletos) y auditoría: todo encabezado, columna, filtro y tarjeta tiene su ⓘ y todos abren y cierran |
 
 Recharts se sustituye por un doble
