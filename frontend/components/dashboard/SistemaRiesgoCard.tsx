@@ -21,7 +21,7 @@ export function SistemaRiesgoCard({ nivel, totalEmbalses }: { nivel: NivelRiesgo
           <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: colores.texto }} />
           <span className="text-lg font-semibold">{etiquetaRiesgo(nivel)}</span>
         </div>
-        <p className="mt-1.5 text-xs text-foreground-muted">{totalEmbalses} embalses monitoreados</p>
+        <p className="mt-1.5 text-xs text-foreground-muted">{totalEmbalses} {totalEmbalses === 1 ? "embalse monitoreado" : "embalses monitoreados"}</p>
       </div>
     </div>
   );

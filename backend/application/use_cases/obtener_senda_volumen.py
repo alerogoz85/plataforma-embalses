@@ -57,9 +57,15 @@ class ObtenerSendaVolumenUseCase(ObtenerSendaVolumenPort):
     def ejecutar(
         self, embalse_id: str = ID_TOTAL_NACIONAL, horizonte_meses: int = 12
     ) -> SendaVolumenDTO:
-        if embalse_id == ID_TOTAL_NACIONAL:
-            nombre = "Total nacional"
-            serie_diaria = self._serie_diaria_nacional()
+        grupo = self._agregadas.resolver(embalse_id)
+        if grupo is not None:
+            # "TOTAL" (nacional) o "REGION:<nombre>": serie ponderada por energia.
+            if not grupo.embalses:
+                raise SinMedicionesError(embalse_id)
+            nombre = grupo.nombre
+            serie_diaria = self._agregadas.serie_pct_diaria(grupo)
+            if not serie_diaria:
+                raise SinMedicionesError(embalse_id)
         else:
             embalse = self._embalses_repo.obtener_por_id(embalse_id)
             if embalse is None:
@@ -140,11 +146,6 @@ class ObtenerSendaVolumenUseCase(ObtenerSendaVolumenPort):
             origen_proyeccion=origen_proyeccion,
             horizonte_efectivo_meses=len(proyeccion),
         )
-
-    def _serie_diaria_nacional(self) -> list[tuple[date, float]]:
-        """%V_util nacional diario: promedio ponderado por la capacidad util
-        en energia de cada embalse ese dia (metodo de XM)."""
-        return self._agregadas.serie_pct_diaria(self._agregadas.resolver(ID_TOTAL_NACIONAL))
 
     def _validar_walk_forward(
         self, valores: list[float], fechas: list[date]

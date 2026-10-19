@@ -69,6 +69,13 @@ describe("SistemaRiesgoCard", () => {
     expect(screen.getByText(/monitoreados/)).toHaveTextContent("24 embalses monitoreados");
   });
 
+  it("concuerda el singular y el plural de los embalses monitoreados", () => {
+    const { rerender } = render(<SistemaRiesgoCard nivel="NORMAL" totalEmbalses={1} />);
+    expect(screen.getByText("1 embalse monitoreado")).toBeInTheDocument();
+    rerender(<SistemaRiesgoCard nivel="NORMAL" totalEmbalses={2} />);
+    expect(screen.getByText("2 embalses monitoreados")).toBeInTheDocument();
+  });
+
   it("explica los umbrales en su ayuda", async () => {
     render(<SistemaRiesgoCard nivel="ESTABLE" totalEmbalses={1} />);
     await userEvent.click(screen.getByRole("button", { name: "Ayuda: Riesgo del sistema" }));

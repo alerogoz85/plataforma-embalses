@@ -24,7 +24,7 @@ import {
   formatearPorcentajeOpcional,
 } from "@/lib/utils/formatters";
 import { fechaHaceDias, hoyISO } from "@/lib/utils/dates";
-import { ID_TOTAL_NACIONAL, idAgregadoRegion } from "@/lib/api/types";
+import { ID_TOTAL_NACIONAL, idAgregadoRegion, type EmbalseResumen, type KpiNacional } from "@/lib/api/types";
 
 const ICONO_GOTA = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -43,13 +43,27 @@ const ICONO_RAYO = (
   </svg>
 );
 
+/** Las tarjetas de un solo embalse salen de su propia fila (mismos campos que los KPI agregados). */
+function kpisDeEmbalse(e: EmbalseResumen): KpiVista {
+  return {
+    pct_volumen_util_nacional: e.pct_volumen_util,
+    delta_diario_pct: e.delta_diario_pct,
+    delta_semanal_pct: e.delta_semanal_pct,
+    aportes_pct_media_nacional: e.aportes_pct_media,
+    capacidad_guardada_gwh: e.energia_util_gwh,
+    nivel_riesgo_sistema: e.nivel_riesgo,
+    total_embalses: 1,
+  };
+}
+
+type KpiVista = Omit<KpiNacional, "fecha_corte" | "capacidad_guardada_gwh"> & {
+  capacidad_guardada_gwh: number | null;
+};
+
 export default function DashboardPage() {
   const [region, setRegion] = useState<string | null>(null);
   const [embalseId, setEmbalseId] = useState<string | null>(null);
-  // Por defecto la pagina abre en "Todas las regiones" + "Todos los embalses": el grafico
-  // principal muestra el total nacional. Al cambiar de region se elige el primer embalse
-  // de esa region (un embalse nulo sin "Todos" se auto-corrige al primero de la lista).
-  const [todosLosEmbalses, setTodosLosEmbalses] = useState(true);
+  // Por defecto la pagina abre en "Todas las regiones" + "Todos los embalses" (embalseId nulo).
   const [fechaInicio, setFechaInicio] = useState(fechaHaceDias(180));
   const [fechaFin, setFechaFin] = useState(hoyISO());
 
@@ -61,32 +75,36 @@ export default function DashboardPage() {
   const fuente = useFuenteDatos();
 
   const embalses = resumen.datos?.embalses ?? [];
-  const embalseActual = embalses.find((e) => e.id === embalseId);
+  // Embalse elegido, solo si pertenece a la region vigente.
+  const embalseActual = embalseId ? embalses.find((e) => e.id === embalseId) : undefined;
 
-  // Mantiene la seleccion apuntando a un embalse presente en la lista
-  // filtrada actual (por ejemplo, tras cambiar de region), ajustando el
-  // estado durante el render (sin efecto) siguiendo el patron recomendado
-  // por React para derivar un valor a partir de datos que llegan de forma
-  // asincrona.
-  if (!todosLosEmbalses && embalses.length > 0 && !embalseActual) {
-    setEmbalseId(embalses[0].id);
-  }
+  // Un unico "ambito" gobierna todo el tablero (tarjetas, graficos, senda y tabla):
+  // el embalse elegido; si no hay, la region elegida; si tampoco, el total nacional.
+  const ambitoId = embalseActual
+    ? embalseActual.id
+    : region
+      ? idAgregadoRegion(region)
+      : ID_TOTAL_NACIONAL;
+  const ambitoNombre = embalseActual ? embalseActual.nombre : region ? `Región ${region}` : "Total nacional";
+
+  const kpis = resumen.datos ? (embalseActual ? kpisDeEmbalse(embalseActual) : resumen.datos.kpis) : null;
+  const regiones = resumen.datos?.regiones ?? [];
+  const regionesVisibles = embalseActual ? regiones.filter((r) => r.region === embalseActual.region) : regiones;
+  const embalsesVisibles = embalseActual ? [embalseActual] : embalses;
+  const etiquetaVolumen = embalseActual
+    ? `% Volumen útil · ${embalseActual.nombre}`
+    : region
+      ? `% Volumen útil · Región ${region}`
+      : "% Volumen útil nacional";
 
   function cambiarRegion(nueva: string | null) {
     setRegion(nueva);
     setEmbalseId(null);
-    setTodosLosEmbalses(false);
-  }
-
-  function cambiarEmbalse(id: string | null) {
-    setEmbalseId(id);
-    setTodosLosEmbalses(id === null);
   }
 
   function restablecerFiltros() {
     setRegion(null);
     setEmbalseId(null);
-    setTodosLosEmbalses(true);
     setFechaInicio(fechaHaceDias(180));
     setFechaFin(hoyISO());
   }
@@ -100,7 +118,7 @@ export default function DashboardPage() {
           regionSeleccionada={region}
           onCambiarRegion={cambiarRegion}
           embalseSeleccionado={embalseId}
-          onCambiarEmbalse={cambiarEmbalse}
+          onCambiarEmbalse={setEmbalseId}
           onRestablecer={restablecerFiltros}
           fechaInicio={fechaInicio}
           fechaFin={fechaFin}
@@ -120,16 +138,16 @@ export default function DashboardPage() {
         )}
 
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {!resumen.datos ? (
+          {!kpis ? (
             Array.from({ length: 4 }).map((_, i) => <SkeletonKpiCard key={i} />)
           ) : (
             <>
               <KpiCard
-                etiqueta="% Volumen útil nacional"
-                valor={formatearPorcentaje(resumen.datos.kpis.pct_volumen_util_nacional)}
+                etiqueta={etiquetaVolumen}
+                valor={formatearPorcentaje(kpis.pct_volumen_util_nacional)}
                 delta={{
-                  texto: `${formatearDelta(resumen.datos.kpis.delta_diario_pct)} diario · ${formatearDelta(resumen.datos.kpis.delta_semanal_pct)} semanal`,
-                  positivo: resumen.datos.kpis.delta_diario_pct >= 0,
+                  texto: `${formatearDelta(kpis.delta_diario_pct)} diario · ${formatearDelta(kpis.delta_semanal_pct)} semanal`,
+                  positivo: kpis.delta_diario_pct >= 0,
                 }}
                 icono={ICONO_GOTA}
                 acento="var(--color-marca)"
@@ -137,22 +155,19 @@ export default function DashboardPage() {
               />
               <KpiCard
                 etiqueta="Aportes (% media histórica)"
-                valor={formatearPorcentajeOpcional(resumen.datos.kpis.aportes_pct_media_nacional)}
+                valor={formatearPorcentajeOpcional(kpis.aportes_pct_media_nacional)}
                 icono={ICONO_LLUVIA}
                 acento="var(--chart-aportes)"
                 ayuda={AYUDAS.aportes}
               />
               <KpiCard
                 etiqueta="Capacidad guardada"
-                valor={`${formatearNumero(resumen.datos.kpis.capacidad_guardada_gwh, 0)} GWh`}
+                valor={kpis.capacidad_guardada_gwh === null ? "—" : `${formatearNumero(kpis.capacidad_guardada_gwh, 0)} GWh`}
                 icono={ICONO_RAYO}
                 acento="var(--color-alerta)"
                 ayuda={AYUDAS.capacidadGuardada}
               />
-              <SistemaRiesgoCard
-                nivel={resumen.datos.kpis.nivel_riesgo_sistema}
-                totalEmbalses={resumen.datos.kpis.total_embalses}
-              />
+              <SistemaRiesgoCard nivel={kpis.nivel_riesgo_sistema} totalEmbalses={kpis.total_embalses} />
             </>
           )}
         </section>
@@ -160,30 +175,24 @@ export default function DashboardPage() {
         <section className="grid grid-cols-1 gap-4 xl:grid-cols-3">
           <div className="xl:col-span-2">
             <MainChart
-              embalseId={todosLosEmbalses ? (region ? idAgregadoRegion(region) : ID_TOTAL_NACIONAL) : embalseId}
-              nombreEmbalse={
-                todosLosEmbalses
-                  ? region
-                    ? `Región ${region}`
-                    : "Total nacional"
-                  : (embalseActual?.nombre ?? "")
-              }
+              embalseId={ambitoId}
+              nombreEmbalse={ambitoNombre}
               fechaInicio={fechaInicio}
               fechaFin={fechaFin}
             />
           </div>
-          <RegionBarChart regiones={resumen.datos?.regiones ?? []} cargando={resumen.cargando} />
+          <RegionBarChart regiones={regionesVisibles} cargando={resumen.cargando} />
         </section>
 
         <section>
-          <SendaVolumenPanel embalses={embalses} />
+          <SendaVolumenPanel embalseId={ambitoId} />
         </section>
 
         <section>
           <EmbalsesTable
-            embalses={embalses}
+            embalses={embalsesVisibles}
             cargando={resumen.cargando}
-            onSeleccionar={cambiarEmbalse}
+            onSeleccionar={setEmbalseId}
             embalseSeleccionado={embalseId}
           />
         </section>

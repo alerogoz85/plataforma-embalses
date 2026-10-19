@@ -1,9 +1,9 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { SendaVolumenPanel } from "@/components/dashboard/SendaVolumenPanel";
-import { EMBALSES_EJEMPLO, crearSenda } from "../fixtures";
+import { crearSenda } from "../fixtures";
 import { simularFetch } from "../mocks/fetch";
 
 vi.mock("recharts", () => import("../mocks/recharts"));
@@ -11,10 +11,10 @@ vi.mock("recharts", () => import("../mocks/recharts"));
 const RUTA = "/api/v1/senda-volumen";
 const puntos = () => JSON.parse(screen.getByTestId("composed-chart").dataset.points!);
 
-function montar(senda = crearSenda()) {
+function montar(senda = crearSenda(), embalseId = "TOTAL") {
   const simulacion = simularFetch({ [RUTA]: (url) => ({ ...senda, embalse_id: url.searchParams.get("embalse")! }) });
-  render(<SendaVolumenPanel embalses={EMBALSES_EJEMPLO} />);
-  return simulacion;
+  const vista = render(<SendaVolumenPanel embalseId={embalseId} />);
+  return { ...simulacion, ...vista };
 }
 
 async function esperarDatos() {
@@ -130,19 +130,24 @@ describe("SendaVolumenPanel", () => {
   });
 
   describe("selectores", () => {
-    it("ofrece 'Total nacional' y los embalses recibidos", async () => {
+    it("no tiene selector de embalse propio: sigue los filtros del tablero", async () => {
       montar();
       await esperarDatos();
-      const opciones = within(screen.getByRole("combobox")).getAllByRole("option").map((o) => o.textContent);
-      expect(opciones).toEqual(["Total nacional", "Guavio", "Prado", "Muna", "Agregado Bogotá"]);
+      expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
     });
 
-    it("cambiar de embalse vuelve a consultar con su id", async () => {
-      const { llamadas } = montar();
+    it.each(["TOTAL", "PRADO", "REGION:Centro"])("consulta la senda del ambito recibido (%s)", async (ambito) => {
+      const { llamadas } = montar(crearSenda(), ambito);
       await esperarDatos();
-      await userEvent.selectOptions(screen.getByRole("combobox"), "Prado");
-      await waitFor(() => expect(llamadas.at(-1)!.searchParams.get("embalse")).toBe("PRADO"));
-      expect(llamadas.at(-1)!.searchParams.get("horizonte_meses")).toBe("12");
+      expect(llamadas[0].searchParams.get("embalse")).toBe(ambito);
+    });
+
+    it("si cambia el ambito (un filtro del tablero) vuelve a consultar con el nuevo", async () => {
+      const { llamadas, rerender } = montar(crearSenda(), "TOTAL");
+      await esperarDatos();
+      rerender(<SendaVolumenPanel embalseId="REGION:Centro" />);
+      await waitFor(() => expect(llamadas.at(-1)!.searchParams.get("embalse")).toBe("REGION:Centro"));
+      expect(llamadas.at(-1)!.searchParams.get("horizonte_meses")).toBe("12"); // conserva el horizonte
     });
 
     it("cambiar el horizonte consulta con esos meses y marca el boton", async () => {
@@ -165,14 +170,14 @@ describe("SendaVolumenPanel", () => {
   describe("estados", () => {
     it("muestra un esqueleto mientras carga", () => {
       simularFetch({ [RUTA]: () => new Promise(() => {}) });
-      const { container } = render(<SendaVolumenPanel embalses={EMBALSES_EJEMPLO} />);
+      const { container } = render(<SendaVolumenPanel embalseId="TOTAL" />);
       expect(container.querySelector(".skeleton")).toBeInTheDocument();
       expect(screen.queryByTestId("composed-chart")).not.toBeInTheDocument();
     });
 
     it("muestra el error de la API (p. ej. historia insuficiente)", async () => {
       simularFetch({ [RUTA]: () => ({ status: 422, cuerpo: { detalle: "requiere al menos 9 registros" } }) });
-      render(<SendaVolumenPanel embalses={EMBALSES_EJEMPLO} />);
+      render(<SendaVolumenPanel embalseId="TOTAL" />);
       expect(await screen.findByText(/No fue posible cargar la senda/)).toHaveTextContent("requiere al menos 9 registros");
       expect(screen.queryByTestId("composed-chart")).not.toBeInTheDocument();
     });
