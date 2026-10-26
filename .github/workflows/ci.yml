@@ -68,3 +68,14 @@ jobs:
       # `next build` también verifica los tipos de TypeScript.
       - name: Build de producción
         run: npm run build
+
+      # Navegador real contra el build de producción, con la API simulada: comprueba que los
+      # gráficos se dibujan, el diseño en celular, el tema y los filtros (E2E_CHANNEL vacío =
+      # el Chromium que instala Playwright).
+      - name: Instalar navegador (Playwright)
+        run: npx playwright install --with-deps chromium
+
+      - name: Pruebas de extremo a extremo
+        env:
+          E2E_CHANNEL: ""
+        run: npm run test:e2e
