@@ -3,6 +3,46 @@ import { expect, test } from "@playwright/test";
 import { conResultados } from "../tests/modelos/fixturesModelos";
 import { simularApi } from "./api";
 
+test.describe("DNS: simetria de los paneles largos", () => {
+  const alto = async (page: import("@playwright/test").Page, titulo: string) =>
+    Math.round((await page.getByRole("heading", { name: titulo, level: 2 }).locator("xpath=ancestor::div[contains(@class,'rounded-2xl')][1]").boundingBox())!.height);
+
+  test("por defecto cada panel mide lo mismo que su vecino; ampliar y volver a contraer restablece la simetria", async ({ page }) => {
+    await simularApi(page);
+    await page.setViewportSize({ width: 1360, height: 900 });
+    await page.goto("/dns");
+    await expect(page.getByRole("button", { name: "Ver todo (2 zonas)" })).toBeVisible();
+    expect(await alto(page, "Priorización de zonas")).toBe(await alto(page, "Causas de los eventos"));
+    expect(await alto(page, "Modelo predictivo")).toBe(await alto(page, "Cambios en la forma de reportar"));
+
+    await page.getByRole("button", { name: /^Ver todo \(2 subáreas/ }).click();
+    await expect(page).toHaveURL(/ampliar=modelo$/);
+    await expect(page.getByRole("button", { name: "Ver menos" })).toHaveAttribute("aria-expanded", "true");
+    await page.getByRole("button", { name: "Ver menos" }).click();
+    await expect(page).not.toHaveURL(/ampliar/);
+    expect(await alto(page, "Modelo predictivo")).toBe(await alto(page, "Cambios en la forma de reportar"));
+  });
+
+  test("ampliado muestra todo el contenido del panel (sin zona desplazable) y la direccion lo conserva al recargar", async ({ page }) => {
+    await simularApi(page);
+    await page.setViewportSize({ width: 1360, height: 900 });
+    await page.goto("/dns?ampliar=zonas,modelo");
+    await expect(page.getByRole("button", { name: "Ver menos" })).toHaveCount(2);
+    await expect(page.getByRole("region", { name: "Contenido desplazable" })).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByRole("button", { name: "Ver menos" })).toHaveCount(2);
+  });
+
+  test("en pantallas angostas los paneles tienen altura maxima y no desbordan horizontalmente", async ({ page }) => {
+    await simularApi(page);
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto("/dns");
+    await expect(page.getByRole("button", { name: "Ver todo (2 zonas)" })).toBeVisible();
+    const { ancho, visible } = await page.evaluate(() => ({ ancho: document.documentElement.scrollWidth, visible: window.innerWidth }));
+    expect(ancho).toBeLessThanOrEqual(visible);
+  });
+});
+
 test.describe("Rutas: manejador central, alias y 404", () => {
   test("los alias redirigen a la ruta canonica", async ({ page }) => {
     await simularApi(page);
