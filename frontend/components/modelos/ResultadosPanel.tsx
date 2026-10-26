@@ -1,16 +1,24 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { Campo } from "@/components/ui/Campo";
 import { Card, CardHeader } from "@/components/ui/Card";
 import type { ResultadoModelo } from "@/lib/api/types";
+import { useEstadoUrl, type EsquemaUrl } from "@/lib/hooks/useEstadoUrl";
+import { mesIso } from "@/lib/utils/url";
 import { COLOR_NIVEL_INDICADOR, etiquetaX, filtrarSeries, opcionesPeriodo } from "@/lib/utils/modelos";
 import { formatearFecha } from "@/lib/utils/formatters";
 import { AYUDAS_MODELOS } from "./ayudasModelos";
 import { SerieModeloChart } from "./SerieModeloChart";
 import { TablaModeloCard } from "./TablaModeloCard";
+
+/** Rango de meses de las series, en la URL: `?desde=2026-11&hasta=2027-03` (sin parámetro = todo el rango). */
+const ESQUEMA_PERIODO: EsquemaUrl<{ desde: string; hasta: string }> = {
+  desde: { param: "desde", defecto: () => "", leer: mesIso },
+  hasta: { param: "hasta", defecto: () => "", leer: mesIso },
+};
 
 const ICONO_NIVEL = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -25,8 +33,12 @@ const ICONO_NIVEL = (
  */
 export function ResultadosPanel({ resultado }: { resultado: ResultadoModelo }) {
   const opciones = useMemo(() => opcionesPeriodo(resultado.series), [resultado.series]);
-  const [desde, setDesde] = useState("");
-  const [hasta, setHasta] = useState("");
+  const [enUrl, { actualizar, restablecer }] = useEstadoUrl(ESQUEMA_PERIODO);
+  // Un mes de la URL que no está en las series (dirección escrita a mano) se ignora en lugar de dejar los gráficos vacíos.
+  const desde = opciones.includes(enUrl.desde) ? enUrl.desde : "";
+  const hasta = opciones.includes(enUrl.hasta) ? enUrl.hasta : "";
+  const setDesde = (v: string) => actualizar({ desde: v });
+  const setHasta = (v: string) => actualizar({ hasta: v });
   const series = useMemo(() => filtrarSeries(resultado.series, desde, hasta), [resultado.series, desde, hasta]);
 
   return (
@@ -56,10 +68,7 @@ export function ResultadosPanel({ resultado }: { resultado: ResultadoModelo }) {
           <div className="flex items-end justify-end">
             <button
               type="button"
-              onClick={() => {
-                setDesde("");
-                setHasta("");
-              }}
+              onClick={restablecer}
               className="inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-xs font-semibold transition-colors hover:bg-marca hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-marca)]"
               style={{ borderColor: "var(--color-marca)", color: "var(--color-marca)" }}
             >

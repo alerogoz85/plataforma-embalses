@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   Area,
   CartesianGrid,
@@ -13,6 +13,8 @@ import {
   YAxis,
 } from "recharts";
 
+import { useEstadoUrl, type EsquemaUrl } from "@/lib/hooks/useEstadoUrl";
+import { enLista } from "@/lib/utils/url";
 import { useEmbalseDetalle } from "@/lib/hooks/useEmbalseDetalle";
 import { usePrediccion } from "@/lib/hooks/usePrediccion";
 import { formatearFechaCorta } from "@/lib/utils/formatters";
@@ -21,6 +23,11 @@ import { InfoButton } from "@/components/ui/InfoButton";
 import { SkeletonChart } from "@/components/ui/Skeleton";
 import { AYUDAS } from "./ayudas";
 import { HORIZONTES_PREDICCION, type HorizontePrediccion } from "@/lib/api/types";
+
+/** Horizonte del pronóstico del gráfico principal, en la URL como `?h=90` (días: 30, 90, 180 o 360; por defecto 30). */
+const ESQUEMA_HORIZONTE: EsquemaUrl<{ horizonte: HorizontePrediccion }> = {
+  horizonte: { param: "h", defecto: () => 30, leer: (c) => enLista(HORIZONTES_PREDICCION)(c) },
+};
 
 interface PuntoGrafico {
   fecha: string;
@@ -43,7 +50,8 @@ export function MainChart({
   fechaInicio: string;
   fechaFin: string;
 }) {
-  const [horizonte, setHorizonte] = useState<HorizontePrediccion>(30);
+  const [{ horizonte }, { actualizar }] = useEstadoUrl(ESQUEMA_HORIZONTE);
+  const setHorizonte = (h: HorizontePrediccion) => actualizar({ horizonte: h });
   const detalle = useEmbalseDetalle(embalseId, { fechaInicio, fechaFin });
   const prediccion = usePrediccion(embalseId, horizonte);
   const esOutputs = prediccion.datos?.origen === "outputs";

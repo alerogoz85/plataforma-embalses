@@ -1,6 +1,8 @@
 "use client";
 
 import { Campo } from "@/components/ui/Campo";
+import type { EsquemaUrl } from "@/lib/hooks/useEstadoUrl";
+import { enLista } from "@/lib/utils/url";
 import {
   DIAS_INVENTARIO,
   HISTORIAS_CARBON,
@@ -22,6 +24,17 @@ export interface FiltrosCarbon {
 }
 
 export const FILTROS_CARBON_POR_DEFECTO: FiltrosCarbon = { historia: 36, horizonte: 9, unidad: "gbtu", dias: 45 };
+
+/**
+ * Los filtros viven en la URL (`/carbon?horizonte=3&unidad=kt`). Cada valor se valida contra la misma lista cerrada que acepta
+ * la API; uno inválido se ignora y queda el defecto, así una dirección escrita a mano nunca provoca un 422.
+ */
+export const ESQUEMA_CARBON: EsquemaUrl<FiltrosCarbon> = {
+  historia: { param: "historia", defecto: () => FILTROS_CARBON_POR_DEFECTO.historia, leer: enLista(HISTORIAS_CARBON) },
+  horizonte: { param: "horizonte", defecto: () => FILTROS_CARBON_POR_DEFECTO.horizonte, leer: enLista(HORIZONTES_CARBON) },
+  unidad: { param: "unidad", defecto: () => FILTROS_CARBON_POR_DEFECTO.unidad, leer: enLista(["gbtu", "kt"] as const) },
+  dias: { param: "dias", defecto: () => FILTROS_CARBON_POR_DEFECTO.dias, leer: enLista(DIAS_INVENTARIO) },
+};
 
 interface FiltrosCarbonPanelProps {
   filtros: FiltrosCarbon;

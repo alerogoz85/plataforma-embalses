@@ -19,7 +19,7 @@ npm run dev                  # http://localhost:3000
 
 ## Despliegue
 
-Se despliega solo, por Git, en Vercel (proyecto `plataforma-embalses`, directorio
+Se despliega solo, por Git, en Vercel (proyecto `tableros-analiticos`, directorio
 raíz `frontend/`): cada merge a `main` publica producción y cada pull request genera
 una vista previa. En Vercel el sitio llama a `/api/v1/*` en su propio dominio y
 `next.config.ts` lo reenvía a la API (`API_URL`).

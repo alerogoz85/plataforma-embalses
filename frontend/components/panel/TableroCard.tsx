@@ -18,6 +18,13 @@ const ICONOS: Record<IconoTablero, React.ReactNode> = {
       <path d="M6 21l2-3h8l2 3" />
     </>
   ),
+  // Rayo cortado: energía que no llegó
+  dns: (
+    <>
+      <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />
+      <path d="M3 3l18 18" />
+    </>
+  ),
   // Llama de gas sobre un tubo (gasoducto)
   gas: (
     <>
@@ -40,56 +47,50 @@ const ICONOS: Record<IconoTablero, React.ReactNode> = {
       <path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V17h5v-1.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3Z" />
     </>
   ),
-  // Rayo cortado: energía que no llegó
-  dns: (
-    <>
-      <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />
-      <path d="M3 3l18 18" />
-    </>
-  ),
 };
 
-/** Tarjeta de acceso a un tablero. Toda la tarjeta es un enlace (área de clic grande y un solo foco). */
+/**
+ * Tarjeta de un tablero. Dos accesos, sin enlaces anidados (eso no es HTML válido):
+ * - el título es el enlace principal y se estira sobre toda la tarjeta (clic grande, un solo foco);
+ * - «Guía de este tablero» es un enlace aparte, por encima, que lleva al capítulo que lo explica.
+ */
 export function TableroCard({ tablero }: { tablero: Tablero }) {
+  const enDesarrollo = tablero.grupo === "desarrollo";
   return (
-    <Link
-      href={tablero.ruta}
-      aria-label={`Abrir el tablero de ${tablero.titulo}`}
-      className="group flex h-full flex-col gap-4 rounded-2xl border border-border bg-background-elevated p-6 shadow-sm shadow-black/[0.02] transition-all hover:-translate-y-0.5 hover:border-[var(--color-marca)] hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-marca)]"
+    <article
+      className={`group relative flex h-full flex-col gap-4 rounded-2xl border bg-background-elevated p-6 shadow-sm shadow-black/[0.02] transition-all focus-within:border-[var(--color-marca)] hover:-translate-y-0.5 hover:border-[var(--color-marca)] hover:shadow-md ${
+        enDesarrollo ? "border-dashed border-border-strong" : "border-border"
+      }`}
     >
-      <span className="flex items-start justify-between gap-2">
-      <span
-        className="flex h-12 w-12 items-center justify-center rounded-xl text-white"
-        style={{ backgroundColor: "var(--color-marca)" }}
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          {ICONOS[tablero.icono]}
-        </svg>
-      </span>
-        {tablero.etiqueta && (
-          <span
-            className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
-            style={{ backgroundColor: "var(--color-alerta-bg)", color: "var(--color-alerta)" }}
-          >
-            {tablero.etiqueta}
+      <div className="flex items-start justify-between gap-2">
+        <span className="flex h-12 w-12 items-center justify-center rounded-xl text-white" style={{ backgroundColor: "var(--color-marca)" }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            {ICONOS[tablero.icono]}
+          </svg>
+        </span>
+        {enDesarrollo && (
+          <span className="rounded-full px-2.5 py-1 text-[11px] font-semibold" style={{ backgroundColor: "var(--color-alerta-bg)", color: "var(--color-alerta)" }}>
+            En desarrollo
           </span>
         )}
-      </span>
+      </div>
 
       <div className="flex flex-col gap-2">
-        <h2 className="text-xl font-bold" style={{ color: "var(--color-marca-oscuro)" }}>
-          {tablero.titulo}
-        </h2>
+        <h3 className="text-xl font-bold" style={{ color: "var(--color-marca-oscuro)" }}>
+          <Link
+            href={tablero.ruta}
+            aria-label={`Abrir el tablero de ${tablero.titulo}`}
+            className="after:absolute after:inset-0 after:content-[''] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-marca)]"
+          >
+            {tablero.titulo}
+          </Link>
+        </h3>
         <p className="text-sm leading-relaxed text-foreground-muted">{tablero.descripcion}</p>
       </div>
 
-      <ul className="flex flex-wrap gap-1.5" aria-label="Qué incluye">
+      <ul className="flex flex-wrap gap-1.5" aria-label="Qué puedes consultar">
         {tablero.incluye.map((item) => (
-          <li
-            key={item}
-            className="rounded-full px-2.5 py-1 text-[11px] font-medium"
-            style={{ backgroundColor: "var(--color-marca-bg)", color: "var(--color-marca-oscuro)" }}
-          >
+          <li key={item} className="rounded-full px-2.5 py-1 text-[11px] font-medium" style={{ backgroundColor: "var(--color-marca-bg)", color: "var(--color-marca-oscuro)" }}>
             {item}
           </li>
         ))}
@@ -100,16 +101,23 @@ export function TableroCard({ tablero }: { tablero: Tablero }) {
         {tablero.fuente}
       </p>
 
-      <span
-        className="mt-auto inline-flex items-center gap-1.5 text-sm font-semibold"
-        style={{ color: "var(--color-marca)" }}
-      >
-        Abrir tablero
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-1" aria-hidden="true">
-          <path d="M5 12h14" />
-          <path d="m13 6 6 6-6 6" />
-        </svg>
-      </span>
-    </Link>
+      <div className="relative z-10 mt-auto flex items-center justify-between gap-3 border-t border-border pt-3 text-sm font-semibold">
+        <span className="inline-flex items-center gap-1.5" style={{ color: "var(--color-marca)" }} aria-hidden="true">
+          {enDesarrollo ? "Ver su estado" : "Abrir tablero"}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-1">
+            <path d="M5 12h14" />
+            <path d="m13 6 6 6-6 6" />
+          </svg>
+        </span>
+        <Link
+          href={tablero.guia}
+          aria-label={`Guía del tablero de ${tablero.titulo}`}
+          className="text-xs underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-marca)]"
+          style={{ color: "var(--color-marca-oscuro)" }}
+        >
+          Guía de este tablero
+        </Link>
+      </div>
+    </article>
   );
 }
