@@ -345,13 +345,15 @@ plataforma-embalses/
 │   ├── app/                      # Next.js App Router: page.tsx (panel de tableros), embalses/ y carbon/ (un tablero por ruta), globals.css con los tokens de la identidad visual
 │   ├── public/marca/             # Logos GOV.CO y Ministerio de Minas y Energía (el favicon del navegador es el del Ministerio: app/favicon.ico)
 │   ├── public/informacion.html   # Guía técnica y manual de usuario (página estática, servida en /informacion)
-│   ├── public/informacion/img/   # Capturas del tablero usadas por la guía
+│   ├── public/informacion/img/   # Capturas del tablero usadas por la guía (se regeneran con `node scripts/capturas-guia.mjs`)
 │   ├── components/
 │   │   ├── layout/                # Header (franja GOV.CO + logo, accesos «Tableros» e «Información»), Footer, ThemeToggle
 │   │   ├── panel/                  # TableroCard (acceso a cada tablero del panel)
 │   │   ├── dashboard/              # KpiCard, SistemaRiesgoCard, RiskBadge, FiltersPanel, MainChart, RegionBarChart, SendaVolumenPanel, EmbalsesTable, ayudas.tsx (textos de ayuda)
 │   │   ├── carbon/                 # Tablero de carbón: FiltrosCarbon, KpisCarbon, SerieCarbonChart, TrimestresChart, InventarioChart, ComparacionXmChart, ValidacionCarbonPanel, SupuestosCarbon, ayudasCarbon.tsx
 │   │   └── ui/                     # Card, Campo (filtro con ⓘ), Skeleton, InfoButton (botón ⓘ)
+│   ├── scripts/capturas-guia.mjs # Regenera las capturas de embalses de la guía (Playwright + API local)
+│   ├── e2e/                      # Pruebas de extremo a extremo (Playwright)
 │   ├── tests/                    # Pruebas (Vitest + Testing Library): utils, api, hooks, components, app, mocks, fixtures
 │   └── lib/
 │       ├── api/                    # client.ts, types.ts (espejo de los DTOs del backend)
