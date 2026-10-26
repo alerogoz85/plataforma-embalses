@@ -1,7 +1,7 @@
-// Regenera las capturas de la guia (public/informacion/img/*.jpg) del tablero de EMBALSES con los
-// datos reales de la API local. Uso (API en :8000 con la base al dia, y `npm run build` hecho):
-//   node scripts/capturas-guia.mjs
-// Las capturas de carbon y del panel (carbon.jpg, panel.jpg) se hacen igual con /carbon y /.
+// Regenera las capturas de la guia (public/informacion/img/*.jpg) con los datos reales de la API local.
+// Uso (API en :8000 con la base al dia, y `npm run build` hecho):
+//   node scripts/capturas-guia.mjs                 -> tablero de embalses (16 capturas)
+//   node scripts/capturas-guia.mjs panel carbon dns apagon   -> las paginas completas indicadas (y sus zonas medidas)
 import { execFileSync, spawn } from "node:child_process";
 import { mkdirSync, rmSync } from "node:fs";
 import { chromium } from "@playwright/test";
@@ -36,7 +36,30 @@ async function guardar(p, nombre, clip, opts = {}) {
   console.log("ok", nombre);
 }
 
+const PAGINAS = { panel: "/", carbon: "/carbon", dns: "/dns", apagon: "/apagon" };
+const pedidas = process.argv.slice(2);
+
 try {
+  if (pedidas.length > 0) {
+    for (const nombre of pedidas) {
+      const ruta = PAGINAS[nombre];
+      if (!ruta) throw new Error(`Pagina desconocida: ${nombre} (opciones: ${Object.keys(PAGINAS).join(", ")})`);
+      const p = await pagina(ruta);
+      await p.waitForTimeout(2000);
+      // Zonas (x, y, ancho, alto) de los bloques de primer nivel: sirven para los marcadores de la guia.
+      const zonas = await p.evaluate(() => {
+        const r = (e) => { const b = e.getBoundingClientRect(); return [Math.round(b.x + scrollX), Math.round(b.y + scrollY), Math.round(b.width), Math.round(b.height)]; };
+        const m = document.querySelector("main");
+        return { alto: document.documentElement.scrollHeight, header: r(document.querySelector("header")), footer: r(document.querySelector("footer")),
+                 bloques: [...m.children].map((e) => [...e.children].length > 1 && e.className.includes("grid") ? [...e.children].map(r) : r(e)) };
+      });
+      console.log(nombre, JSON.stringify(zonas));
+      await guardar(p, nombre, null);
+      await p.context().close();
+    }
+    process.exit(0);
+  }
+
   // Estado por defecto: total nacional, 1 mes en el principal y 12 en la senda.
   let p = await pagina("/embalses");
   const alto = await p.evaluate(() => document.documentElement.scrollHeight);
@@ -93,7 +116,7 @@ try {
   await guardar(p, "movil", [0, 0, 400, 1500]);
   await p.context().close();
 } finally {
-  await navegador.close();
+  await navegador.close().catch(() => {});
   servidor.kill();
   rmSync(TMP, { recursive: true, force: true });
 }

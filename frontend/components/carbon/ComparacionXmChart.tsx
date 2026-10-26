@@ -10,7 +10,7 @@ import type { HorizonteCarbon, UnidadCarbon } from "@/lib/api/types";
 import { ETIQUETA_UNIDAD, construirPuntosXm, convertirConsumo, decimalesUnidad } from "@/lib/utils/carbon";
 import { formatearNumero } from "@/lib/utils/formatters";
 import { AYUDAS_CARBON } from "./ayudasCarbon";
-import { ErrorCarbon } from "./ErrorCarbon";
+import { ErrorBloque } from "@/components/ui/ErrorBloque";
 import { COLOR_TECHO, COLOR_XM, ESTILO_TICK, ESTILO_TOOLTIP } from "./EstiloGrafico";
 
 interface ComparacionXmChartProps {
@@ -24,7 +24,7 @@ export function ComparacionXmChart({ horizonte, unidad, poderCalorifico }: Compa
   const { datos, error } = useComparacionXm(horizonte);
   const puntos = useMemo(() => (datos && poderCalorifico ? construirPuntosXm(datos, unidad, poderCalorifico) : []), [datos, unidad, poderCalorifico]);
 
-  if (error) return <ErrorCarbon que="la comparación con XM" mensaje={error} />;
+  if (error) return <ErrorBloque que="la comparación con XM" mensaje={error} />;
   if (!datos || !poderCalorifico) return <SkeletonChart />;
 
   const d = decimalesUnidad(unidad);

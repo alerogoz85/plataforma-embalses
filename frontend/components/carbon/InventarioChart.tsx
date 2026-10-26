@@ -10,7 +10,7 @@ import type { DiasInventario, HorizonteCarbon } from "@/lib/api/types";
 import { etiquetaMesCarbon } from "@/lib/utils/carbon";
 import { formatearNumero } from "@/lib/utils/formatters";
 import { AYUDAS_CARBON } from "./ayudasCarbon";
-import { ErrorCarbon } from "./ErrorCarbon";
+import { ErrorBloque } from "@/components/ui/ErrorBloque";
 import { ESTILO_TICK, ESTILO_TOOLTIP } from "./EstiloGrafico";
 
 /** kt de carbon que cubren N dias de consumo cada mes (escenario central P50 y adverso P90). Siempre en kt. */
@@ -18,7 +18,7 @@ export function InventarioChart({ horizonte, dias }: { horizonte: HorizonteCarbo
   const { datos, error } = useInventarioCarbon(horizonte, dias);
   const filas = useMemo(() => (datos ?? []).map((f) => ({ ...f, mesLabel: etiquetaMesCarbon(f.fecha) })), [datos]);
 
-  if (error) return <ErrorCarbon que="el inventario" mensaje={error} />;
+  if (error) return <ErrorBloque que="el inventario" mensaje={error} />;
   if (!datos) return <SkeletonChart />;
 
   return (

@@ -10,6 +10,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from presentation.api.error_handlers import registrar_manejadores_excepciones
 from presentation.api.routers.carbon_router import router as carbon_router
+from presentation.api.routers.dns_router import router as dns_router
+from presentation.api.routers.modelos_router import router as modelos_router
 from presentation.api.routers.embalses_router import router as embalses_router
 from presentation.api.routers.fuente_datos_router import router as fuente_datos_router
 from presentation.api.routers.regiones_router import router as regiones_router
@@ -21,7 +23,9 @@ app = FastAPI(
         "API REST de solo lectura de los tableros analiticos. Embalses: datos publicos de "
         "XM/SIMEM (volumen y energia utiles, aportes, descargas) y pronosticos de %V_util a 1, 3, "
         "6 y 12 meses por embalse y region. Carbon termico: proyeccion del consumo de carbon del "
-        "SIN con escenarios ENOS, su validacion y la comparacion con XM."
+        "SIN con escenarios ENOS, su validacion y la comparacion con XM. Demanda no atendida (DNS): "
+        "eventos por subarea, priorizacion de zonas, patrones, causas y pronostico. Modelos de gas, "
+        "optimizacion hidrotermica y riesgo de apagon: ficha documentada y resultados importados."
     ),
     version="1.0.0",
 )
@@ -45,6 +49,8 @@ app.include_router(regiones_router)
 app.include_router(senda_volumen_router)
 app.include_router(fuente_datos_router)
 app.include_router(carbon_router)
+app.include_router(dns_router)
+app.include_router(modelos_router)
 
 
 @app.get("/api/v1/salud", tags=["salud"], summary="Health check")

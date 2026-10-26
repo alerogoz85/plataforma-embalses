@@ -6,7 +6,7 @@ import { useValidacionCarbon } from "@/lib/hooks/useCarbon";
 import type { CriterioCarbon } from "@/lib/api/types";
 import { formatearFecha, formatearNumero } from "@/lib/utils/formatters";
 import { AYUDAS_CARBON } from "./ayudasCarbon";
-import { ErrorCarbon } from "./ErrorCarbon";
+import { ErrorBloque } from "@/components/ui/ErrorBloque";
 
 function ListaCriterios({ criterios }: { criterios: CriterioCarbon[] }) {
   return (
@@ -42,7 +42,7 @@ const TH_R = `${TH} text-right`;
 export function ValidacionCarbonPanel() {
   const { datos, error } = useValidacionCarbon();
 
-  if (error) return <ErrorCarbon que="la validación" mensaje={error} />;
+  if (error) return <ErrorBloque que="la validación" mensaje={error} />;
   if (!datos) return <SkeletonChart />;
 
   const incumplidos = datos.veredicto.filter((c) => !c.cumple);

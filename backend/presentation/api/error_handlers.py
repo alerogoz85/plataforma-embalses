@@ -7,7 +7,10 @@ from domain.exceptions import (
     DatosHistoricosInsuficientesError,
     DomainError,
     EmbalseNoEncontradoError,
+    FiltroInvalidoError,
     ModeloCarbonNoCargadoError,
+    ModeloDnsNoCargadoError,
+    ModeloNoEncontradoError,
     SinMedicionesError,
 )
 
@@ -24,6 +27,18 @@ def registrar_manejadores_excepciones(app: FastAPI) -> None:
     @app.exception_handler(ModeloCarbonNoCargadoError)
     async def _manejar_modelo_carbon_no_cargado(request: Request, exc: ModeloCarbonNoCargadoError):
         return JSONResponse(status_code=404, content={"detalle": str(exc)})
+
+    @app.exception_handler(ModeloDnsNoCargadoError)
+    async def _manejar_modelo_dns_no_cargado(request: Request, exc: ModeloDnsNoCargadoError):
+        return JSONResponse(status_code=404, content={"detalle": str(exc)})
+
+    @app.exception_handler(ModeloNoEncontradoError)
+    async def _manejar_modelo_no_encontrado(request: Request, exc: ModeloNoEncontradoError):
+        return JSONResponse(status_code=404, content={"detalle": str(exc)})
+
+    @app.exception_handler(FiltroInvalidoError)
+    async def _manejar_filtro_invalido(request: Request, exc: FiltroInvalidoError):
+        return JSONResponse(status_code=422, content={"detalle": str(exc)})
 
     @app.exception_handler(DatosHistoricosInsuficientesError)
     async def _manejar_datos_insuficientes(

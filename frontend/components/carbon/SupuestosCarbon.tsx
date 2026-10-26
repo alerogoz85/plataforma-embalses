@@ -4,13 +4,13 @@ import { Card, CardHeader } from "@/components/ui/Card";
 import { SkeletonChart } from "@/components/ui/Skeleton";
 import { useValidacionCarbon } from "@/lib/hooks/useCarbon";
 import { AYUDAS_CARBON } from "./ayudasCarbon";
-import { ErrorCarbon } from "./ErrorCarbon";
+import { ErrorBloque } from "@/components/ui/ErrorBloque";
 
 /** Parametros con los que se corrio el modelo y advertencias de uso (siempre visibles, no ocultas en una ayuda). */
 export function SupuestosCarbon() {
   const { datos, error } = useValidacionCarbon();
 
-  if (error) return <ErrorCarbon que="los supuestos" mensaje={error} />;
+  if (error) return <ErrorBloque que="los supuestos" mensaje={error} />;
   if (!datos) return <SkeletonChart />;
 
   return (

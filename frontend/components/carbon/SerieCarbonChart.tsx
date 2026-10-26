@@ -10,7 +10,7 @@ import type { HistoriaCarbon, HorizonteCarbon, UnidadCarbon } from "@/lib/api/ty
 import { ETIQUETA_UNIDAD, construirPuntosSerie, convertirConsumo, decimalesUnidad, etiquetaMesCarbon } from "@/lib/utils/carbon";
 import { formatearNumero } from "@/lib/utils/formatters";
 import { AYUDAS_CARBON } from "./ayudasCarbon";
-import { ErrorCarbon } from "./ErrorCarbon";
+import { ErrorBloque } from "@/components/ui/ErrorBloque";
 import { COLOR_RECORD, COLOR_TECHO, ESTILO_TICK, ESTILO_TOOLTIP } from "./EstiloGrafico";
 
 interface SerieCarbonChartProps {
@@ -27,7 +27,7 @@ export function SerieCarbonChart({ historia, horizonte, unidad }: SerieCarbonCha
   const { datos: serie, error } = useSerieCarbon(historia, horizonte);
   const puntos = useMemo(() => (serie ? construirPuntosSerie(serie, unidad) : []), [serie, unidad]);
 
-  if (error) return <ErrorCarbon que="la serie de consumo" mensaje={error} />;
+  if (error) return <ErrorBloque que="la serie de consumo" mensaje={error} />;
   if (!serie) return <SkeletonChart />;
 
   const pc = serie.poder_calorifico_mbtu_t;

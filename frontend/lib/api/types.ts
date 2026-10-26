@@ -274,3 +274,185 @@ export type HistoriaCarbon = (typeof HISTORIAS_CARBON)[number];
 export const DIAS_INVENTARIO = [15, 30, 45, 60] as const;
 export type DiasInventario = (typeof DIAS_INVENTARIO)[number];
 export type UnidadCarbon = "gbtu" | "kt";
+
+// ---------------------------------------------------------------- Modelo de demanda no atendida (DNS)
+// Espejo de los DTO de /api/v1/dns/*. Energía en GWh; porcentajes 0-100; conteos de eventos.
+// Las variaciones son frente a la ventana anterior de igual duración (null si no hay base).
+
+export interface SubareaDns {
+  codigo: string;
+  nombre: string;
+  region: string;
+  departamentos: string | null;
+}
+
+export interface CatalogoDns {
+  origen: string;
+  fecha_inicio: string;
+  fecha_corte: string;
+  mes_corte_parcial: boolean;
+  regiones: string[];
+  subareas: SubareaDns[];
+  periodo_pronostico: string;
+}
+
+export interface ResumenDns {
+  periodo_meses: number;
+  desde: string;
+  hasta: string;
+  eventos: number;
+  energia_gwh: number;
+  pct_criticos: number;
+  pct_no_programados: number | null;
+  variacion_eventos_pct: number | null;
+  variacion_energia_pct: number | null;
+  causa_mas_frecuente: string | null;
+  causa_mas_frecuente_eventos: number;
+  eventos_edac: number;
+}
+
+export interface MesDns {
+  mes: string;
+  eventos: number;
+  energia_gwh: number;
+  eventos_no_programados: number;
+  parcial: boolean;
+}
+
+export interface SerieDns {
+  meses: MesDns[];
+  pronostico: { mes: string; eventos: number; energia_gwh: number; subareas: number } | null;
+  nota_pronostico: string | null;
+}
+
+export interface ZonaDns {
+  ranking: number;
+  codigo: string;
+  nombre: string;
+  region: string;
+  indice_priorizacion: number;
+  energia_total_gwh: number;
+  n_eventos: number;
+  pct_criticos: number;
+  variacion_pct: number;
+}
+
+export interface PatronesDns {
+  por_hora: number[];
+  dias: string[];
+  por_dia_semana: number[];
+  franjas: { franja: string; no_programada: number; programada: number; pct_no_programada: number | null }[];
+  eventos_usados: number;
+  eventos_hora_desconocida: number;
+}
+
+export interface CausasDns {
+  total: number;
+  causas: { causa: string; eventos: number; energia_gwh: number; pct_eventos: number }[];
+  origen_de_la_causa: { nombre: string; eventos: number }[];
+  tipos_evento: { nombre: string; eventos: number }[];
+  niveles_red: { nombre: string; eventos: number }[];
+}
+
+export interface CambioReporteDns {
+  codigo: string;
+  nombre: string;
+  region: string;
+  periodo_quiebre: string;
+  direccion: string;
+  pct_generica_antes: number;
+  pct_generica_despues: number;
+  pct_causa_conocida_antes: number;
+  pct_causa_conocida_despues: number;
+}
+
+export interface MetricaDns {
+  modelo: string;
+  variable: string;
+  mae: number;
+  rmse: number;
+  mejora_vs_persistencia_pct: number | null;
+}
+
+export interface ModeloDns {
+  periodo_pronostico: string;
+  metricas: MetricaDns[];
+  importancia: { variable: string; importancia_n_eventos: number; importancia_energia_kwh: number }[];
+  pronostico: { codigo: string; nombre: string; region: string; n_eventos: number; energia_gwh: number }[];
+}
+
+// Listas cerradas: son las mismas que valida la API (cualquier otro valor responde 422).
+export const PERIODOS_DNS = [12, 36, 60, 0] as const; // 0 = todo el histórico
+export type PeriodoDns = (typeof PERIODOS_DNS)[number];
+export const ORIGENES_DNS = ["programada", "no_programada"] as const;
+export type OrigenDns = (typeof ORIGENES_DNS)[number];
+
+// ---------------------------------------------------------------- Modelos analíticos con ficha (gas, optimización, apagón)
+// Espejo de /api/v1/modelos/{modelo_id}/*. La ficha viene de los documentos del modelo; los resultados solo existen
+// cuando se importaron las salidas del modelo (si no, `disponible` es false: es un estado normal, no un error).
+
+export const MODELOS_ANALITICOS = ["gas", "optimizacion", "apagon"] as const;
+export type ModeloAnalitico = (typeof MODELOS_ANALITICOS)[number];
+export type EstadoModelo = "sin_resultados" | "prueba_tecnica" | "con_resultados";
+export type NivelIndicador = "ok" | "alerta" | "critico";
+
+export interface FichaModelo {
+  id: ModeloAnalitico;
+  titulo: string;
+  resumen: string;
+  estado: EstadoModelo;
+  estado_detalle: string;
+  documentos: string;
+  pregunta: string;
+  secciones: { titulo: string; items: string[] }[];
+  datos_documentados: { etiqueta: string; valor: string; detalle: string; documento: string }[];
+  archivos_esperados: { ruta: string; contenido: string }[];
+  comando_importacion: string;
+  carpeta_proyecto: string;
+}
+
+export interface IndicadorModelo {
+  etiqueta: string;
+  valor: string;
+  detalle: string | null;
+  nivel: NivelIndicador | null;
+}
+
+export interface PuntoSerieModelo {
+  x: string;
+  y: number;
+  p10: number | null;
+  p90: number | null;
+}
+
+export interface SerieModelo {
+  id: string;
+  titulo: string;
+  unidad: string;
+  tipo: "linea" | "barras";
+  puntos: PuntoSerieModelo[];
+}
+
+export interface TablaModelo {
+  id: string;
+  titulo: string;
+  columnas: string[];
+  filas: (string | number | null)[][];
+  nota: string | null;
+}
+
+export interface ResultadoModelo {
+  generado_en: string;
+  origen: string;
+  configuracion: { nombre: string; valor: string }[];
+  indicadores: IndicadorModelo[];
+  series: SerieModelo[];
+  tablas: TablaModelo[];
+  advertencias: string[];
+}
+
+export interface ResultadosModelo {
+  modelo_id: ModeloAnalitico;
+  disponible: boolean;
+  resultado: ResultadoModelo | null;
+}

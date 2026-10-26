@@ -8,13 +8,13 @@ import type { ResumenCarbon } from "@/lib/api/types";
 import { etiquetaTrimestre } from "@/lib/utils/carbon";
 import { formatearNumero } from "@/lib/utils/formatters";
 import { AYUDAS_CARBON } from "./ayudasCarbon";
-import { ErrorCarbon } from "./ErrorCarbon";
+import { ErrorBloque } from "@/components/ui/ErrorBloque";
 import { ESTILO_TICK, ESTILO_TOOLTIP } from "./EstiloGrafico";
 
 /** Millones de toneladas (Mt) esperadas por trimestre, con su rango P10-P90 en la tabla. Los trimestres parciales se atenuan. */
 export function TrimestresChart({ resumen }: { resumen: { datos: ResumenCarbon | null; error: string | null } }) {
   const { datos, error } = resumen;
-  if (error) return <ErrorCarbon que="los trimestres" mensaje={error} />;
+  if (error) return <ErrorBloque que="los trimestres" mensaje={error} />;
   if (!datos) return <SkeletonChart />;
 
   const filas = datos.trimestres.map((t) => ({

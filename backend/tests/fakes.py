@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Optional
 
 from application.ports.output.forecasting_port import ForecastingPort, PuntoForecast
@@ -11,12 +11,19 @@ from domain.entities.modelo_carbon import (
     ComparacionXM, CriterioValidez, EpisodioValidacion, ErrorPorHorizonte, HistoricoCarbonMensual,
     InventarioCarbon, PaqueteModeloCarbon, ProyeccionCarbonMensual, SupuestoCarbon, TrimestreCarbon,
 )
+from domain.entities.modelo_analitico import Indicador, PuntoSerie, ResultadoModelo, SerieResultado, TablaResultado
+from domain.entities.modelo_dns import (
+    CambioReporte, EventoDns, ImportanciaVariable, MetricaModelo, PaqueteModeloDns, PronosticoSubarea, SubareaDns,
+    ZonaPriorizada,
+)
 from domain.entities.proyeccion_senda import ProyeccionSendaMensual
 from domain.entities.region import NombreRegion, Region
 from domain.repositories.embalse_repository import EmbalseRepository
 from domain.repositories.medicion_repository import MedicionRepository
 from domain.repositories.metadatos_repository import MetadatosRepository
 from domain.repositories.modelo_carbon_repository import ModeloCarbonRepository
+from domain.repositories.modelo_analitico_repository import ResultadoModeloRepository
+from domain.repositories.modelo_dns_repository import ModeloDnsRepository
 from domain.value_objects.banda import Banda
 from domain.repositories.proyeccion_senda_repository import ProyeccionSendaRepository
 from domain.value_objects.caudal import Caudal
@@ -288,4 +295,101 @@ def crear_paquete_carbon() -> PaqueteModeloCarbon:
             SupuestoCarbon("Poder calorífico [MBTU/t]", "26.27"), SupuestoCarbon("Simulaciones", "20000"),
             SupuestoCarbon("Factor de ampliación de residuos (calibrado)", "1.5"),
         ],
+    )
+
+
+# ------------------------------------------------------------------ modelo DNS
+class ModeloDnsRepositoryEnMemoria(ModeloDnsRepository):
+    def __init__(self, paquete: Optional[PaqueteModeloDns] = None) -> None:
+        self.paquete = paquete
+
+    def obtener(self) -> Optional[PaqueteModeloDns]:
+        return self.paquete
+
+    def reemplazar(self, paquete: PaqueteModeloDns) -> None:
+        self.paquete = paquete
+
+
+def _ev(fecha: str, subarea: str, kwh: float, origen: Optional[str], causa: str = "mantenimiento",
+        origen_causa: str = "reportada", tipo: str = "DNS", tipo_evento: str = "Trabajos de mantenimiento (consignación)",
+        nivel: str = "Transmisión regional / distribución (STR, <220 kV)") -> EventoDns:
+    return EventoDns(datetime.fromisoformat(fecha), subarea, tipo, kwh, origen, causa, origen_causa, tipo_evento, nivel)
+
+
+def crear_paquete_dns() -> PaqueteModeloDns:
+    """Corrida pequena con numeros faciles de comprobar a mano. El corte es 2026-08-11 12:00 (mes parcial).
+
+    Ventana de 12 meses = 2025-09..2026-08 (5 eventos DNS, 420.000 kWh); la anterior = 2024-09..2025-08
+    (2 eventos, 50.000 kWh). Are0001/Are0002 son de la region Norte, Are0003 del Sur y Are0004 (sin
+    asignar) solo tiene EDAC."""
+    eventos = [
+        _ev("2026-08-02 10:30", "Are0001", 50_000, "no_programada", "fallas", "reportada", tipo_evento="Disparo de activo/protección"),
+        _ev("2026-08-05 00:00", "Are0001", 120_000, "programada"),  # hora desconocida (00:00:00 exacto) y critico
+        _ev("2026-08-11 12:00", "Are0003", 30_000, "no_programada", "desconocido", "sin clasificar", tipo_evento="Otro / no clasificado"),
+        _ev("2026-07-10 07:15", "Are0001", 20_000, "no_programada", "atmosferica", "inferida (regex)", tipo_evento="Disparo de activo/protección",
+            nivel="Transmisión nacional (STN, ≥220 kV)"),
+        _ev("2026-07-20 19:00", "Are0002", 200_000, "programada"),  # critico
+        _ev("2025-08-15 09:00", "Are0001", 10_000, "no_programada", "fallas", "inferida (TF-IDF)"),
+        _ev("2025-03-03 22:00", "Are0002", 40_000, "no_programada", "desconocido", "sin clasificar"),
+        _ev("2013-01-02 06:00", "Are0003", 5_000, "programada"),
+        _ev("2026-07-30 03:00", "Are0004", 150.0, None, "desconocido", "sin clasificar", tipo="EDAC"),
+        _ev("2020-01-01 05:00", "Are0001", 90.0, None, "desconocido", "sin clasificar", tipo="EDAC"),
+    ]
+    return PaqueteModeloDns(
+        origen="Modelo DNS de prueba", periodo_pronostico="2026-08",
+        subareas=[
+            SubareaDns("Are0001", "SubArea Uno", "Norte", "Antioquia"),
+            SubareaDns("Are0002", "SubArea Dos", "Norte"),
+            SubareaDns("Are0003", "SubArea Tres", "Sur"),
+            SubareaDns("Are0004", "Are0004", "Sin asignar"),
+        ],
+        eventos=eventos,
+        zonas=[
+            ZonaPriorizada(1, "Are0001", 80.0, 5.0e7, 400, 0.2, 10.0),
+            ZonaPriorizada(2, "Are0002", 60.0, 2.0e7, 200, 0.1, -5.0),
+            ZonaPriorizada(3, "Are0003", 30.0, 1.0e7, 100, 0.0, 0.0),
+        ],
+        cambios_reporte=[CambioReporte("Are0002", "2025-01", "SUBIDA", 0.0, 80.0, 50.0, 5.0)],
+        metricas=[
+            MetricaModelo("n_eventos - persistencia", 6.0, 12.0),
+            MetricaModelo("n_eventos - GradientBoosting", 4.5, 10.0),
+            MetricaModelo("energia_kwh - persistencia", 200_000.0, 400_000.0),
+            MetricaModelo("energia_kwh - RandomForest (log)", 150_000.0, 300_000.0),
+        ],
+        importancia=[ImportanciaVariable(f"variable_{i:02d}", 1.0 - i * 0.05, i * 0.01) for i in range(12)],
+        pronostico=[
+            PronosticoSubarea("Are0001", 10.0, 500_000.0),
+            PronosticoSubarea("Are0002", 5.0, 250_000.0),
+            PronosticoSubarea("Are0003", 2.0, 100_000.0),
+        ],
+    )
+
+
+# ------------------------------------------------------------------ modelos analiticos (gas, optimizacion, apagon)
+class ResultadoModeloRepositoryEnMemoria(ResultadoModeloRepository):
+    def __init__(self, *resultados: ResultadoModelo) -> None:
+        self.resultados = {r.modelo_id: r for r in resultados}
+
+    def obtener(self, modelo_id: str) -> Optional[ResultadoModelo]:
+        return self.resultados.get(modelo_id)
+
+    def reemplazar(self, resultado: ResultadoModelo) -> None:
+        self.resultados[resultado.modelo_id] = resultado
+
+
+def crear_resultado_modelo(modelo_id: str = "apagon") -> ResultadoModelo:
+    """Resultado minimo pero completo: un indicador con nivel, dos series (una con banda), una tabla y una advertencia."""
+    return ResultadoModelo(
+        modelo_id=modelo_id, generado_en=datetime(2026, 10, 1, 12, 30), origen="Corrida de prueba",
+        configuracion=(("Simulaciones", "3000"),),
+        indicadores=(Indicador("Meses en rojo", "2", "de 3 meses", "critico"),),
+        series=(
+            SerieResultado("indice", "Índice de riesgo", "puntos", "linea",
+                           (PuntoSerie("2026-10", 20.0), PuntoSerie("2026-11", 45.5), PuntoSerie("2026-12", 80.0))),
+            SerieResultado("embalse", "Embalse", "%", "linea",
+                           (PuntoSerie("2026-10", 60.0, 50.0, 70.0), PuntoSerie("2026-11", 55.0, 40.0, 65.0))),
+        ),
+        tablas=(TablaResultado("semaforo", "Semáforo", ("Mes", "Semáforo", "Índice"),
+                               (("2026-10", "Verde", 20.0), ("2026-11", "Amarillo", None)), "Nota de prueba"),),
+        advertencias=("Solo adecuación de generación nacional.",),
     )
