@@ -1,8 +1,9 @@
-# Plataforma de Tableros Analíticos
+# Tableros Analíticos
 
 [![CI](https://github.com/alerogoz85/plataforma-embalses/actions/workflows/ci.yml/badge.svg)](https://github.com/alerogoz85/plataforma-embalses/actions/workflows/ci.yml)
 
-Plataforma de monitoreo hidrológico con **datos reales y públicos de XM/SIMEM**
+**Tableros Analíticos** es la plataforma del Ministerio de Minas y Energía que reúne en un solo lugar los tableros de seguimiento
+del sector. El primero, y el más completo, es el de monitoreo hidrológico con **datos reales y públicos de XM/SIMEM**
 (Colombia): volumen y energía útiles, aportes, descargas, pronóstico diario de
 %V. útil y una senda mensual de largo plazo, ambos a 1, 3, 6 y 12 meses, con
 la proyección del modelo de largo plazo (Prophet + XGBoost, escenarios ENSO).
@@ -81,39 +82,45 @@ o `ForecastingPort`.
 
 ```mermaid
 C4Context
-    title Contexto del sistema — Plataforma de Monitoreo de Embalses
+    title Contexto del sistema — Tableros Analíticos
 
-    Person(analista, "Analista / Operador", "Monitorea niveles, aportes y riesgo hídrico del sistema")
-    System(plataforma, "Plataforma de Monitoreo de Embalses", "Expone KPIs, series históricas y pronósticos de %V. útil por embalse y región")
-    System_Ext(simem, "SIMEM (XM)", "API pública: volúmenes, descargas y aportes por embalse")
+    Person(analista, "Analista / Operador", "Consulta los tableros del sector: embalses, carbón térmico, demanda no atendida y modelos en desarrollo")
+    System(plataforma, "Tableros Analíticos", "Panel de tableros con KPIs, series, pronósticos y fichas de modelos; cada vista tiene su URL")
+    System_Ext(simem, "SIMEM (XM)", "API pública: volúmenes, descargas, aportes por embalse y eventos DNS/EDAC")
     System_Ext(xm, "API de XM", "Energía útil y capacidad útil en energía por embalse")
+    System_Ext(modelos, "Proyectos de modelado", "Salidas de los modelos: proyección de embalses (Prophet + XGBoost), carbón térmico, DNS y, cuando existan, gas, optimización y apagón")
 
-    Rel(analista, plataforma, "Consulta el dashboard", "HTTPS")
+    Rel(analista, plataforma, "Consulta los tableros", "HTTPS")
     Rel(plataforma, simem, "Sincroniza datos", "HTTPS, bajo demanda")
     Rel(plataforma, xm, "Sincroniza datos", "HTTPS, bajo demanda")
+    Rel(plataforma, modelos, "Importa sus salidas validadas", "Archivos locales, bajo demanda")
 ```
 
 ### Nivel 2 — Contenedores
 
 ```mermaid
 C4Container
-    title Contenedores — Plataforma de Monitoreo de Embalses
+    title Contenedores — Tableros Analíticos
 
     Person(analista, "Analista / Operador")
     System_Ext(fuentes, "SIMEM y API de XM", "Datos públicos")
+    System_Ext(modelos, "Proyectos de modelado", "Carpetas con las salidas de cada modelo")
 
-    System_Boundary(plataforma, "Plataforma de Monitoreo de Embalses") {
-        Container(frontend, "Dashboard Web", "Next.js 16 + React 19 + Tailwind + Recharts", "KPIs, gráfico temporal con proyección ML, distribución regional, senda de largo plazo con validación, tabla interactiva, ayuda contextual y procedencia de los datos")
+    System_Boundary(plataforma, "Tableros Analíticos") {
+        Container(frontend, "Sitio web", "Next.js 16 + React 19 + Tailwind + Recharts", "Panel de tableros y seis tableros (embalses, carbón, DNS, gas, optimización, apagón); filtros en la URL; ayuda contextual; guía /informacion")
         Container(api, "API REST", "FastAPI (Python 3.12)", "Expone los casos de uso vía /api/v1/*; solo lee de la base local")
-        Container(sync, "Sincronizador", "CLI Python (infrastructure/ingesta)", "Descarga, normaliza y guarda datos (completo o incremental)")
-        ContainerDb(db, "DuckDB", "Archivo embebido .duckdb", "Embalses, mediciones diarias, proyección de largo plazo y procedencia de los datos")
+        Container(sync, "Sincronizador", "CLI Python (infrastructure/ingesta)", "Descarga, normaliza y guarda los datos de XM/SIMEM (completo o incremental)")
+        Container(imports, "Importadores de modelos", "CLI Python (infrastructure/ingesta)", "Validan y cargan las salidas de cada modelo en una transacción: proyección, carbón, DNS y resultados de gas/optimización/apagón")
+        ContainerDb(db, "DuckDB", "Archivo embebido .duckdb", "Embalses y mediciones, proyección de largo plazo, procedencia, y las corridas de carbón, DNS y modelos analíticos")
     }
 
     Rel(analista, frontend, "Usa", "HTTPS")
-    Rel(frontend, api, "Consume", "JSON / REST")
+    Rel(frontend, api, "Consume", "JSON / REST (mismo dominio)")
     Rel(api, db, "Lee", "SQL embebido, conexión serializada con lock")
     Rel(sync, fuentes, "Descarga", "HTTPS")
     Rel(sync, db, "Upsert idempotente", "SQL embebido")
+    Rel(imports, modelos, "Lee y valida", "CSV, Excel y JSON")
+    Rel(imports, db, "Reemplaza la corrida vigente", "Transacción")
 ```
 
 ### Nivel 3 — Componentes del backend
@@ -123,11 +130,12 @@ C4Component
     title Componentes — Backend (presentation + application + infrastructure)
 
     Container_Boundary(api, "Backend") {
-        Component(routers, "Routers", "FastAPI APIRouter", "embalses, regiones, senda-volumen, fuente-datos")
-        Component(usecases, "Casos de uso", "application/use_cases", "ObtenerResumenNacional, ListarEmbalses, ObtenerDetalleEmbalse, GenerarPrediccion, ObtenerSendaVolumen, ObtenerFuenteDatos, SeriesAgregadas (total nacional y regiones), SincronizarDatos")
-        Component(domainsvc, "Servicios de dominio", "domain/services", "CalculoHidricoService, AutonomiaService — reglas puras")
-        Component(ports, "Puertos", "domain/repositories, application/ports/output", "EmbalseRepository, MedicionRepository, MetadatosRepository, ProyeccionSendaRepository, ForecastingPort, FuenteMedicionesPort")
-        Component(duckdbrepo, "Adaptadores DuckDB", "infrastructure/persistence", "Implementan los puertos de repositorio")
+        Component(routers, "Routers", "FastAPI APIRouter", "embalses, regiones, senda-volumen, fuente-datos, carbon, dns, modelos")
+        Component(usecases, "Casos de uso", "application/use_cases", "ObtenerResumenNacional, ListarEmbalses, ObtenerDetalleEmbalse, GenerarPrediccion, ObtenerSendaVolumen, ObtenerFuenteDatos, SeriesAgregadas (total nacional y regiones), SincronizarDatos; modelo de carbón (5), DNS (8) y modelos analíticos (ficha y resultados)")
+        Component(domainsvc, "Servicios de dominio", "domain/services", "CalculoHidricoService, AutonomiaService, análisis DNS (ventanas, filtros, patrones) — reglas puras")
+        Component(ports, "Puertos", "domain/repositories, application/ports/output", "EmbalseRepository, MedicionRepository, MetadatosRepository, ProyeccionSendaRepository, ModeloCarbonRepository, ModeloDnsRepository, ResultadoModeloRepository, FichaModeloRepository, ForecastingPort, FuenteMedicionesPort")
+        Component(duckdbrepo, "Adaptadores DuckDB", "infrastructure/persistence", "Implementan los puertos de repositorio (embalses, carbón, DNS y resultados de modelos)")
+        Component(fichas, "Fichas de modelos", "infrastructure/fichas", "FichaModeloRepository: fichas documentadas de gas, optimización y apagón")
         Component(mlservice, "Adaptador Holt-Winters", "infrastructure/ml", "ForecastingPort con statsmodels; respaldo cuando no hay proyección de Outputs: instancia diaria (sin estacionalidad) y mensual (estacional, 12 periodos)")
         Component(fuente, "Adaptador SIMEM/XM", "infrastructure/fuentes", "FuenteMedicionesPort: clientes HTTP + normalización pura")
         Component(sintetica, "Adaptador sintético", "infrastructure/data_generation", "FuenteMedicionesPort alternativa para demos sin red")
@@ -140,6 +148,7 @@ C4Component
     Rel(mlservice, ports, "implementa")
     Rel(fuente, ports, "implementa")
     Rel(sintetica, ports, "implementa")
+    Rel(fichas, ports, "implementa")
 ```
 
 ## Datos y fuentes
