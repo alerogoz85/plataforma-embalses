@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from presentation.api.error_handlers import registrar_manejadores_excepciones
 from presentation.api.routers.carbon_router import router as carbon_router
+from presentation.api.routers.dns_router import router as dns_router
 from presentation.api.routers.embalses_router import router as embalses_router
 from presentation.api.routers.fuente_datos_router import router as fuente_datos_router
 from presentation.api.routers.regiones_router import router as regiones_router
@@ -45,6 +46,7 @@ app.include_router(regiones_router)
 app.include_router(senda_volumen_router)
 app.include_router(fuente_datos_router)
 app.include_router(carbon_router)
+app.include_router(dns_router)
 
 
 @app.get("/api/v1/salud", tags=["salud"], summary="Health check")

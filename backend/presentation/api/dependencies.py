@@ -9,6 +9,16 @@ from pathlib import Path
 from application.ports.output.forecasting_port import ForecastingPort
 from application.use_cases.generar_prediccion import GenerarPrediccionUseCase
 from application.use_cases.listar_embalses import ListarEmbalsesUseCase
+from application.use_cases.modelo_dns import (
+    ObtenerCambiosReporteDnsUseCase,
+    ObtenerCatalogoDnsUseCase,
+    ObtenerCausasDnsUseCase,
+    ObtenerModeloDnsUseCase,
+    ObtenerPatronesDnsUseCase,
+    ObtenerResumenDnsUseCase,
+    ObtenerSerieDnsUseCase,
+    ObtenerZonasDnsUseCase,
+)
 from application.use_cases.modelo_carbon import (
     ObtenerComparacionXmUseCase,
     ObtenerInventarioCarbonUseCase,
@@ -24,6 +34,7 @@ from domain.repositories.embalse_repository import EmbalseRepository
 from domain.repositories.medicion_repository import MedicionRepository
 from domain.repositories.metadatos_repository import MetadatosRepository
 from domain.repositories.modelo_carbon_repository import ModeloCarbonRepository
+from domain.repositories.modelo_dns_repository import ModeloDnsRepository
 from domain.repositories.proyeccion_senda_repository import ProyeccionSendaRepository
 from infrastructure.ml.holt_winters_forecasting_service import HoltWintersForecastingService
 from infrastructure.persistence.duckdb_connection import DuckDBConnection
@@ -31,6 +42,7 @@ from infrastructure.persistence.duckdb_embalse_repository import DuckDBEmbalseRe
 from infrastructure.persistence.duckdb_medicion_repository import DuckDBMedicionRepository
 from infrastructure.persistence.duckdb_metadatos_repository import DuckDBMetadatosRepository
 from infrastructure.persistence.duckdb_modelo_carbon_repository import DuckDBModeloCarbonRepository
+from infrastructure.persistence.duckdb_modelo_dns_repository import DuckDBModeloDnsRepository
 from infrastructure.persistence.duckdb_proyeccion_senda_repository import DuckDBProyeccionSendaRepository
 
 _RUTA_BACKEND = Path(__file__).resolve().parents[2]
@@ -153,3 +165,49 @@ def obtener_comparacion_xm_use_case() -> ObtenerComparacionXmUseCase:
 @lru_cache
 def obtener_validacion_carbon_use_case() -> ObtenerValidacionCarbonUseCase:
     return ObtenerValidacionCarbonUseCase(obtener_modelo_carbon_repository())
+
+
+# --- Modelo de demanda no atendida (DNS) --------------------------------------
+@lru_cache
+def obtener_modelo_dns_repository() -> ModeloDnsRepository:
+    return DuckDBModeloDnsRepository(obtener_conexion())
+
+
+@lru_cache
+def obtener_catalogo_dns_use_case() -> ObtenerCatalogoDnsUseCase:
+    return ObtenerCatalogoDnsUseCase(obtener_modelo_dns_repository())
+
+
+@lru_cache
+def obtener_resumen_dns_use_case() -> ObtenerResumenDnsUseCase:
+    return ObtenerResumenDnsUseCase(obtener_modelo_dns_repository())
+
+
+@lru_cache
+def obtener_serie_dns_use_case() -> ObtenerSerieDnsUseCase:
+    return ObtenerSerieDnsUseCase(obtener_modelo_dns_repository())
+
+
+@lru_cache
+def obtener_zonas_dns_use_case() -> ObtenerZonasDnsUseCase:
+    return ObtenerZonasDnsUseCase(obtener_modelo_dns_repository())
+
+
+@lru_cache
+def obtener_patrones_dns_use_case() -> ObtenerPatronesDnsUseCase:
+    return ObtenerPatronesDnsUseCase(obtener_modelo_dns_repository())
+
+
+@lru_cache
+def obtener_causas_dns_use_case() -> ObtenerCausasDnsUseCase:
+    return ObtenerCausasDnsUseCase(obtener_modelo_dns_repository())
+
+
+@lru_cache
+def obtener_cambios_reporte_dns_use_case() -> ObtenerCambiosReporteDnsUseCase:
+    return ObtenerCambiosReporteDnsUseCase(obtener_modelo_dns_repository())
+
+
+@lru_cache
+def obtener_modelo_dns_use_case() -> ObtenerModeloDnsUseCase:
+    return ObtenerModeloDnsUseCase(obtener_modelo_dns_repository())

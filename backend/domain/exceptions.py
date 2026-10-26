@@ -55,3 +55,16 @@ class ModeloCarbonNoCargadoError(DomainError):
             "El modelo de carbon termico aun no esta cargado; ejecuta "
             "infrastructure.ingesta.importar_modelo_carbon"
         )
+
+
+class ModeloDnsNoCargadoError(DomainError):
+    """No se ha importado ninguna corrida del modelo de demanda no atendida (DNS)."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            "El modelo DNS aun no esta cargado; ejecuta infrastructure.ingesta.importar_modelo_dns"
+        )
+
+
+class FiltroInvalidoError(DomainError):
+    """Un filtro pide una region o subarea que no existe en el modelo cargado."""

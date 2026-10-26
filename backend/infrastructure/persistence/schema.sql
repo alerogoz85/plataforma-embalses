@@ -115,3 +115,48 @@ CREATE TABLE IF NOT EXISTS carbon_veredicto (
 CREATE TABLE IF NOT EXISTS carbon_supuestos (
     orden INTEGER NOT NULL, nombre VARCHAR NOT NULL, valor VARCHAR NOT NULL
 );
+
+-- ---------------------------------------------------------------------------
+-- Modelo de demanda no atendida (DNS): corrida vigente (se reemplaza completa).
+-- Sin llaves primarias: DuckDB no admite borrar e insertar la misma llave dentro de una
+-- transaccion; la unicidad la valida el dominio (PaqueteModeloDns) antes de escribir.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS dns_meta (
+    id INTEGER NOT NULL, origen VARCHAR NOT NULL, periodo_pronostico VARCHAR NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS dns_subareas (
+    codigo VARCHAR NOT NULL, nombre VARCHAR NOT NULL, region VARCHAR NOT NULL, departamentos VARCHAR
+);
+
+CREATE TABLE IF NOT EXISTS dns_eventos (
+    fecha_hora TIMESTAMP NOT NULL, codigo_subarea VARCHAR NOT NULL, tipo VARCHAR NOT NULL,
+    energia_no_atendida_kwh DOUBLE NOT NULL, origen_evento VARCHAR,
+    causa_definitiva VARCHAR NOT NULL, origen_causa_definitiva VARCHAR NOT NULL,
+    tipo_evento VARCHAR NOT NULL, nivel_red VARCHAR NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS dns_zonas (
+    ranking INTEGER NOT NULL, codigo_subarea VARCHAR NOT NULL, indice_priorizacion DOUBLE NOT NULL,
+    energia_total_kwh DOUBLE NOT NULL, n_eventos INTEGER NOT NULL, pct_criticos DOUBLE NOT NULL,
+    variacion_pct DOUBLE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS dns_cambios_reporte (
+    codigo_subarea VARCHAR NOT NULL, periodo_quiebre VARCHAR NOT NULL, direccion VARCHAR NOT NULL,
+    pct_generica_antes DOUBLE NOT NULL, pct_generica_despues DOUBLE NOT NULL,
+    pct_causa_conocida_antes DOUBLE NOT NULL, pct_causa_conocida_despues DOUBLE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS dns_metricas (
+    orden INTEGER NOT NULL, modelo VARCHAR NOT NULL, mae DOUBLE NOT NULL, rmse DOUBLE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS dns_importancia (
+    orden INTEGER NOT NULL, variable VARCHAR NOT NULL,
+    importancia_n_eventos DOUBLE NOT NULL, importancia_energia_kwh DOUBLE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS dns_pronostico (
+    codigo_subarea VARCHAR NOT NULL, n_eventos DOUBLE NOT NULL, energia_kwh DOUBLE NOT NULL
+);
