@@ -218,8 +218,9 @@ y
   se unen por **interpolación lineal** desde el último dato observado
   ([`ProyeccionDiariaService`](backend/domain/services/proyeccion_diaria_service.py)).
   La banda son los escenarios P10–P90, sin incertidumbre en el primer día, y la curva
-  llega hasta donde publica el modelo (~358 días: con 12 meses termina a mitad de
-  septiembre de 2027). Para un embalse o agregado sin proyección publicada (Agregado
+  llega hasta donde publica el modelo (mediados de septiembre de 2027: con el
+  último dato del 25-oct-2026 son ~325 días, y la cifra baja a medida que avanza el corte hasta que se importe
+  una corrida nueva). Para un embalse o agregado sin proyección publicada (Agregado
   Bogotá y los agregados regionales), o con una ya vencida, se usa el respaldo Holt-Winters con tendencia amortiguada
   (`statsmodels`), sin estacionalidad, con intervalo de confianza al 95% por
   simulación Monte Carlo (300 trayectorias). La respuesta indica cuál se usó
@@ -564,8 +565,9 @@ dominio se traducen a HTTP de forma centralizada en
 y en cada pull request, con dos jobs en paralelo:
 
 - **Backend** (Python 3.12): `pyflakes` sobre el código y las pruebas, y `pytest`.
-- **Frontend** (Node 22): `npm ci`, `npm run lint`, `npm test` y `npm run build`
-  (el build también verifica los tipos de TypeScript).
+- **Frontend** (Node 22): `npm ci`, `npm run lint`, `npm test`, `npm run build`
+  (el build también verifica los tipos de TypeScript), instalación de Chromium y
+  `npm run test:e2e` (pruebas de extremo a extremo en un navegador real).
 
 No usa secretos ni red hacia SIMEM/XM: las pruebas no llaman a servicios externos.
 Una ejecución nueva sobre la misma rama cancela la anterior.
@@ -754,8 +756,8 @@ Las pruebas encontraron **tres defectos reales**, ya corregidos:
   pruebas) y el manual de usuario con capturas reales y marcadores interactivos.
   Comparte con el tablero el tema claro/oscuro (clave `tema` de `localStorage`) y
   dibuja los diagramas con mermaid desde jsDelivr. **Es documentación a mano:** las
-  cifras están al corte del 22-sep-2026 y hay que actualizarlas al editar el
-  archivo; las coordenadas de los marcadores están en la constante `SHOTS` y las
+  cifras están al corte del 25-oct-2026 y hay que actualizarlas al editar el
+  archivo (las capturas de embalses se regeneran con `node scripts/capturas-guia.mjs`); las coordenadas de los marcadores están en la constante `SHOTS` y las
   capturas en `public/informacion/img/`.
 - **Filtros globales**: región y embalse gobiernan **todo el tablero a la vez**.
   La página mantiene un único «ámbito» (el embalse elegido; si no hay, la región;
