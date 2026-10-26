@@ -1,6 +1,8 @@
 "use client";
 
 import { Campo } from "@/components/ui/Campo";
+import type { EsquemaUrl } from "@/lib/hooks/useEstadoUrl";
+import { codigo, enLista } from "@/lib/utils/url";
 import {
   ORIGENES_DNS,
   PERIODOS_DNS,
@@ -19,6 +21,17 @@ export interface FiltrosDnsEstado {
 }
 
 export const FILTROS_DNS_POR_DEFECTO: FiltrosDnsEstado = { periodo: 36, region: null, subarea: null, origen: null };
+
+/**
+ * Los filtros viven en la URL (`/dns?periodo=12&region=Caribe&origen=programada`). El período y el origen se validan contra las
+ * listas cerradas de la API; la región y la subárea solo por forma (la página las contrasta además con el catálogo cargado).
+ */
+export const ESQUEMA_DNS: EsquemaUrl<FiltrosDnsEstado> = {
+  periodo: { param: "periodo", defecto: () => FILTROS_DNS_POR_DEFECTO.periodo, leer: enLista(PERIODOS_DNS) },
+  region: { param: "region", defecto: () => null, leer: codigo(40) },
+  subarea: { param: "subarea", defecto: () => null, leer: codigo(20) },
+  origen: { param: "origen", defecto: () => null, leer: enLista(ORIGENES_DNS) },
+};
 
 const etiquetaPeriodo = (m: PeriodoDns) => (m === 0 ? "Todo el histórico (2013-)" : `Últimos ${m} meses`);
 const ETIQUETA_ORIGEN: Record<OrigenDns, string> = { programada: "Programada", no_programada: "No programada" };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   Area,
   CartesianGrid,
@@ -14,7 +14,9 @@ import {
 } from "recharts";
 
 import { HORIZONTES_SENDA_VOLUMEN, type HorizonteSendaVolumen } from "@/lib/api/types";
+import { useEstadoUrl, type EsquemaUrl } from "@/lib/hooks/useEstadoUrl";
 import { useSendaVolumen } from "@/lib/hooks/useSendaVolumen";
+import { enLista } from "@/lib/utils/url";
 import { formatearMes, formatearPorcentaje } from "@/lib/utils/formatters";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { InfoButton } from "@/components/ui/InfoButton";
@@ -39,9 +41,15 @@ function colorMinimoProyectado(valor: number): string {
   return "var(--color-optimo)";
 }
 
+/** Horizonte de la senda, en la URL como `?hs=6` (meses: 1, 3, 6 o 12; por defecto 12). */
+const ESQUEMA_HORIZONTE: EsquemaUrl<{ horizonte: HorizonteSendaVolumen }> = {
+  horizonte: { param: "hs", defecto: () => 12, leer: (c) => enLista(HORIZONTES_SENDA_VOLUMEN)(c) },
+};
+
 /** La senda sigue los filtros del tablero: `embalseId` es un embalse, "TOTAL" o "REGION:<nombre>". */
 export function SendaVolumenPanel({ embalseId }: { embalseId: string }) {
-  const [horizonte, setHorizonte] = useState<HorizonteSendaVolumen>(12);
+  const [{ horizonte }, { actualizar }] = useEstadoUrl(ESQUEMA_HORIZONTE);
+  const setHorizonte = (h: HorizonteSendaVolumen) => actualizar({ horizonte: h });
   const senda = useSendaVolumen(embalseId, horizonte);
   const esOutputs = senda.datos?.origen_proyeccion === "outputs";
 

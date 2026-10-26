@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import type { EmbalseResumen } from "@/lib/api/types";
 import { urlReporte } from "@/lib/api/client";
@@ -12,6 +12,8 @@ import {
 } from "@/lib/utils/formatters";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { SkeletonTableRow } from "@/components/ui/Skeleton";
+import { useEstadoUrl, type EsquemaUrl } from "@/lib/hooks/useEstadoUrl";
+import { enLista, textoLibre } from "@/lib/utils/url";
 import { InfoButton } from "@/components/ui/InfoButton";
 import { AYUDAS } from "./ayudas";
 import { RiskBadge } from "@/components/dashboard/RiskBadge";
@@ -37,6 +39,13 @@ const COLUMNAS: { clave: ColumnaOrdenable; etiqueta: string; numerica?: boolean;
   { clave: "dias_autonomia", etiqueta: "Autonomía (días)", numerica: true, ayuda: AYUDAS.colAutonomia },
 ];
 
+/** Búsqueda y orden de la tabla, en la URL: `?q=guavio&orden=nombre&dir=desc` (por defecto, sin búsqueda y por % Vol. útil ascendente). */
+const ESQUEMA_TABLA: EsquemaUrl<{ busqueda: string; clave: ColumnaOrdenable; dir: "asc" | "desc" }> = {
+  busqueda: { param: "q", defecto: () => "", leer: textoLibre(60) },
+  clave: { param: "orden", defecto: () => "pct_volumen_util", leer: (c) => COLUMNAS.find((x) => x.clave === c)?.clave },
+  dir: { param: "dir", defecto: () => "asc", leer: enLista(["asc", "desc"] as const) },
+};
+
 export function EmbalsesTable({
   embalses,
   cargando,
@@ -48,11 +57,9 @@ export function EmbalsesTable({
   onSeleccionar: (embalseId: string) => void;
   embalseSeleccionado: string | null;
 }) {
-  const [busqueda, setBusqueda] = useState("");
-  const [orden, setOrden] = useState<{ clave: ColumnaOrdenable; direccion: 1 | -1 }>({
-    clave: "pct_volumen_util",
-    direccion: 1,
-  });
+  const [{ busqueda, clave, dir }, { actualizar }] = useEstadoUrl(ESQUEMA_TABLA);
+  const orden = useMemo(() => ({ clave, direccion: dir === "asc" ? (1 as const) : (-1 as const) }), [clave, dir]);
+  const setBusqueda = (q: string) => actualizar({ busqueda: q });
 
   const filas = useMemo(() => {
     const filtradas = embalses.filter((e) =>
@@ -68,12 +75,9 @@ export function EmbalsesTable({
     });
   }, [embalses, busqueda, orden]);
 
-  function alternarOrden(clave: ColumnaOrdenable) {
-    setOrden((previo) =>
-      previo.clave === clave
-        ? { clave, direccion: previo.direccion === 1 ? -1 : 1 }
-        : { clave, direccion: 1 },
-    );
+  function alternarOrden(nueva: ColumnaOrdenable) {
+    if (nueva === clave) actualizar({ dir: dir === "asc" ? "desc" : "asc" });
+    else actualizar({ clave: nueva, dir: "asc" });
   }
 
   return (

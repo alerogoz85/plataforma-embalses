@@ -3,11 +3,104 @@ import { expect, test } from "@playwright/test";
 import { conResultados } from "../tests/modelos/fixturesModelos";
 import { simularApi } from "./api";
 
+test.describe("Rutas: manejador central, alias y 404", () => {
+  test("los alias redirigen a la ruta canonica", async ({ page }) => {
+    await simularApi(page);
+    for (const [alias, destino] of [["/tableros", "/"], ["/demanda-no-atendida", "/dns"], ["/riesgo-apagon", "/apagon"], ["/embalse", "/embalses"]]) {
+      await page.goto(alias);
+      await expect(page).toHaveURL(new RegExp(`${destino === "/" ? "/$" : destino + "$"}`));
+    }
+  });
+
+  test("una direccion que no existe muestra la pagina 404 con el camino de vuelta", async ({ page }) => {
+    const respuesta = await page.goto("/no-existe");
+    expect(respuesta?.status()).toBe(404);
+    await expect(page.getByRole("heading", { name: "No encontramos esa página" })).toBeVisible();
+    await page.getByRole("link", { name: "Ir al panel de tableros" }).click();
+    await expect(page).toHaveURL(/\/$/);
+  });
+
+  test("la guia de cada tarjeta lleva a su capitulo", async ({ page }) => {
+    await simularApi(page);
+    await page.goto("/");
+    await page.getByRole("link", { name: "Guía del tablero de Demanda no atendida" }).click();
+    await expect(page).toHaveURL(/\/informacion#dns-mapa$/);
+    await expect(page.locator("#dns-mapa")).toBeVisible();
+  });
+});
+
+test.describe("Cada vista y cada filtro tienen su direccion (URL)", () => {
+  test("DNS: un enlace con filtros abre el tablero filtrado, y recargar conserva la vista", async ({ page }) => {
+    const llamadas = await simularApi(page);
+    await page.goto("/dns?periodo=12&region=Norte&origen=programada&medida=energia");
+    await expect(page.getByRole("combobox", { name: "Período" })).toHaveValue("12");
+    await expect(page.getByRole("combobox", { name: "Región" })).toHaveValue("Norte");
+    await expect(page.getByRole("combobox", { name: "Origen" })).toHaveValue("programada");
+    await expect(page.getByText("Energía no atendida (GWh) por mes")).toBeVisible();
+    expect(llamadas.some((u) => u.pathname.endsWith("/dns/resumen") && u.search === "?periodo_meses=12&origen=programada&region=Norte")).toBe(true);
+    await page.reload();
+    await expect(page.getByRole("combobox", { name: "Período" })).toHaveValue("12");
+  });
+
+  test("DNS: cambiar un filtro cambia la URL sin recargar y restablecer la limpia", async ({ page }) => {
+    await simularApi(page);
+    await page.goto("/dns");
+    await expect(page.getByText("5.963")).toBeVisible();
+    await page.getByRole("combobox", { name: "Período" }).selectOption("60");
+    await expect(page).toHaveURL(/\/dns\?periodo=60$/);
+    await page.getByRole("combobox", { name: "Región" }).selectOption("Norte");
+    await expect(page).toHaveURL(/periodo=60&region=Norte$/);
+    await page.getByRole("button", { name: /Restablecer filtros/ }).click();
+    await expect(page).toHaveURL(/\/dns$/);
+  });
+
+  test("cambiar filtros no apila entradas en el historial: «atras» vuelve al panel", async ({ page }) => {
+    await simularApi(page);
+    await page.goto("/");
+    await page.getByRole("link", { name: "Abrir el tablero de Carbón térmico" }).click();
+    await expect(page).toHaveURL(/\/carbon$/);
+    await page.getByRole("combobox", { name: "Horizonte" }).selectOption("3");
+    await page.getByRole("combobox", { name: "Unidad" }).selectOption("kt");
+    await expect(page).toHaveURL(/horizonte=3&unidad=kt$/);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/$/);
+  });
+
+  test("valores invalidos en la URL se ignoran sin errores", async ({ page }) => {
+    await simularApi(page);
+    const errores: string[] = [];
+    page.on("pageerror", (e) => errores.push(e.message));
+    await page.goto("/carbon?horizonte=2&unidad=lb&dias=99&historia=x");
+    await expect(page.getByRole("combobox", { name: "Horizonte" })).toHaveValue("9");
+    await expect(page.getByRole("combobox", { name: "Unidad" })).toHaveValue("gbtu");
+    expect(errores).toEqual([]);
+  });
+
+  test("embalses: region, horizonte de la senda y busqueda de la tabla viven en la URL", async ({ page }) => {
+    await simularApi(page);
+    await page.goto("/embalses?region=Centro&hs=6&q=guav");
+    await expect(page.getByRole("combobox", { name: "Región" }).first()).toHaveValue("Centro");
+    await expect(page.getByPlaceholder("Buscar embalse o región…")).toHaveValue("guav");
+    await page.getByPlaceholder("Buscar embalse o región…").fill("");
+    await expect(page).not.toHaveURL(/q=/);
+  });
+
+  test("los modelos guardan el periodo de las series en la URL", async ({ page }) => {
+    await simularApi(page, { apagon: conResultados() });
+    await page.goto("/apagon?desde=2026-12");
+    await expect(page.getByRole("combobox", { name: "Desde" })).toHaveValue("2026-12");
+    await expect(page.locator(".recharts-bar-rectangle")).toHaveCount(1);
+    await page.getByRole("button", { name: /Restablecer filtros/ }).click();
+    await expect(page).toHaveURL(/\/apagon$/);
+  });
+});
+
 test.describe("Panel de tableros", () => {
   test("muestra los dos tableros y navega a cada uno", async ({ page }) => {
     await simularApi(page);
     await page.goto("/");
-    await expect(page.getByRole("heading", { level: 1, name: "Plataforma de Tableros Analíticos" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Tableros Analíticos" })).toBeVisible();
+    await expect(page).toHaveTitle("Tableros Analíticos");
 
     await page.getByRole("link", { name: "Abrir el tablero de Carbón térmico" }).click();
     await expect(page).toHaveURL(/\/carbon$/);
@@ -82,7 +175,8 @@ test.describe("Tableros de modelos analiticos (gas, optimizacion, apagon)", () =
   test("el panel muestra los seis tableros", async ({ page }) => {
     await simularApi(page);
     await page.goto("/");
-    await expect(page.getByRole("region", { name: "Tableros disponibles" }).getByRole("link")).toHaveCount(6);
+    await expect(page.getByRole("link", { name: /^Abrir el tablero de / })).toHaveCount(6);
+    await expect(page.getByRole("link", { name: /^Guía del tablero de / })).toHaveCount(6);
   });
 
   test("con resultados importados dibuja los graficos y el filtro de periodo los recorta a todos", async ({ page }) => {

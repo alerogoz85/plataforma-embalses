@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Bar, CartesianGrid, Cell, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 import { Card, CardHeader } from "@/components/ui/Card";
+import { useEstadoUrl, type EsquemaUrl } from "@/lib/hooks/useEstadoUrl";
+import { enLista } from "@/lib/utils/url";
 import { ErrorBloque } from "@/components/ui/ErrorBloque";
 import { SkeletonChart } from "@/components/ui/Skeleton";
 import type { SerieDns } from "@/lib/api/types";
@@ -12,12 +14,18 @@ import { formatearNumero } from "@/lib/utils/formatters";
 import { AYUDAS_DNS } from "./ayudasDns";
 import { COLOR_PRONOSTICO, ESTILO_TICK, ESTILO_TOOLTIP } from "./EstiloGraficoDns";
 
+/** Medida del gráfico, en la URL como `?medida=energia` (por defecto, eventos). */
+const ESQUEMA_MEDIDA: EsquemaUrl<{ medida: MedidaDns }> = {
+  medida: { param: "medida", defecto: () => "eventos", leer: enLista(["eventos", "energia"] as const) },
+};
+
 /**
  * Serie mensual de eventos o de energía no atendida (el usuario alterna la medida) con el pronóstico del
  * modelo como un punto aparte. El mes del corte, que no ha terminado, se dibuja atenuado.
  */
 export function SerieDnsChart({ serie }: { serie: { datos: SerieDns | null; error: string | null } }) {
-  const [medida, setMedida] = useState<MedidaDns>("eventos");
+  const [{ medida }, { actualizar }] = useEstadoUrl(ESQUEMA_MEDIDA);
+  const setMedida = (m: MedidaDns) => actualizar({ medida: m });
   const puntos = useMemo(() => (serie.datos ? construirPuntosSerieDns(serie.datos, medida) : []), [serie.datos, medida]);
 
   if (serie.error) return <ErrorBloque que="la serie mensual" mensaje={serie.error} />;

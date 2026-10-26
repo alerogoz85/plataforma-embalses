@@ -48,6 +48,6 @@ describe("Header", () => {
 
   it("por defecto conserva el titulo del tablero de embalses", () => {
     render(<Header />);
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Plataforma de Monitoreo y Predicción de Embalses");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Monitoreo y predicción de embalses");
   });
 });

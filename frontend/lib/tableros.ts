@@ -1,90 +1,116 @@
 /**
  * Registro de tableros de la plataforma.
  *
- * El panel principal (app/page.tsx) se arma recorriendo esta lista, así que para sumar un
- * tablero nuevo basta con crear su carpeta en `app/<ruta>/` y agregar aquí una entrada.
+ * El panel principal (app/page.tsx) se arma recorriendo esta lista, así que para sumar un tablero nuevo basta con
+ * crear su carpeta en `app/<ruta>/`, registrar su ruta en `lib/rutas.ts` y agregar aquí una entrada.
  * Es solo información de presentación: ningún dato sensible ni de negocio vive aquí.
+ *
+ * Redacción de las tarjetas: la descripción responde «qué puedo ver aquí» en una frase; las etiquetas son 3 temas
+ * concretos (no repiten el título); la fuente va corta y dice de dónde salen los datos.
  */
-export type IconoTablero = "embalses" | "carbon" | "dns" | "gas" | "optimizacion" | "apagon";
+import { RUTAS, urlGuia, type IdTablero, type Ruta } from "@/lib/rutas";
+
+export type IconoTablero = IdTablero;
+
+/** `datos`: el tablero ya muestra resultados reales. `desarrollo`: muestra su ficha y estado hasta que el modelo entregue resultados. */
+export type GrupoTablero = "datos" | "desarrollo";
 
 export interface Tablero {
   /** Identificador estable (se usa como clave y en las pruebas). */
-  id: string;
-  /** Ruta interna del tablero (carpeta dentro de `app/`). */
-  ruta: `/${string}`;
+  id: IdTablero;
+  /** Ruta canónica (sale de `lib/rutas.ts`). */
+  ruta: Ruta;
   titulo: string;
   descripcion: string;
-  /** De dónde salen los datos que muestra. */
+  /** De dónde salen los datos que muestra (corto). */
   fuente: string;
-  /** Lo principal que se puede ver en él (se muestra como etiquetas). */
+  /** Tres temas concretos que se pueden consultar (se muestran como etiquetas). */
   incluye: readonly string[];
   icono: IconoTablero;
-  /** Aviso corto en la tarjeta cuando el tablero aún no muestra resultados finales (p. ej. «En desarrollo»). */
-  etiqueta?: string;
+  grupo: GrupoTablero;
+  /** Capítulo de la guía donde se explica este tablero. */
+  guia: string;
 }
+
+export const GRUPOS: Record<GrupoTablero, { titulo: string; descripcion: string }> = {
+  datos: {
+    titulo: "Tableros con datos",
+    descripcion: "Muestran información real y actualizable, con filtros y su fecha de corte.",
+  },
+  desarrollo: {
+    titulo: "Modelos en desarrollo",
+    descripcion:
+      "Aún no tienen resultados finales: muestran su ficha, su estado real y cómo cargar los resultados cuando el modelo los entregue.",
+  },
+};
 
 export const TABLEROS: readonly Tablero[] = [
   {
     id: "embalses",
-    ruta: "/embalses",
+    ruta: RUTAS.embalses,
     titulo: "Embalses",
-    descripcion:
-      "Monitoreo del volumen útil, los aportes y el riesgo de los 24 embalses del SIN, con su pronóstico a 1, 3, 6 y 12 meses.",
-    fuente: "Datos públicos de XM y SIMEM; proyección del modelo de largo plazo con escenarios El Niño/La Niña.",
-    incluye: ["Volumen útil nacional y por región", "Riesgo en 5 niveles", "Senda de largo plazo", "Reportes CSV y JSON"],
+    descripcion: "Volumen útil, aportes y riesgo de los 24 embalses del SIN, con pronóstico a 1, 3, 6 y 12 meses.",
+    fuente: "XM y SIMEM · modelo de largo plazo con escenarios El Niño/La Niña",
+    incluye: ["Volumen por región", "Riesgo en 5 niveles", "Reportes CSV y JSON"],
     icono: "embalses",
+    grupo: "datos",
+    guia: urlGuia("embalses"),
   },
   {
     id: "carbon",
-    ruta: "/carbon",
+    ruta: RUTAS.carbon,
     titulo: "Carbón térmico",
-    descripcion:
-      "Proyección del consumo de carbón de las plantas térmicas del SIN durante El Niño 2026-2027, con su incertidumbre, el inventario requerido y la comparación con XM.",
-    fuente: "Modelo de carbón térmico (ENOS → aportes → carbón, Monte Carlo) con datos de Sinergox, SIMEM y NOAA.",
-    incluye: ["Escenarios P10, P50 y P90", "Uso del techo físico", "Inventario en días de consumo", "Validación del modelo"],
+    descripcion: "Consumo de carbón de las térmicas durante El Niño 2026-2027, con inventario requerido y comparación con XM.",
+    fuente: "Modelo de carbón térmico · Sinergox, SIMEM y NOAA",
+    incluye: ["Escenarios P10 a P90", "Uso del techo físico", "Inventario en días"],
     icono: "carbon",
+    grupo: "datos",
+    guia: urlGuia("carbon"),
   },
   {
     id: "dns",
-    ruta: "/dns",
+    ruta: RUTAS.dns,
     titulo: "Demanda no atendida",
-    descripcion:
-      "Eventos de demanda no atendida (DNS) por subárea operativa del SIN desde 2013: dónde, cuándo y por qué ocurren, qué zonas priorizar y qué pronostica el modelo para el mes siguiente.",
-    fuente: "Eventos DNS y EDAC reportados a SIMEM; índice de priorización, patrones y modelo predictivo del Ministerio.",
-    incluye: ["Priorización de zonas", "Patrones por hora y día", "Causas de los eventos", "Pronóstico mensual"],
+    descripcion: "Eventos de demanda no atendida por subárea desde 2013: dónde, cuándo y por qué ocurren, y el pronóstico del mes siguiente.",
+    fuente: "SIMEM (eventos DNS y EDAC) · modelo del Ministerio",
+    incluye: ["Zonas prioritarias", "Patrones por hora y día", "Causas de los eventos"],
     icono: "dns",
+    grupo: "datos",
+    guia: urlGuia("dns"),
   },
   {
     id: "gas",
-    ruta: "/gas",
+    ruta: RUTAS.gas,
     titulo: "Gas natural",
-    descripcion:
-      "Oferta de gas declarada al Ministerio frente al gas fiscalizado por la ANH a nivel de campo, con curvas de declinación para evaluar y proyectar la oferta.",
-    fuente: "Declaraciones de gas del MME y producción fiscalizada de la ANH, según los documentos del modelo.",
-    incluye: ["Qué compara y cómo", "Datos y limitaciones", "Estado del modelo", "Carga de resultados"],
+    descripcion: "Oferta de gas declarada al Ministerio frente al gas fiscalizado por la ANH, por campo, con curvas de declinación.",
+    fuente: "Declaraciones del MME y producción fiscalizada de la ANH",
+    incluye: ["Qué compara y cómo", "Datos y limitaciones", "Cómo cargar resultados"],
     icono: "gas",
-    etiqueta: "En desarrollo",
+    grupo: "desarrollo",
+    guia: urlGuia("gas"),
   },
   {
     id: "optimizacion",
-    ruta: "/optimizacion",
+    ruta: RUTAS.optimizacion,
     titulo: "Optimización hidrotérmica",
-    descripcion:
-      "Planeación hidro-térmica estocástica (SDDP con riesgo CVaR) bajo escenarios ENOS: cuánta térmica usar, cuánta agua conservar y qué costo y riesgo implica.",
-    fuente: "Documentos de modelamiento y evaluación técnica del producto SDDP; salidas de la corrida cuando se importen.",
-    incluye: ["Método SDDP/CVaR", "Estado de la evidencia", "Limitaciones", "Carga de resultados"],
+    descripcion: "Planeación hidro-térmica con SDDP y riesgo CVaR bajo escenarios ENOS: cuánta térmica usar y qué costo y riesgo implica.",
+    fuente: "Documentos de modelamiento y evaluación del producto SDDP",
+    incluye: ["Método SDDP y CVaR", "Estado de la evidencia", "Limitaciones"],
     icono: "optimizacion",
-    etiqueta: "En desarrollo",
+    grupo: "desarrollo",
+    guia: urlGuia("optimizacion"),
   },
   {
     id: "apagon",
-    ruta: "/apagon",
+    ruta: RUTAS.apagon,
     titulo: "Riesgo de apagón",
-    descripcion:
-      "Riesgo mensual de déficit de generación del SIN condicionado por ENOS (Monte Carlo): probabilidad de déficit, margen de reserva, índice de riesgo y semáforo.",
-    fuente: "Modelo Monte Carlo de riesgo con datos de NOAA/CPC, UPME y el sector; salidas de la corrida cuando se importen.",
-    incluye: ["Semáforo mensual", "Probabilidad de déficit", "Franjas horarias", "Carga de resultados"],
+    descripcion: "Riesgo mensual de déficit de generación del SIN condicionado por ENOS: probabilidad, margen de reserva y semáforo.",
+    fuente: "Modelo Monte Carlo · NOAA/CPC, UPME y datos del sector",
+    incluye: ["Semáforo mensual", "Probabilidad de déficit", "Franjas del día"],
     icono: "apagon",
-    etiqueta: "En desarrollo",
+    grupo: "desarrollo",
+    guia: urlGuia("apagon"),
   },
 ];
+
+export const tablerosDelGrupo = (grupo: GrupoTablero) => TABLEROS.filter((t) => t.grupo === grupo);

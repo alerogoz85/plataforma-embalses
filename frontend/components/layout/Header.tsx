@@ -1,12 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { RUTAS } from "@/lib/rutas";
 import { ThemeToggle } from "./ThemeToggle";
 
 interface HeaderProps {
   /** Fecha de corte de los datos (tablero de embalses). Se ignora si se pasa `subtitulo`. */
   fechaCorte?: string;
-  /** Titulo del tablero; por defecto el de embalses. */
+  /** Título del tablero; por defecto el de embalses. El nombre del sistema («Tableros Analíticos») es el del panel principal. */
   titulo?: string;
   /** Segunda linea del encabezado; sustituye al "Corte al ..." de embalses. */
   subtitulo?: string;
@@ -18,7 +19,7 @@ const ENLACE = "flex h-9 items-center gap-1.5 rounded-xl border border-border bg
 
 export function Header({
   fechaCorte,
-  titulo = "Plataforma de Monitoreo y Predicción de Embalses",
+  titulo = "Monitoreo y predicción de embalses",
   subtitulo,
   enlacePanel = true,
 }: HeaderProps) {
@@ -64,7 +65,7 @@ export function Header({
             {/* Guia de la plataforma (documentacion tecnica y manual de usuario), en una pestana aparte
                 para no perder los filtros del tablero. Es una pagina estatica: public/informacion.html */}
             {enlacePanel && (
-              <Link href="/" className={ENLACE}>
+              <Link href={RUTAS.panel} className={ENLACE}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <rect x="3" y="3" width="7" height="7" rx="1" />
                   <rect x="14" y="3" width="7" height="7" rx="1" />
@@ -74,7 +75,7 @@ export function Header({
                 Tableros
               </Link>
             )}
-            <a href="/informacion" target="_blank" rel="noopener" className={ENLACE}>
+            <a href={RUTAS.informacion} target="_blank" rel="noopener" className={ENLACE}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="9" />
                 <path d="M12 11v5" />

@@ -2,6 +2,11 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
 
+import { fijarUrl } from "./mocks/navigation";
+
+// La URL de las pruebas vive en memoria (ver mocks/navigation.ts): los tableros guardan sus filtros en la dirección.
+vi.mock("next/navigation", () => import("./mocks/navigation"));
+
 function crearMatchMedia(coincide = false) {
   return (consulta: string): MediaQueryList =>
     ({
@@ -18,6 +23,7 @@ function crearMatchMedia(coincide = false) {
 
 afterEach(() => {
   cleanup();
+  fijarUrl("/");
   window.matchMedia = crearMatchMedia();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
