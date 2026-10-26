@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 
 import { FUENTE_REAL, crearDetalle, crearPrediccion, crearResumen, crearSenda } from "../tests/fixtures";
+import { conResultados, crearFichaModelo, sinResultados } from "../tests/modelos/fixturesModelos";
 import {
   crearCambiosDns, crearCatalogoDns, crearCausasDns, crearModeloDns, crearPatronesDns, crearResumenDns, crearSerieDns, crearZonasDns,
 } from "../tests/dns/fixturesDns";
@@ -13,7 +14,8 @@ export type Llamadas = URL[];
  * Simula toda la API en el navegador con los mismos datos de ejemplo de las pruebas unitarias.
  * Devuelve la lista (viva) de llamadas para poder comprobar que cada filtro consulta lo correcto.
  */
-export async function simularApi(page: Page): Promise<Llamadas> {
+/** `resultados` permite simular que un modelo analitico (gas, optimizacion, apagon) ya tiene resultados importados. */
+export async function simularApi(page: Page, resultados: Partial<Record<string, ReturnType<typeof conResultados>>> = {}): Promise<Llamadas> {
   const llamadas: Llamadas = [];
   await page.route("**/api/v1/**", async (ruta) => {
     const url = new URL(ruta.request().url());
@@ -39,6 +41,11 @@ export async function simularApi(page: Page): Promise<Llamadas> {
     if (p === "/dns/causas") return json(crearCausasDns());
     if (p === "/dns/cambios-reporte") return json(crearCambiosDns());
     if (p === "/dns/modelo") return json(crearModeloDns());
+    const modelo = /^\/modelos\/([a-z]+)\/(ficha|resultados)$/.exec(p);
+    if (modelo) {
+      const [, id, recurso] = modelo;
+      return json(recurso === "ficha" ? crearFichaModelo({ id: id as never, estado: resultados[id] ? "con_resultados" : "sin_resultados" }) : (resultados[id] ?? sinResultados(id as never)));
+    }
     return ruta.fulfill({ status: 404, json: { detalle: `sin simulacion para ${p}` } });
   });
   return llamadas;

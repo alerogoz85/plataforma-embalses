@@ -1,6 +1,7 @@
 import type {
   CambioReporteDns,
   CatalogoDns,
+  FichaModelo,
   CausasDns,
   ComparacionXm,
   EmbalseDetalle,
@@ -8,6 +9,7 @@ import type {
   InventarioMensual,
   ModeloDns,
   PatronesDns,
+  ResultadosModelo,
   ResumenDns,
   SerieDns,
   ZonaDns,
@@ -181,6 +183,13 @@ export const obtenerCambiosReporteDns = (f: FiltrosDnsApi, signal?: AbortSignal)
 
 export const obtenerModeloDns = (f: FiltrosDnsApi, signal?: AbortSignal) =>
   obtenerJSON<ModeloDns>(`/api/v1/dns/modelo${queryDns(f, false)}`, signal);
+
+// ---- Modelos analiticos con ficha (gas, optimizacion, apagon)
+export const obtenerFichaModelo = (modeloId: string, signal?: AbortSignal) =>
+  obtenerJSON<FichaModelo>(`/api/v1/modelos/${encodeURIComponent(modeloId)}/ficha`, signal);
+
+export const obtenerResultadosModelo = (modeloId: string, signal?: AbortSignal) =>
+  obtenerJSON<ResultadosModelo>(`/api/v1/modelos/${encodeURIComponent(modeloId)}/resultados`, signal);
 
 export function urlReporte(embalseId: string, formato: "csv" | "json", rango: { fechaInicio?: string; fechaFin?: string } = {}): string {
   const query = construirQuery({

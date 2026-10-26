@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 
+import { conResultados } from "../tests/modelos/fixturesModelos";
 import { simularApi } from "./api";
 
 test.describe("Panel de tableros", () => {
@@ -63,6 +64,49 @@ test.describe("Tablero DNS con el navegador real", () => {
     const { ancho, visible } = await page.evaluate(() => ({ ancho: document.documentElement.scrollWidth, visible: window.innerWidth }));
     expect(ancho).toBeLessThanOrEqual(visible);
   });
+});
+
+test.describe("Tableros de modelos analiticos (gas, optimizacion, apagon)", () => {
+  for (const [ruta, titulo] of [["/gas", "Gas natural: oferta declarada y fiscalizada"], ["/optimizacion", "Optimización hidrotérmica (SDDP)"], ["/apagon", "Riesgo de apagón condicionado por ENOS"]]) {
+    test(`${ruta} sin resultados muestra la ficha y como cargarlos, sin graficos`, async ({ page }) => {
+      await simularApi(page);
+      await page.goto(ruta);
+      await expect(page.getByRole("heading", { level: 1, name: titulo })).toBeVisible();
+      await expect(page.getByText("Aún no hay resultados cargados")).toBeVisible();
+      await expect(page.getByText("Ficha del modelo")).toBeVisible();
+      await expect(page.locator(".recharts-wrapper")).toHaveCount(0);
+    });
+  }
+
+  test("el panel muestra los seis tableros", async ({ page }) => {
+    await simularApi(page);
+    await page.goto("/");
+    await expect(page.getByRole("region", { name: "Tableros disponibles" }).getByRole("link")).toHaveCount(6);
+  });
+
+  test("con resultados importados dibuja los graficos y el filtro de periodo los recorta a todos", async ({ page }) => {
+    await simularApi(page, { apagon: conResultados() });
+    await page.goto("/apagon");
+    await expect(page.locator(".recharts-line-curve")).toHaveCount(2);
+    // El déficit de octubre vale 0: una barra de altura cero no se dibuja, así que hay 2 de las 3.
+    await expect(page.locator(".recharts-bar-rectangle")).toHaveCount(2);
+    await page.getByRole("combobox", { name: "Desde" }).selectOption("2026-12");
+    await expect(page.locator(".recharts-bar-rectangle")).toHaveCount(1);
+    await expect(page.locator(".recharts-yAxis-tick-labels").first()).toBeVisible();
+    await page.getByRole("button", { name: /Restablecer filtros/ }).click();
+    await expect(page.locator(".recharts-bar-rectangle")).toHaveCount(2);
+  });
+
+  for (const ruta of ["/gas", "/optimizacion", "/apagon"]) {
+    test(`en celular ${ruta} no tiene desplazamiento horizontal (con resultados)`, async ({ page }) => {
+      await simularApi(page, { gas: conResultados(undefined, "gas"), optimizacion: conResultados(undefined, "optimizacion"), apagon: conResultados() });
+      await page.setViewportSize({ width: 375, height: 812 });
+      await page.goto(ruta);
+      await page.waitForLoadState("networkidle");
+      const { ancho, visible } = await page.evaluate(() => ({ ancho: document.documentElement.scrollWidth, visible: window.innerWidth }));
+      expect(ancho).toBeLessThanOrEqual(visible);
+    });
+  }
 });
 
 test.describe("Graficos realmente dibujados (lo que jsdom no ve)", () => {
