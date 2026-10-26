@@ -30,7 +30,8 @@ test.describe("Panel de tableros", () => {
   test("la guia /informacion se sirve y trae los capitulos de carbon", async ({ page }) => {
     await page.goto("/informacion");
     await expect(page.locator("#carbon-mapa")).toBeAttached();
-    await expect(page.locator("#panel .hs")).toHaveCount(4); // marcadores interactivos del panel
+    await expect(page.locator("#panel .hs")).toHaveCount(8); // marcadores interactivos del panel: encabezado, 6 tableros y pie
+    await expect(page.locator("#dns-mapa .hs")).toHaveCount(10);
   });
 });
 
