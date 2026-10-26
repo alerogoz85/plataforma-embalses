@@ -7,7 +7,7 @@ import GasPage from "@/app/gas/page";
 import OptimizacionPage from "@/app/optimizacion/page";
 import { ApiError, obtenerFichaModelo, obtenerResultadosModelo } from "@/lib/api/client";
 import { simularFetch } from "../mocks/fetch";
-import { conResultados, crearFichaModelo, crearResultadoModelo, sinResultados } from "./fixturesModelos";
+import { conResultados, crearFichaModelo, crearResultadoConDimensiones, crearResultadoModelo, sinResultados } from "./fixturesModelos";
 
 vi.mock("recharts", () => import("../mocks/recharts"));
 
@@ -207,5 +207,30 @@ describe("Tablero de un modelo con resultados", () => {
     montar();
     await screen.findByText("Meses en rojo");
     await waitFor(() => expect(screen.getByRole("region", { name: "Cifras documentadas" })).toHaveTextContent("317 meses"));
+  });
+});
+
+describe("Resultados con dimensiones (gas)", () => {
+  it("muestra el grafico de la combinacion elegida y recorta la tabla; los cambios viajan en la URL", async () => {
+    api("gas", { ficha: crearFichaModelo({ id: "gas", estado: "con_resultados" }), resultados: conResultados(crearResultadoConDimensiones(), "gas") });
+    render(<GasPage />);
+    expect(await screen.findByRole("img", { name: /NACIONAL · Fiscalizado/ })).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: /CUSIANA/ })).not.toBeInTheDocument();
+    const tabla = screen.getByRole("table");
+    expect(within(tabla).getAllByRole("row")).toHaveLength(2); // encabezado + 1 fila de NACIONAL·Fiscalizado
+    expect(within(tabla).getByText("Verde")).toBeInTheDocument();
+
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Campo" }), "CUSIANA");
+    expect(await screen.findByRole("img", { name: /CUSIANA · Fiscalizado/ })).toBeInTheDocument();
+    expect(within(screen.getByRole("table")).getByText("Rojo")).toBeInTheDocument();
+  });
+
+  it("avisa cuando el modelo no entrego grafico para la combinacion", async () => {
+    api("gas", { ficha: crearFichaModelo({ id: "gas", estado: "con_resultados" }), resultados: conResultados(crearResultadoConDimensiones(), "gas") });
+    render(<GasPage />);
+    await screen.findByRole("img", { name: /NACIONAL · Fiscalizado/ });
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Campo" }), "CUSIANA");
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Variable" }), "Comercializado");
+    expect(await screen.findByText(/no entregó un gráfico para esta combinación/)).toBeInTheDocument();
   });
 });

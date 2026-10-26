@@ -2,6 +2,7 @@
 import csv
 import json
 import sys
+from datetime import datetime
 from dataclasses import replace
 from pathlib import Path
 
@@ -12,7 +13,10 @@ from application.use_cases.modelo_analitico import ObtenerFichaModeloUseCase, Ob
 from domain.entities.modelo_analitico import (
     ESTADO_CON_RESULTADOS,
     MODELOS_CON_FICHA,
+    DimensionFiltro,
+    GraficoResultado,
     Indicador,
+    LineaGrafico,
     PuntoSerie,
     SerieResultado,
     TablaResultado,
@@ -61,11 +65,56 @@ class TestEntidades:
         with pytest.raises(ValueError, match="modelo desconocido"):
             replace(r, modelo_id="otro")
         with pytest.raises(ValueError, match="al menos un indicador"):
-            replace(r, indicadores=(), series=(), tablas=())
+            replace(r, indicadores=(), series=(), tablas=(), graficos=())
         with pytest.raises(ValueError, match="series con id repetido"):
             replace(r, series=(r.series[0], r.series[0]))
         with pytest.raises(ValueError, match="tablas con id repetido"):
             replace(r, tablas=(r.tablas[0], r.tablas[0]))
+
+
+class TestDimensionesYGraficos:
+    def test_dimension_exige_opciones_unicas_y_un_defecto_valido(self):
+        DimensionFiltro("serie", "Campo", ("A", "B"), "A")
+        with pytest.raises(ValueError, match="no tiene opciones"):
+            DimensionFiltro("serie", "Campo", (), "A")
+        with pytest.raises(ValueError, match="repetidas"):
+            DimensionFiltro("serie", "Campo", ("A", "A"), "A")
+        with pytest.raises(ValueError, match="por defecto"):
+            DimensionFiltro("serie", "Campo", ("A", "B"), "C")
+
+    def test_linea_exige_puntos_unicos_y_estilo_conocido(self):
+        with pytest.raises(ValueError, match="no tiene puntos"):
+            LineaGrafico("L", ())
+        with pytest.raises(ValueError, match="repetidos"):
+            LineaGrafico("L", (PuntoSerie("a", 1), PuntoSerie("a", 2)))
+        with pytest.raises(ValueError, match="estilo"):
+            LineaGrafico("L", (PuntoSerie("a", 1),), "ondulada")
+
+    def test_grafico_exige_lineas_con_nombre_unico(self):
+        with pytest.raises(ValueError, match="no tiene lineas"):
+            GraficoResultado("g", "G", "u", ())
+        linea = LineaGrafico("L", (PuntoSerie("a", 1),))
+        with pytest.raises(ValueError, match="nombre repetido"):
+            GraficoResultado("g", "G", "u", (linea, linea))
+
+    def test_el_resultado_valida_que_graficos_y_tablas_usen_dimensiones_existentes(self):
+        r = crear_resultado_modelo()
+        with pytest.raises(ValueError, match="dimension que no existe: otra"):
+            replace(r, graficos=(replace(r.graficos[0], etiquetas=(("otra", "X"),)),))
+        with pytest.raises(ValueError, match="fuera de las opciones"):
+            replace(r, graficos=(replace(r.graficos[0], etiquetas=(("serie", "ZZZ"),)),))
+        with pytest.raises(ValueError, match="filtra por una dimension que no existe"):
+            replace(r, tablas=(replace(r.tablas[1], filtros_columna=(("otra", "Campo"),)),))
+        with pytest.raises(ValueError, match="columna que no existe"):
+            TablaResultado("t", "T", ("a",), (("x",),), None, (("serie", "zzz"),))
+        with pytest.raises(ValueError, match="graficos con id repetido"):
+            replace(r, graficos=(r.graficos[0], r.graficos[0]))
+        with pytest.raises(ValueError, match="dimensiones con id repetido"):
+            replace(r, dimensiones=(r.dimensiones[0], r.dimensiones[0]))
+
+    def test_un_resultado_solo_con_graficos_es_valido(self):
+        r = crear_resultado_modelo()
+        assert replace(r, indicadores=(), series=(), tablas=()).graficos
 
 
 # ------------------------------------------------------------------ fichas
@@ -157,6 +206,14 @@ class TestRepositorio:
             repo.reemplazar(mala)
         assert repo.obtener("apagon").origen == "Corrida de prueba"
 
+    def test_un_resultado_guardado_antes_de_existir_dimensiones_y_graficos_se_lee_igual(self, repo):
+        import json as _json
+        antiguo = {"origen": "Corrida vieja", "configuracion": [], "indicadores": [{"etiqueta": "x", "valor": "1", "detalle": None, "nivel": None}],
+                   "series": [], "tablas": [{"id": "t", "titulo": "T", "columnas": ["a"], "filas": [["x"]], "nota": None}], "advertencias": []}
+        repo._db.ejecutar("INSERT INTO modelo_resultados VALUES (?, ?, ?)", ["gas", datetime(2026, 1, 1), _json.dumps(antiguo)])
+        r = repo.obtener("gas")
+        assert r.origen == "Corrida vieja" and r.dimensiones == () and r.graficos == () and r.tablas[0].filtros_columna == ()
+
     def test_reiniciar_la_base_no_borra_los_resultados(self, tmp_path):
         ruta = str(tmp_path / "r.duckdb")
         conexion = DuckDBConnection(ruta)
@@ -168,7 +225,8 @@ class TestRepositorio:
 # ------------------------------------------------------------------ lector del apagon
 COLUMNAS_APAGON = [
     "mes", "oni_p10", "oni_p50", "oni_p90", "embalse_pct_p10", "embalse_pct_p50", "embalse_pct_p90", "demanda_mwh_p10",
-    "demanda_mwh_p50", "demanda_mwh_p90", "generacion_hidro_mwh_p50", "oferta_total_mwh_p10", "oferta_total_mwh_p50",
+    "demanda_mwh_p50", "demanda_mwh_p90", "generacion_hidro_mwh_p50", "generacion_termica_mwh_p50", "generacion_renovable_mwh_p50",
+    "oferta_total_mwh_p10", "oferta_total_mwh_p50",
     "oferta_total_mwh_p90", "deficit_mwh_p50", "deficit_mwh_p90", "probabilidad_deficit", "probabilidad_apagon_severo",
     "margen_reserva_pct_p50", "indice_riesgo_0_100", "semaforo",
 ]
@@ -178,14 +236,15 @@ def _fila_apagon(mes, semaforo="VERDE", indice=10.0, prob=0.02, severo=0.0, marg
     return {
         "mes": mes, "oni_p10": -0.5, "oni_p50": 0.5, "oni_p90": 1.5, "embalse_pct_p10": 40.0, "embalse_pct_p50": 55.0,
         "embalse_pct_p90": 70.0, "demanda_mwh_p10": 6_000_000, "demanda_mwh_p50": 6_500_000, "demanda_mwh_p90": 7_000_000,
-        "generacion_hidro_mwh_p50": 4_000_000, "oferta_total_mwh_p10": 6_100_000, "oferta_total_mwh_p50": 6_600_000,
+        "generacion_hidro_mwh_p50": 4_000_000, "generacion_termica_mwh_p50": 2_000_000,
+        "generacion_renovable_mwh_p50": 600_000, "oferta_total_mwh_p10": 6_100_000, "oferta_total_mwh_p50": 6_600_000,
         "oferta_total_mwh_p90": 7_100_000, "deficit_mwh_p50": d50, "deficit_mwh_p90": d90, "probabilidad_deficit": prob,
         "probabilidad_apagon_severo": severo, "margen_reserva_pct_p50": margen, "indice_riesgo_0_100": indice, "semaforo": semaforo,
     }
 
 
-def escribir_apagon(carpeta: Path, filas=None, franjas=True, json_extra=True) -> Path:
-    base = carpeta / "resultados_modelo_riesgo_apagon"
+def escribir_apagon(carpeta: Path, filas=None, franjas=True, json_extra=True, ruta=("Resultados", "resultados_modelo_riesgo_apagon")) -> Path:
+    base = carpeta.joinpath(*ruta)
     base.mkdir(parents=True)
     filas = filas or [
         _fila_apagon("2026-10-01", "VERDE", 10.0, 0.02, 0.0, 0.20),
@@ -205,7 +264,7 @@ def escribir_apagon(carpeta: Path, filas=None, franjas=True, json_extra=True) ->
                 w.writerow([mes, "madrugada_00_05", 0.3, 100.0, 1000.0])
     if json_extra:
         (base / "configuracion_corrida.json").write_text(json.dumps({"modo_oni": "probabilistico", "n_simulaciones": 3000, "horizonte_meses": 18, "semilla": 20260729}), encoding="utf-8")
-        (base / "metadatos_corrida.json").write_text(json.dumps({"ultimo_oni_observado": 0.3, "capacidad_vigente_mw": 21000.5, "modo_oni": "probabilistico"}), encoding="utf-8")
+        (base / "metadatos_corrida.json").write_text(json.dumps({"ultimo_oni_observado": 0.3, "capacidad_vigente_mw": 21000.5, "modo_oni": "probabilistico", "n_meses_calibracion_demanda": 68, "n_meses_calibracion_oni_historico": 319}), encoding="utf-8")
     return carpeta
 
 
@@ -223,10 +282,42 @@ class TestLectorApagon:
         series = {s.id: s for s in r.series}
         assert [p.y for p in series["probabilidad_deficit"].puntos] == [2.0, 12.0, 60.0]
         assert [p.y for p in series["margen_reserva"].puntos] == [20.0, 8.0, -5.0]
-        d = series["demanda"].puntos[0]
-        assert (d.p10, d.y, d.p90) == (6000.0, 6500.0, 7000.0)  # GWh
         assert series["deficit_p50"].tipo == "barras" and series["deficit_p50"].puntos[2].y == 90.0
         assert series["embalse"].puntos[0].p10 == 40.0 and series["oni"].puntos[0].p90 == 1.5
+
+    def test_demanda_y_oferta_son_un_grafico_de_dos_lineas_con_banda_en_gwh(self, tmp_path):
+        r = leer_apagon(escribir_apagon(tmp_path))
+        g = {g.id: g for g in r.graficos}["demanda_oferta"]
+        assert [l.nombre for l in g.lineas] == ["Demanda", "Oferta total"] and g.unidad == "GWh"
+        d = g.lineas[0].puntos[0]
+        assert (d.p10, d.y, d.p90) == (6000.0, 6500.0, 7000.0)
+        o = g.lineas[1].puntos[0]
+        assert (o.p10, o.y, o.p90) == (6100.0, 6600.0, 7100.0)
+        assert "demanda" not in {s.id for s in r.series} and "oferta" not in {s.id for s in r.series}
+
+    def test_generacion_por_fuente_en_gwh(self, tmp_path):
+        r = leer_apagon(escribir_apagon(tmp_path))
+        g = {g.id: g for g in r.graficos}["generacion_fuentes"]
+        assert [(l.nombre, l.puntos[0].y) for l in g.lineas] == [("Hidráulica", 4000.0), ("Térmica", 2000.0), ("Renovable", 600.0)]
+
+    def test_sin_columnas_de_generacion_no_hay_grafico_de_fuentes(self, tmp_path):
+        filas = [{k: v for k, v in _fila_apagon("2026-10-01").items() if not k.startswith("generacion_")}]
+        import infrastructure.ingesta.resultados_modelos.apagon as modulo
+        # el CSV de prueba declara las columnas de generacion; se escribe uno sin ellas
+        carpeta = tmp_path / "Resultados" / "resultados_modelo_riesgo_apagon"
+        carpeta.mkdir(parents=True)
+        columnas = [c for c in COLUMNAS_APAGON if not c.startswith("generacion_")]
+        with (carpeta / "resumen_mensual.csv").open("w", encoding="utf-8-sig", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=columnas)
+            w.writeheader()
+            w.writerows(filas)
+        r = modulo.leer_apagon(tmp_path)
+        assert [g.id for g in r.graficos] == ["demanda_oferta"]
+
+    @pytest.mark.parametrize("ruta", [("Resultados", "resultados_modelo_riesgo_apagon"), ("resultados_modelo_riesgo_apagon",)])
+    def test_acepta_la_carpeta_con_o_sin_Resultados(self, tmp_path, ruta):
+        r = leer_apagon(escribir_apagon(tmp_path, ruta=ruta))
+        assert len(r.series) == 8
 
     def test_el_mes_con_hora_se_normaliza_y_se_ordena(self, tmp_path):
         filas = [_fila_apagon("2026-12-01 00:00:00"), _fila_apagon("2026-10-01")]
@@ -250,6 +341,7 @@ class TestLectorApagon:
         etiquetas = [n for n, _ in r.configuracion]
         assert etiquetas.count("Modo ONI") == 1 and ("Simulaciones", "3000") in r.configuracion
         assert ("Capacidad vigente (MW)", "21000.5") in r.configuracion
+        assert ("Meses de demanda para calibrar", "68") in r.configuracion and ("Meses de ONI histórico", "319") in r.configuracion
 
     def test_siempre_advierte_que_es_adecuacion_nacional(self, tmp_path):
         r = leer_apagon(escribir_apagon(tmp_path))
@@ -298,6 +390,67 @@ def _libro(ruta: Path, hojas: dict[str, list[list]]) -> None:
 
 
 ETQ_ANH, ETQ_MME = "Oferta gas comercializado (ANH)", "Oferta gas declarado (MME)"
+CAB_RESUMEN = ["Serie", "Variable", "Metodo", "Proporcion usada", "MAE backtest", "WAPE backtest %", "MASE backtest", "Mejora vs Naive %",
+               "Promedio ultimos 12m (MPCD)", "Promedio pronostico 12m (MPCD)", "Variacion %", "Declinacion anual Arps % (ref.)", "Advertencia"]
+CAB_PRON = ["Serie", "Variable", "Fecha", "Año", "Mes", "Metodo", "Pronostico", "IC80 inferior", "IC80 superior",
+            "Ref: Naive directo", "Ref: ETS directo", "Ref: Arps hiperbolica directo"]
+
+
+def _meses(desde: str, n: int) -> list[str]:
+    anio, mes = map(int, desde.split("-"))
+    salida = []
+    for i in range(n):
+        m = mes - 1 + i
+        salida.append(f"{anio + m // 12}-{m % 12 + 1:02d}-01")
+    return salida
+
+
+def escribir_v2(carpeta: Path, sin_hoja=None, quitar_columna=None, banda_invertida=False) -> Path:
+    pron, hist, arps, resumen = [CAB_PRON], [["Serie", "Variable", "Fecha", "Valor (MPCD)"]], [["Serie", "Variable", "Fecha", "Año", "Proyeccion Arps (MPCD)"]], [CAB_RESUMEN]
+    for serie, base in (("NACIONAL", 1000.0), ("CAMPO A", 100.0)):
+        for variable, factor in (("Fiscalizado", 1.0), ("Comercializado", 0.7)):
+            for i, f in enumerate(_meses("2026-08", 3)):
+                y = base * factor - i
+                con_banda = not (serie == "CAMPO A" and variable == "Fiscalizado" and i == 1)
+                inf, sup = (y - 5, y + 5) if con_banda else (None, None)
+                if banda_invertida and serie == "NACIONAL" and variable == "Fiscalizado" and i == 0:
+                    inf, sup = y + 1, y + 2  # banda que no contiene al valor central
+                pron.append([serie, variable, f, int(f[:4]), int(f[5:7]), "ETS", y, inf, sup, y, y, y])
+            for f in _meses("2023-04", 40):  # 40 meses: el grafico solo debe mostrar los ultimos 36
+                hist.append([serie, variable, f, base * factor])
+            for i, f in enumerate(_meses("2026-08", 6)):  # 6 meses de Arps: solo los 3 de la ventana del pronostico
+                arps.append([serie, variable, f, int(f[:4]), base * factor - 2 * i])
+            adv = "el naive tuvo menor error en el backtest" if (serie == "CAMPO A" and variable == "Fiscalizado") else None
+            resumen.append([serie, variable, "ETS amortiguado (base)", None, 10.0, 3.1, 0.7, 46.4, base * factor, base * factor * 0.9, -10.0, 10.8, adv])
+    resumen.append(["LA CRECIENTE", "Fiscalizado", "n/d", None, None, None, None, None, 0, None, None, None, "variable sin valor en los ultimos 12 meses"])
+    resumen.append(["Variacion % = promedio del pronostico 12m frente al de los ultimos 12 meses reales."])
+    pron.append(["MPCD. 'Pronostico' = metodo principal."])
+    declarado = [["Fecha", "Año declaracion", ETQ_MME, "Total PTDV (PTDV + EST-PTDV)"]] + [[f, 2026, 700.0 + i, 90.0] for i, f in enumerate(_meses("2026-01", 12))]
+    declarado.append(["Comparativo de las graficas nacionales (MPCD)."])
+    hojas = {
+        "Info": [["Pronostico coherente de gas por campo y nacional — version 2", None], [None, None], ["Insumo", "Producción_Mpcpd.parquet"],
+                 ["Ultimo mes con dato", "2026-07"], ["Horizonte", "12 meses"], ["Unidades", "MPCD"],
+                 ["Metodo", "1) Fiscalizado: ETS."], [None, "2) Comercializado = Fiscalizado x p1"],
+                 ["Nota 1", "A nivel NACIONAL los parametros de Arps no tienen interpretacion fisica."], ["Nota 3", "Meses sin reporte se toman como 0."]],
+        "Resumen": resumen,
+        "Pronostico": pron,
+        "Proporciones": [["Serie", "p1 Comercializado/Fiscalizado (usada)", "Advertencia"], ["NACIONAL", 0.7, None], ["CAMPO A", 0.7, None]],
+        "Backtest": [["Serie", "Variable", "Metodo", "MAE", "WAPE_%", "MASE", "BIAS", "Cortes", "Mejora vs Naive %", "Principal"],
+                     ["NACIONAL", "Fiscalizado", "Proporcion", 1.0, 2.0, 0.9, 0.1, 8, 14.0, "SI"]],
+        "Arps hiperbolica": [["Serie", "Variable", "Ventana ajuste", "qi (MPCD)", "Di (1/mes)", "b"], ["NACIONAL", "Fiscalizado", "2023-08 a 2026-07", 1500.0, 0.01, 0.001]],
+        "Arps mensual": arps,
+        "Declarado nacional": declarado,
+        "Historico": hist,
+    }
+    if sin_hoja:
+        hojas.pop(sin_hoja)
+    if quitar_columna:
+        hoja, columna = quitar_columna
+        filas = hojas[hoja]
+        i = filas[0].index(columna)
+        hojas[hoja] = [f[:i] + f[i + 1:] if len(f) > 1 else f for f in filas]
+    _libro(carpeta / "Resultados" / "pronostico_v2" / "Pronostico_Gas_v2.xlsx", hojas)
+    return carpeta
 
 
 def escribir_dca(carpeta: Path, validacion="DCA mejor que MME", sin_hoja=None) -> Path:
@@ -317,66 +470,141 @@ def escribir_dca(carpeta: Path, validacion="DCA mejor que MME", sin_hoja=None) -
     }
     if sin_hoja:
         hojas.pop(sin_hoja)
-    _libro(carpeta / "Output" / "pronostico_dca" / "Pronostico_DCA_Declaraciones.xlsx", hojas)
+    _libro(carpeta / "Resultados" / "pronostico_dca" / "Pronostico_DCA_Declaraciones.xlsx", hojas)
     return carpeta
 
 
-def escribir_prophet(carpeta: Path) -> Path:
-    _libro(carpeta / "Output" / "pronostico" / "Pronostico_Produccion_Gas.xlsx", {
-        "Pronóstico": [["CAMPO", "FECHA", "AÑO", "MES", "PRONÓSTICO (Mpcpd)", "IC INFERIOR (95%)", "IC SUPERIOR (95%)"],
-                       ["A", "2026-08-01", 2026, 8, 10.0, 8.0, 12.0], ["B", "2026-08-01", 2026, 8, 5.0, 4.0, 6.0], ["A", "2026-09-01", 2026, 9, 11.0, 9.0, 13.0]],
-        "Resumen Campos": [["CAMPO"], ["A"]],
-        "Métricas Modelo": [["CAMPO", "MESES HISTÓRICOS", "PRODUCCIÓN TOTAL HIST.", "MAE VALIDACIÓN", "MAPE VALIDACIÓN (%)"], ["A", 100, 5000.0, 1.2, 8.5]],
-        "Histórico": [["CAMPO", "FECHA", "PRODUCCIÓN REAL (Mpcpd)"], ["A", "2026-07-01", 9.0], ["B", "2026-07-01", 4.0]],
-    })
+def escribir_backtesting(carpeta: Path) -> Path:
+    base = carpeta / "Resultados" / "backtesting"
+    base.mkdir(parents=True, exist_ok=True)
+    (base / "backtest_resumen_global.csv").write_text(
+        ",n,MAE,RMSE,MAPE,sesgo_MPCD,sesgo_pct,ratio_medio,ratio_agregado,corr,pct_dentro_10\nGLOBAL,850.0,266.7,355.1,23.5,201.6,11.2,0.89,0.85,0.57,35.06\n", encoding="utf-8-sig")
+    (base / "backtest_por_anio_declaracion.csv").write_text("anio_decl,n,MAE,MAPE\n2015,120.0,114.5,9.7\n2016,120.0,312.8,27.4\n", encoding="utf-8-sig")
+    (base / "backtest_skill_vs_naive_horizonte.csv").write_text("h_anios,n,RMSE_declaracion,RMSE_naive,skill_RMSE\n1,127.0,375.2,96.5,-2.89\n", encoding="utf-8-sig")
+    comp = carpeta / "Resultados" / "comparacion"
+    comp.mkdir(parents=True, exist_ok=True)
+    (comp / "resumen_comparacion_por_anio.csv").write_text("año declaración,meses,media_MME,media_ANH\n2015,120,1133.5,1177.6\n", encoding="utf-8-sig")
     return carpeta
 
 
-class TestLectorGas:
-    def test_lee_la_cohorte_mas_reciente_con_sus_curvas(self, tmp_path):
+class TestLectorGasV2:
+    def test_declara_las_dimensiones_campo_y_variable_sin_las_series_que_el_modelo_no_pronostico(self, tmp_path):
+        r = leer_gas(escribir_v2(tmp_path))
+        campo, variable = r.dimensiones
+        assert (campo.id, campo.etiqueta, campo.opciones, campo.por_defecto) == ("serie", "Campo", ("NACIONAL", "CAMPO A"), "NACIONAL")
+        assert (variable.id, variable.opciones, variable.por_defecto) == ("variable", ("Fiscalizado", "Comercializado"), "Fiscalizado")
+        assert "LA CRECIENTE" not in campo.opciones  # no tiene pronostico
+
+    def test_un_grafico_por_campo_y_variable_con_sus_etiquetas(self, tmp_path):
+        r = leer_gas(escribir_v2(tmp_path))
+        assert sorted(g.id for g in r.graficos) == sorted(f"v2:{s}:{v}" for s in ("NACIONAL", "CAMPO A") for v in ("Fiscalizado", "Comercializado"))
+        g = {g.id: g for g in r.graficos}["v2:CAMPO A:Comercializado"]
+        assert g.etiquetas == (("serie", "CAMPO A"), ("variable", "Comercializado")) and g.unidad == "MPCD"
+
+    def test_el_observado_se_limita_a_los_ultimos_36_meses_y_el_pronostico_trae_la_banda(self, tmp_path):
+        g = {g.id: g for g in leer_gas(escribir_v2(tmp_path)).graficos}["v2:NACIONAL:Fiscalizado"]
+        observado, pronostico = g.lineas[0], g.lineas[1]
+        assert observado.nombre == "Observado" and len(observado.puntos) == 36 and observado.puntos[-1].x == "2026-07"
+        assert pronostico.nombre.startswith("Pronóstico") and [p.x for p in pronostico.puntos] == ["2026-08", "2026-09", "2026-10"]
+        assert (pronostico.puntos[0].p10, pronostico.puntos[0].y, pronostico.puntos[0].p90) == (995.0, 1000.0, 1005.0)
+
+    def test_un_mes_sin_banda_se_muestra_sin_banda_y_una_banda_invalida_se_descarta(self, tmp_path):
+        g = {g.id: g for g in leer_gas(escribir_v2(tmp_path)).graficos}["v2:CAMPO A:Fiscalizado"]
+        assert g.lineas[1].puntos[1].p10 is None and g.lineas[1].puntos[0].p10 is not None
+        g2 = {g.id: g for g in leer_gas(escribir_v2(tmp_path / "otra", banda_invertida=True)).graficos}["v2:NACIONAL:Fiscalizado"]
+        assert g2.lineas[1].puntos[0].p10 is None  # inf > valor central: no se inventa una banda
+
+    def test_la_referencia_de_arps_solo_cubre_la_ventana_del_pronostico_y_va_punteada(self, tmp_path):
+        g = {g.id: g for g in leer_gas(escribir_v2(tmp_path)).graficos}["v2:NACIONAL:Fiscalizado"]
+        ref = g.lineas[2]
+        assert ref.nombre == "Referencia: Arps hiperbólica" and ref.estilo == "punteada" and [p.x for p in ref.puntos] == ["2026-08", "2026-09", "2026-10"]
+
+    def test_la_oferta_declarada_solo_acompana_al_comercializado_nacional(self, tmp_path):
+        graficos = {g.id: g for g in leer_gas(escribir_v2(tmp_path)).graficos}
+        nombres = lambda id_: [l.nombre for l in graficos[id_].lineas]  # noqa: E731
+        assert "Oferta declarada (MME, declaración 2026)" in nombres("v2:NACIONAL:Comercializado")
+        assert "Oferta declarada (MME, declaración 2026)" not in nombres("v2:NACIONAL:Fiscalizado")
+        assert "Oferta declarada (MME, declaración 2026)" not in nombres("v2:CAMPO A:Comercializado")
+        mme = graficos["v2:NACIONAL:Comercializado"].lineas[-1]
+        assert mme.puntos[0].x == "2023-04" or mme.puntos[0].x >= "2026-01"  # recortada al rango observado + pronostico
+        assert mme.puntos[-1].x == "2026-10" and mme.estilo == "punteada"
+
+    def test_las_tablas_se_filtran_por_campo_y_variable_segun_sus_columnas(self, tmp_path):
+        tablas = {t.id: t for t in leer_gas(escribir_v2(tmp_path)).tablas}
+        assert tablas["v2_resumen"].filtros_columna == (("serie", "Serie"), ("variable", "Variable"))
+        assert tablas["v2_backtest"].filtros_columna == (("serie", "Serie"), ("variable", "Variable"))
+        assert tablas["v2_proporciones"].filtros_columna == (("serie", "Serie"),)  # no tiene columna Variable
+        assert len(tablas["v2_resumen"].filas) == 5  # 4 series x variable + LA CRECIENTE; la nota al pie no cuenta
+
+    def test_indicadores_del_total_nacional_y_de_las_advertencias(self, tmp_path):
+        ind = {i.etiqueta: i for i in leer_gas(escribir_v2(tmp_path)).indicadores}
+        nac = ind["Gas fiscalizado nacional, próximos 12 meses"]
+        assert nac.valor == "900 MPCD" and nac.detalle == "-10.0 % frente a los últimos 12 meses reales (1.000 MPCD)"
+        assert ind["Mejora frente al pronóstico ingenuo (nacional)"].valor == "46 %"
+        adv = ind["Series con advertencia del modelo"]
+        assert (adv.valor, adv.nivel) == ("2 de 5", "alerta") and "En 1 el pronóstico ingenuo" in adv.detalle
+
+    def test_las_notas_del_libro_son_advertencias_y_el_resto_de_la_info_configuracion(self, tmp_path):
+        r = leer_gas(escribir_v2(tmp_path))
+        assert any("no tienen interpretacion fisica" in a for a in r.advertencias) and any("Meses sin reporte" in a for a in r.advertencias)
+        config = dict(r.configuracion)
+        assert config["Último mes con dato"] == "2026-07" and config["Horizonte"] == "12 meses"
+        assert "ETS" in config["Método"] and "Comercializado = Fiscalizado x p1" in config["Método"]  # la linea de continuacion se une
+
+    def test_falta_una_hoja_o_una_columna(self, tmp_path):
+        with pytest.raises(SalidaModeloInvalidaError, match="faltan hojas"):
+            leer_gas(escribir_v2(tmp_path, sin_hoja="Historico"))
+        with pytest.raises(SalidaModeloInvalidaError, match="no tiene las columnas"):
+            leer_gas(escribir_v2(tmp_path / "otra", quitar_columna=("Pronostico", "IC80 superior")))
+
+
+class TestLectorGasComplementos:
+    def test_el_libro_dca_aporta_un_grafico_por_cohorte_reciente_con_sus_curvas(self, tmp_path):
         r = leer_gas(escribir_dca(tmp_path))
-        ids = {s.id: s for s in r.series}
-        assert all("cohorte 2026" in s.titulo for s in r.series)
-        anh = ids["dca_oferta_gas_comercializado_(anh)"]
-        assert [p.x for p in anh.puntos] == ["2026-01", "2026-02", "2026-03"] and anh.unidad == "MPCD"
-        assert "dca_proyeccion_armonica" not in ids  # toda la curva armonica vacia: no se dibuja una serie sin puntos
-        assert len(ids["dca_proyeccion_exponencial"].puntos) == 3
+        g = {g.id: g for g in r.graficos}["dca:2026"]
+        assert [l.nombre for l in g.lineas] == ["Gas comercializado observado (ANH)", "Oferta declarada (MME)", "Curva exponencial", "Curva hiperbólica"]  # la armonica esta vacia
+        assert g.etiquetas == () and [l.estilo for l in g.lineas] == ["continua", "continua", "punteada", "punteada"]
 
-    def test_indicadores_cuentan_cohortes_y_quien_gana(self, tmp_path):
+    def test_indicadores_y_tablas_del_dca(self, tmp_path):
         r = leer_gas(escribir_dca(tmp_path))
         ind = {i.etiqueta: i for i in r.indicadores}
-        assert ind["Cohortes de declaración procesadas"].valor == "3"
         assert ind["Cohortes donde la curva supera a la declaración"].valor == "1 de 2"  # la «N/D» no es validable
-        assert ind["MAPE mediano del mejor modelo frente al MME"].valor == "3.5 %"
-
-    def test_tablas_ignoran_la_nota_al_pie(self, tmp_path):
-        r = leer_gas(escribir_dca(tmp_path))
+        assert ind["MAPE mediano del mejor modelo frente a la declaración"].valor == "3.5 %"
         t = {t.id: t for t in r.tablas}
-        assert set(t) == {"dca_resumen", "dca_metricas_anh", "dca_metricas_mme", "dca_parametros"}
-        assert len(t["dca_metricas_anh"].filas) == 1 and t["dca_resumen"].columnas[0] == "Cohorte"
+        assert {"dca_resumen", "dca_metricas_anh", "dca_metricas_mme", "dca_parametros"} <= set(t)
+        assert len(t["dca_metricas_anh"].filas) == 1  # la nota al pie no es una fila
+        assert any("solo ilustrativo" in a for a in r.advertencias)
 
-    def test_las_notas_del_libro_se_vuelven_advertencias_y_la_ventana_configuracion(self, tmp_path):
+    def test_solo_el_dca_es_suficiente_y_no_hay_dimensiones(self, tmp_path):
         r = leer_gas(escribir_dca(tmp_path))
-        assert any("solo ilustrativo" in a for a in r.advertencias) and ("Ventana de ajuste", "todo") in r.configuracion
+        assert r.dimensiones == () and "curvas de declinación" in r.origen and "pronóstico coherente" not in r.origen
 
-    def test_el_libro_de_prophet_suma_los_campos_por_mes(self, tmp_path):
-        r = leer_gas(escribir_prophet(tmp_path))
-        s = {s.id: s for s in r.series}
-        assert [(p.x, p.y) for p in s["prophet_pronostico"].puntos] == [("2026-08", 15.0), ("2026-09", 11.0)]
-        assert [(p.x, p.y) for p in s["prophet_historico"].puntos] == [("2026-07", 13.0)]
-        assert r.indicadores[0].valor == "1" and any("15 campos" in a or "mayor producción" in a for a in r.advertencias)
+    def test_v2_y_dca_juntos(self, tmp_path):
+        escribir_v2(tmp_path)
+        r = leer_gas(escribir_dca(tmp_path))
+        assert "pronóstico coherente" in r.origen and "curvas de declinación" in r.origen and len(r.dimensiones) == 2
+        assert {g.id for g in r.graficos} >= {"dca:2026", "v2:NACIONAL:Fiscalizado"}
 
-    def test_los_dos_libros_juntos(self, tmp_path):
-        escribir_dca(tmp_path)
-        r = leer_gas(escribir_prophet(tmp_path))
-        assert "curvas de declinación" in r.origen and "Prophet" in r.origen
-        assert {"dca_resumen", "prophet_metricas"} <= {t.id for t in r.tablas}
+    def test_el_backtesting_de_las_declaraciones_aporta_tablas_y_un_indicador(self, tmp_path):
+        escribir_v2(tmp_path)
+        r = leer_gas(escribir_backtesting(tmp_path))
+        t = {t.id: t for t in r.tablas}
+        assert {"bt_global", "bt_anio", "bt_skill", "comparacion_anio"} <= set(t)
+        assert t["bt_global"].columnas[0] == "Resumen" and t["bt_global"].filas[0][0] == "GLOBAL"
+        assert t["bt_anio"].filas[1][0] == 2016.0
+        ind = {i.etiqueta: i for i in r.indicadores}["Error medio de las declaraciones frente a lo comercializado (MAPE)"]
+        assert ind.valor == "23.5 %" and ind.detalle == "850 comparaciones mensuales · sesgo +11.2 % · 35 % dentro de ±10 %"
+        assert "backtesting de las declaraciones" in r.origen
+
+    def test_los_archivos_opcionales_pueden_faltar(self, tmp_path):
+        r = leer_gas(escribir_v2(tmp_path))
+        assert not any(t.id.startswith("bt_") for t in r.tablas) and "backtesting" not in r.origen
 
     def test_sin_ningun_libro(self, tmp_path):
         with pytest.raises(SalidaModeloInvalidaError, match="ningun libro"):
             leer_gas(tmp_path)
 
-    def test_falta_una_hoja(self, tmp_path):
+    def test_falta_una_hoja_del_dca(self, tmp_path):
         with pytest.raises(SalidaModeloInvalidaError, match="faltan hojas"):
             leer_gas(escribir_dca(tmp_path, sin_hoja="Resumen"))
 
@@ -453,10 +681,10 @@ class TestImportador:
         carpeta = escribir_apagon(tmp_path / "proyecto")
         db = str(tmp_path / "base.duckdb")
         self._correr(monkeypatch, "--modelo", "apagon", "--carpeta", str(carpeta), "--db-path", db)
-        assert "Importado 'apagon': 4 indicadores, 10 series, 2 tablas" in capsys.readouterr().out
+        assert "Importado 'apagon': 4 indicadores, 8 series, 2 gráficos, 2 tablas" in capsys.readouterr().out
         DuckDBConnection._instancia = None  # el importador usa la instancia unica; la soltamos para abrirla de nuevo
         leido = DuckDBModeloResultadoRepository(DuckDBConnection(db)).obtener("apagon")
-        assert leido is not None and len(leido.series) == 10
+        assert leido is not None and len(leido.series) == 8 and len(leido.graficos) == 2
 
     def test_si_los_archivos_son_invalidos_no_importa_nada(self, tmp_path, monkeypatch):
         with pytest.raises(SystemExit, match="No se importo nada: falta el archivo"):

@@ -41,7 +41,16 @@ export const AYUDAS_MODELOS = {
     contenido: (
       <p>
         Recorta todas las series mensuales de los gráficos al rango de meses elegido (Desde y Hasta, ambos incluidos). Las tablas muestran
-        el resultado completo del modelo.
+        el resultado completo del modelo (o las filas del filtro de serie, si lo hay).
+      </p>
+    ),
+  },
+  filtroDimension: {
+    titulo: "Filtro del resultado",
+    contenido: (
+      <p>
+        Elige qué serie ver (por ejemplo, el campo y la variable en gas). Recorta a la vez los gráficos y las tablas que dependen de ese filtro; los
+        gráficos y las tablas que no dependen de él se muestran siempre.
       </p>
     ),
   },

@@ -36,6 +36,11 @@ GAS = FichaModelo(
         "modelamiento reconoce que el nivel nacional «no representa una unidad física de declinación» y que no se emiten "
         "métricas ni se selecciona un modelo final sin fabricar resultados numéricos."
     ),
+    estado_detalle_con_resultados=(
+        "Hay resultados importados de la corrida más reciente: pronóstico coherente por campo y nacional (v2), curvas de declinación de las "
+        "declaraciones y backtesting de las declaraciones frente al gas observado. Los documentos (18 de septiembre de 2026) son anteriores a esos "
+        "resultados y solo describían el prototipo nacional; las cifras de abajo salen de los archivos de resultados, no de los documentos."
+    ),
     documentos="Actividades 1 a 5 (definición, negocio, datos, preparación y modelamiento), 18 de septiembre de 2026",
     pregunta=(
         "¿En qué medida las declaraciones mensuales de oferta de gas natural anticipan el comportamiento del gas fiscalizado "
@@ -53,7 +58,9 @@ GAS = FichaModelo(
             "Referencia prospectiva: oferta declarada al MME en MPCD, por cohorte de declaración (cada una proyecta hasta 120 meses).",
             "Curvas de Arps (b = 0 exponencial, 0 < b < 1 hiperbólica, b = 1 armónica) ajustadas sobre el gas comercializado observado y proyectadas hasta completar el horizonte de cada cohorte.",
             "La validación real solo usa meses con dato fiscalizado observado fuera de la ventana de ajuste.",
-            "Complemento: pronóstico mensual por campo con Prophet para los 15 campos de mayor producción, reservando 12 meses para validar.",
+            "Pronóstico (script 4, v2): una sola variable base, el gas fiscalizado, con ETS de tendencia amortiguada para el total nacional y los 15 campos de mayor producción; el comercializado y el entregado a gasoducto se derivan con proporciones fijas (p1 y p2) para que las tres variables sean coherentes y comparables. Intervalo empírico al 80 % tomado del backtest.",
+            "Validación: backtest de origen móvil que mide MAE, WAPE, MASE y sesgo frente al pronóstico ingenuo; las curvas de Arps hiperbólicas se reportan solo como referencia de declinación.",
+            "Backtesting de las declaraciones: se compara lo declarado por cada cohorte con el gas comercializado observado, por año de declaración y por horizonte.",
         )),
         SeccionFicha("Datos y fuentes", (
             "ANH — producción fiscalizada (Producción Mpcpd) y Campos Mpcpd: mensual por campo, desde enero de 2013 hasta julio de 2026.",
@@ -87,13 +94,16 @@ GAS = FichaModelo(
         DatoDocumentado("Modelos de declinación", "3", "Exponencial, hiperbólico y armónico (Arps).", "Actividad 5"),
     ),
     archivos_esperados=(
-        ArchivoEsperado("Output/pronostico_dca/Pronostico_DCA_Declaraciones.xlsx",
-                        "Hojas Parametros, Proyeccion mensual, Comparacion anual, Metricas vs MME, Metricas vs ANH real y Resumen (script 8)."),
-        ArchivoEsperado("Output/pronostico/Pronostico_Produccion_Gas.xlsx",
-                        "Hojas Pronóstico, Resumen Campos, Métricas Modelo e Histórico (script 4, Prophet por campo). Opcional."),
+        ArchivoEsperado("Resultados/pronostico_v2/Pronostico_Gas_v2.xlsx",
+                        "Hojas Info, Resumen, Pronostico, Proporciones, Backtest, Arps hiperbolica, Declarado nacional e Historico (script 4 v2): pronóstico por campo y nacional."),
+        ArchivoEsperado("Resultados/pronostico_dca/Pronostico_DCA_Declaraciones.xlsx",
+                        "Hojas Info, Parametros, Proyeccion mensual, Metricas vs MME, Metricas vs ANH real y Resumen (script 8). Opcional."),
+        ArchivoEsperado("Resultados/backtesting/backtest_resumen_global.csv",
+                        "Backtesting de las declaraciones: resumen global y por año de declaración (backtest_por_anio_declaracion.csv). Opcional."),
+        ArchivoEsperado("Resultados/comparacion/resumen_comparacion_por_anio.csv", "Comparación entre lo declarado y lo comercializado por año de declaración. Opcional."),
     ),
-    comando_importacion=_COMANDO.format(modelo="gas", carpeta="../../3. Modelo gas fiscalizado y declarado/Scripts"),
-    carpeta_proyecto="3. Modelo gas fiscalizado y declarado/Scripts",
+    comando_importacion=_COMANDO.format(modelo="gas", carpeta="../../3. Modelo gas fiscalizado y declarado"),
+    carpeta_proyecto="3. Modelo gas fiscalizado y declarado",
 )
 
 OPTIMIZACION = FichaModelo(
@@ -109,6 +119,11 @@ OPTIMIZACION = FichaModelo(
         "metodológico y de sensibilidad. Pero la corrida de modelamiento del 30 de julio de 2026 es una prueba técnica clasificada "
         "INSUFFICIENT_RISK_SAMPLE y publishable = false: usa escenarios de aportes idénticos, una sola iteración y una cola efectiva "
         "de una observación (mínimo provisional: 40). Por eso E[costo], VaR y CVaR no son evidencia económica ni soportan una recomendación de despacho."
+    ),
+    estado_detalle_con_resultados=(
+        "Hay una corrida importada. Sigue valiendo la advertencia de los documentos: la evaluación técnica (2 de septiembre de 2026) respalda el "
+        "análisis exploratorio, metodológico y de sensibilidad, y una corrida marcada como no publicable no es evidencia económica ni soporte de "
+        "despacho. Mira las advertencias de abajo."
     ),
     documentos="Documento 4 de modelamiento (30 de julio de 2026) y evaluación técnica del estado actual (2 de septiembre de 2026)",
     pregunta="Ante un escenario ENOS, ¿cuánta generación térmica conviene utilizar, cuánta agua conservar y qué costo y riesgo implica?",
@@ -175,6 +190,11 @@ APAGON = FichaModelo(
         "final con el detalle mensual de probabilidades y semáforos, ni de un reporte de ejecución de la evaluación. Por eso no se atribuyen "
         "valores de riesgo a meses concretos."
     ),
+    estado_detalle_con_resultados=(
+        "Hay una corrida importada (modo probabilístico, 3.000 simulaciones, 18 meses desde septiembre de 2026). Los documentos (actividades 1 a 6) "
+        "describen el modelo pero no reportan esta corrida; el semáforo y las probabilidades de abajo salen de sus archivos de resultados. Sigue sin haber "
+        "un reporte de ejecución de la evaluación (script 7)."
+    ),
     documentos="Actividades 1 a 6 del estudio (definición, contexto sectorial, exploración, base analítica, modelamiento y evaluación)",
     pregunta=(
         "¿Qué probabilidad tiene el SIN de no cubrir la demanda con su generación disponible en cada mes del horizonte, según la evolución del fenómeno ENOS?"
@@ -210,9 +230,9 @@ APAGON = FichaModelo(
             "Los umbrales del semáforo son un punto de partida, no una réplica de la metodología de Cargo por Confiabilidad de la CREG.",
         )),
         SeccionFicha("Siguientes pasos", (
-            "Ejecutar una corrida final y conservar su resumen mensual, detalle por franjas y metadatos.",
+            "Conservar el resumen mensual, el detalle por franjas y los metadatos de cada corrida que se quiera publicar.",
             "Ejecutar la evaluación (script 7) y guardar su reporte para documentar los criterios aprobados.",
-            "Importar esos archivos a esta plataforma para ver el semáforo mensual y las probabilidades.",
+            "Importar los resultados a esta plataforma cada vez que haya una corrida nueva (hoy hay una importada).",
         )),
     ),
     datos_documentados=(
@@ -222,14 +242,14 @@ APAGON = FichaModelo(
         DatoDocumentado("Franjas horarias", "5", "Madrugada, mañana, tarde, pico de la noche y noche.", "Actividad 6"),
     ),
     archivos_esperados=(
-        ArchivoEsperado("resultados_modelo_riesgo_apagon/resumen_mensual.csv",
+        ArchivoEsperado("Resultados/resultados_modelo_riesgo_apagon/resumen_mensual.csv",
                         "Percentiles de ONI, embalse, demanda y oferta; probabilidades de déficit; margen de reserva, índice y semáforo por mes."),
-        ArchivoEsperado("resultados_modelo_riesgo_apagon/detalle_franjas_horarias.csv", "Probabilidad y déficit esperado por mes y franja. Opcional."),
-        ArchivoEsperado("resultados_modelo_riesgo_apagon/metadatos_corrida.json", "Metadatos de la corrida (modo ONI, capacidad vigente, calibraciones). Opcional."),
-        ArchivoEsperado("resultados_modelo_riesgo_apagon/configuracion_corrida.json", "Parámetros de la corrida. Opcional."),
+        ArchivoEsperado("Resultados/resultados_modelo_riesgo_apagon/detalle_franjas_horarias.csv", "Probabilidad y déficit esperado por mes y franja. Opcional."),
+        ArchivoEsperado("Resultados/resultados_modelo_riesgo_apagon/metadatos_corrida.json", "Metadatos de la corrida (modo ONI, capacidad vigente, calibraciones). Opcional."),
+        ArchivoEsperado("Resultados/resultados_modelo_riesgo_apagon/configuracion_corrida.json", "Parámetros de la corrida. Opcional."),
     ),
-    comando_importacion=_COMANDO.format(modelo="apagon", carpeta="../../5. Modelo apagón/Scripts"),
-    carpeta_proyecto="5. Modelo apagón/Scripts",
+    comando_importacion=_COMANDO.format(modelo="apagon", carpeta="../../5. Modelo apagón"),
+    carpeta_proyecto="5. Modelo apagón",
 )
 
 FICHAS: dict[str, FichaModelo] = {f.id: f for f in (GAS, OPTIMIZACION, APAGON)}

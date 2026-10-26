@@ -278,9 +278,9 @@ y
   intervalos de confianza; DNS: eventos hasta el último reportado, con el mes del corte parcial). Se actualizan importando una corrida nueva.
 - **DNS**: los eventos EDAC se cuentan aparte (su valor es carga desconectada, no kWh); los patrones por hora excluyen la «hora desconocida»;
   parte de las causas se infiere del texto; el aumento de eventos de 2024-2025 viene en parte de cambios en la forma de reportar.
-- **Gas, optimización y apagón no tienen resultados**: sus carpetas de datos están vacías y sus documentos reconocen que no hay corrida final
-  (gas y apagón) o que es una prueba técnica no publicable (optimización). Sus tableros muestran la ficha y cómo cargar resultados; los lectores de
-  sus salidas se probaron con archivos sintéticos y falta validarlos con salidas reales.
+- **Gas y apagón ya tienen resultados reales; optimización aún no**: los lectores de gas (`Resultados/pronostico_v2/Pronostico_Gas_v2.xlsx`, con
+  DCA y backtesting opcionales) y de apagón (`Resultados/resultados_modelo_riesgo_apagon/`) se validaron con los archivos reales. La carpeta de
+  optimización sigue vacía y su corrida es una prueba técnica no publicable, así que su tablero muestra la ficha y cómo cargar resultados.
 
 ## Tableros y modelos
 
@@ -380,19 +380,19 @@ el sistema deja de suministrar en un evento. Es el único de los modelos 2 a 5 q
 
 ### Tableros de gas, optimización hidrotérmica y riesgo de apagón
 
-Los proyectos 3, 4 y 5 traen documentos (CRISP-DM) y código, pero **no resultados**: sus carpetas `Datos` están vacías y sus propios
-documentos dicen que no hay corrida final (gas y apagón) o que la corrida es una prueba técnica marcada `publishable = false`
-(optimización). Por eso comparten un solo motor y la plataforma **no inventa cifras**:
+Los proyectos 3, 4 y 5 comparten un solo motor. Gas y apagón ya entregaron resultados (se importan con el comando de abajo); optimización
+solo tiene una prueba técnica marcada `publishable = false` y sigue sin resultados. La plataforma **no inventa cifras**:
 
 - **Ficha documentada** (`infrastructure/fichas/catalogo.py`, redactada a partir de los documentos): pregunta, método, datos,
   alcance, limitaciones, siguientes pasos, estado real y cifras ya publicadas (rotuladas con su documento).
 - **Resultados importables:** cuando el modelo entregue sus salidas, se cargan con
   `python -m infrastructure.ingesta.importar_resultado_modelo --modelo <gas|optimizacion|apagon> --carpeta <proyecto>`. Hay un lector por modelo
   (`infrastructure/ingesta/resultados_modelos/`): **apagón** lee `resultados_modelo_riesgo_apagon/*.csv|json` (semáforo mensual, probabilidades,
-  margen de reserva, bandas P10-P90, franjas); **gas** lee los libros de Excel de las curvas de declinación y de Prophet; **optimización** lee
+  margen de reserva, bandas P10-P90, franjas); **gas** lee el libro `pronostico_v2` (pronóstico coherente por campo y nacional, backtest, proporciones, curvas de Arps) y, si existen, el DCA y los CSV de backtesting/comparación; **optimización** lee
   `05_resultados/*.json` y advierte si la corrida no es publicable. Todos validan antes de escribir y reemplazan solo el resultado de ese modelo.
-- **Interfaz:** estado, cifras documentadas, ficha y, con resultados, indicadores con nivel, advertencias, series (con un filtro *Desde/Hasta* que las
-  recorta todas a la vez), tablas y procedencia. Sin resultados dice qué archivos se esperan y el comando para cargarlos.
+- **Esquema genérico:** un resultado puede declarar `dimensiones` (filtros como campo y variable en gas), `graficos` de varias líneas (continuas o
+  punteadas, con banda P10-P90) y tablas filtrables por esas dimensiones; cada filtro viaja en la URL (`?serie=CUSIANA&variable=Fiscalizado`).
+- **Interfaz:** estado, cifras documentadas, ficha y, con resultados, filtros del modelo y *Desde/Hasta* (recortan todos los gráficos y tablas a la vez), indicadores con nivel, advertencias, series, gráficos, tablas (el semáforo se muestra como insignia con texto) y procedencia. Sin resultados dice qué archivos se esperan y el comando para cargarlos.
 - **API:** `GET /api/v1/modelos/{gas|optimizacion|apagon}/ficha` y `/resultados` (`disponible: false` es un estado normal, no un error).
 
 ### Seguridad
@@ -526,7 +526,7 @@ Luego hay que volver a publicar la API (`scripts/desplegar-vercel.sh`).
 python -m infrastructure.ingesta.importar_modelo_dns --carpeta "../../2. Modelo DNS"
 
 # Gas, optimización o apagón: cuando el modelo entregue sus salidas (ver la ficha de cada tablero)
-python -m infrastructure.ingesta.importar_resultado_modelo --modelo apagon --carpeta "../../5. Modelo apagón/Scripts"
+python -m infrastructure.ingesta.importar_resultado_modelo --modelo apagon --carpeta "../../5. Modelo apagón"
 ```
 
 Ambos validan los archivos antes de escribir, reemplazan en una transacción (el de modelos, solo el resultado de ese modelo) y no se borran con
@@ -694,9 +694,9 @@ gh pr create --fill                # abrir el pull request
 gh pr merge --squash --delete-branch   # cuando los checks estén en verde
 ```
 
-### Backend — 583 pruebas (pytest)
+### Backend — 606 pruebas (pytest)
 
-583 pruebas con pytest, sin red ni base de datos externa (repositorios,
+606 pruebas con pytest, sin red ni base de datos externa (repositorios,
 fuente y pronóstico en memoria —ver [`tests/fakes.py`](backend/tests/fakes.py)—, y
 DuckDB sobre archivos temporales). Las pruebas HTTP usan `TestClient` de FastAPI
 (requiere `httpx`, incluido en `requirements-dev.txt`):
@@ -733,7 +733,7 @@ repositorios en memoria; DuckDB se prueba aparte). La descarga real de SIMEM/XM
 se verificó manualmente (carga completa e incremental) y contra el agregado
 oficial de XM, pero no en las pruebas automáticas, que no usan red.
 
-### Frontend — 430 pruebas (Vitest + React Testing Library + jsdom)
+### Frontend — 436 pruebas (Vitest + React Testing Library + jsdom)
 
 Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 ([`tests/mocks/fetch.ts`](frontend/tests/mocks/fetch.ts)) con datos de ejemplo
@@ -763,12 +763,12 @@ Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 | `carbon/clienteCarbon.test.ts` | 8 | URLs y parámetros de los 5 endpoints, la historia `0` se envía, errores 404/422 como `ApiError` |
 | `dns/dns.test.tsx` | 30 | Página DNS con la API simulada: 8 endpoints, tarjetas y sentido de las variaciones, **cada filtro llega a los bloques que corresponde** (período y origen no a zonas/cambios/modelo; región a todos), región→subárea, clic en una zona, restablecer, serie con pronóstico, patrones, causas, cambios, modelo y errores por bloque |
 | `dns/clienteDns.test.ts`, `utils/dns.test.ts` | 10 + 13 | URLs y parámetros del DNS (el período `0` se envía; zonas/cambios/modelo no llevan período ni origen), formato de variaciones y construcción de la serie con pronóstico |
-| `modelos/modelos.test.tsx` | 19 | Tableros de gas/optimización/apagón: estado documentado, sin resultados no hay filtros ni gráficos, ficha, errores, con resultados: indicadores con nivel, series con banda, «—» por dato vacío y **filtro Desde/Hasta que recorta todas las series** |
-| `utils/modelos.test.ts` | 11 | Etiquetas de período, opciones y recorte de series, banda apilada |
+| `modelos/modelos.test.tsx` | 21 | Tableros de gas/optimización/apagón: estado documentado, sin resultados no hay filtros ni gráficos, ficha, errores, con resultados: indicadores con nivel, series con banda, «—» por dato vacío y **filtro Desde/Hasta que recorta todas las series**, filtros por dimensión (campo/variable) que eligen gráfico y filas de la tabla |
+| `utils/modelos.test.ts` | 15 | Etiquetas de período, opciones y recorte de series, banda apilada, gráficos y filas por dimensión, huecos (nunca ceros) |
 | `carbon/carbon.test.tsx` | 24 | Página de carbón con la API simulada: valores por defecto, resumen pedido una sola vez, tarjetas, **cada filtro vuelve a consultar solo lo que le corresponde** (horizonte → 4 endpoints; días → resumen e inventario; historia → serie; unidad → sin red), restablecer, opciones = lista cerrada de la API, ayudas ⓘ, errores por bloque, techo/récord/banda del gráfico, aviso del mes en curso y de XM sobre el techo, validación accesible |
 | `app/ayudas.test.tsx` | 6 | Catálogo de ayudas (títulos únicos, sin textos obsoletos) y auditoría: todo encabezado, columna, filtro y tarjeta tiene su ⓘ y todos abren y cierran |
 
-### Frontend — pruebas de extremo a extremo (Playwright, 37)
+### Frontend — pruebas de extremo a extremo (Playwright, 38)
 
 [`frontend/e2e/`](frontend/e2e) abre el **build de producción** en un navegador real (Chrome local; Chromium en CI) con la
 API simulada ([`e2e/api.ts`](frontend/e2e/api.ts), mismos datos de ejemplo que las pruebas unitarias), así que no dependen del

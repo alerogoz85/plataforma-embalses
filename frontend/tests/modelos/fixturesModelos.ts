@@ -42,8 +42,10 @@ export const crearResultadoModelo = (sobre: Partial<ResultadoModelo> = {}): Resu
       { x: "2026-10", y: 0, p10: null, p90: null }, { x: "2026-11", y: 1, p10: null, p90: null }, { x: "2026-12", y: 90, p10: null, p90: null }] },
   ],
   tablas: [{ id: "semaforo", titulo: "Semáforo y probabilidades por mes", columnas: ["Mes", "Semáforo", "Índice"],
-             filas: [["2026-10", "Verde", 10], ["2026-11", "Amarillo", 40.5], ["2026-12", "Rojo", null]], nota: "El déficit no incluye restricciones de red." }],
+             filas: [["2026-10", "Verde", 10], ["2026-11", "Amarillo", 40.5], ["2026-12", "Rojo", null]], nota: "El déficit no incluye restricciones de red.", filtros_columna: {} }],
   advertencias: ["Mide adecuación de generación nacional agregada."],
+  dimensiones: [],
+  graficos: [],
   ...sobre,
 });
 
@@ -51,3 +53,31 @@ export const sinResultados = (id: ResultadosModelo["modelo_id"] = "apagon"): Res
 export const conResultados = (resultado = crearResultadoModelo(), id: ResultadosModelo["modelo_id"] = "apagon"): ResultadosModelo => ({
   modelo_id: id, disponible: true, resultado,
 });
+
+/** Resultado con dimensiones (serie y variable), gráficos por combinación y una tabla filtrable, como el de gas. */
+export const crearResultadoConDimensiones = (): ResultadoModelo => {
+  const punto = (x: string, y: number, p10: number | null = null, p90: number | null = null) => ({ x, y, p10, p90 });
+  const grafico = (serie: string, variable: string) => ({
+    id: `${serie}|${variable}`,
+    titulo: `${serie} · ${variable}`,
+    unidad: "GBTUD",
+    etiquetas: { serie, variable },
+    lineas: [
+      { nombre: "Observado", estilo: "continua" as const, puntos: [punto("2026-01", 10), punto("2026-02", 11)] },
+      { nombre: "Pronóstico", estilo: "continua" as const, puntos: [punto("2026-03", 12, 10, 14), punto("2026-04", 13, 11, 15)] },
+      { nombre: "Referencia Arps", estilo: "punteada" as const, puntos: [punto("2026-03", 12.5)] },
+    ],
+  });
+  return crearResultadoModelo({
+    series: [],
+    dimensiones: [
+      { id: "serie", etiqueta: "Campo", opciones: ["NACIONAL", "CUSIANA"], por_defecto: "NACIONAL" },
+      { id: "variable", etiqueta: "Variable", opciones: ["Fiscalizado", "Comercializado"], por_defecto: "Fiscalizado" },
+    ],
+    graficos: [grafico("NACIONAL", "Fiscalizado"), grafico("CUSIANA", "Fiscalizado"), grafico("NACIONAL", "Comercializado")],
+    tablas: [
+      { id: "v2_resumen", titulo: "Resumen por serie", columnas: ["Campo", "Variable", "Semáforo"], nota: null, filtros_columna: { serie: "Campo", variable: "Variable" },
+        filas: [["NACIONAL", "Fiscalizado", "Verde"], ["CUSIANA", "Fiscalizado", "Rojo"], ["NACIONAL", "Comercializado", "Amarillo"]] },
+    ],
+  });
+};
