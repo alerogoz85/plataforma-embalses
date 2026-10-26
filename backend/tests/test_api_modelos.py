@@ -57,11 +57,28 @@ class TestResultados:
     def test_con_resultado_trae_todo_el_contenido(self, cliente_con_apagon):
         r = cliente_con_apagon.get("/api/v1/modelos/apagon/resultados").json()
         assert r["disponible"] and set(r["resultado"]) == {
-            "generado_en", "origen", "configuracion", "indicadores", "series", "tablas", "advertencias"}
+            "generado_en", "origen", "configuracion", "indicadores", "series", "tablas", "advertencias", "dimensiones", "graficos"}
         assert r["resultado"]["indicadores"][0] == {"etiqueta": "Meses en rojo", "valor": "2", "detalle": "de 3 meses", "nivel": "critico"}
         assert r["resultado"]["series"][1]["puntos"][0] == {"x": "2026-10", "y": 60.0, "p10": 50.0, "p90": 70.0}
         assert r["resultado"]["series"][0]["puntos"][0]["p10"] is None
         assert r["resultado"]["tablas"][0]["filas"][1] == ["2026-11", "Amarillo", None]
+        assert r["resultado"]["tablas"][0]["filtros_columna"] == {}
+        assert r["resultado"]["tablas"][1]["filtros_columna"] == {"serie": "Campo"}
+
+    def test_dimensiones_y_graficos_con_varias_lineas(self, cliente_con_apagon):
+        r = cliente_con_apagon.get("/api/v1/modelos/apagon/resultados").json()["resultado"]
+        assert r["dimensiones"] == [{"id": "serie", "etiqueta": "Campo", "opciones": ["NACIONAL", "CAMPO A"], "por_defecto": "NACIONAL"}]
+        g = r["graficos"][0]
+        assert g["etiquetas"] == {"serie": "NACIONAL"} and [l["nombre"] for l in g["lineas"]] == ["Observado", "Pronóstico"]
+        assert g["lineas"][1]["estilo"] == "punteada" and g["lineas"][1]["puntos"][0] == {"x": "2026-08", "y": 12.0, "p10": 10.0, "p90": 14.0}
+
+    def test_al_importar_el_detalle_del_estado_es_el_de_con_resultados(self):
+        try:
+            sin = _cliente().get("/api/v1/modelos/apagon/ficha").json()["estado_detalle"]
+            con = _cliente(crear_resultado_modelo("apagon")).get("/api/v1/modelos/apagon/ficha").json()["estado_detalle"]
+        finally:
+            app.dependency_overrides.clear()
+        assert "no se dispone de una corrida" in sin and "Hay una corrida importada" in con
 
 
 class TestSeguridad:

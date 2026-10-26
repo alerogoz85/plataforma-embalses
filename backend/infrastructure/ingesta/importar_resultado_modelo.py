@@ -34,7 +34,7 @@ def main() -> None:
     DuckDBModeloResultadoRepository(DuckDBConnection.obtener_instancia(args.db_path)).reemplazar(resultado)
     print(
         f"Importado '{args.modelo}': {len(resultado.indicadores)} indicadores, {len(resultado.series)} series, "
-        f"{len(resultado.tablas)} tablas, {len(resultado.advertencias)} advertencias (generado {resultado.generado_en:%Y-%m-%d %H:%M})."
+        f"{len(resultado.graficos)} gráficos, {len(resultado.tablas)} tablas, {len(resultado.advertencias)} advertencias (generado {resultado.generado_en:%Y-%m-%d %H:%M})."
     )
 
 

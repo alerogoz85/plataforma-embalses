@@ -4,6 +4,9 @@ from __future__ import annotations
 from application.dtos.modelo_analitico_dto import (
     ArchivoEsperadoDTO,
     DatoDocumentadoDTO,
+    DimensionFiltroDTO,
+    GraficoResultadoDTO,
+    LineaGraficoDTO,
     FichaModeloDTO,
     IndicadorDTO,
     ParametroDTO,
@@ -40,7 +43,7 @@ class ObtenerFichaModeloUseCase:
         return FichaModeloDTO(
             id=ficha.id, titulo=ficha.titulo, resumen=ficha.resumen,
             estado=ESTADO_CON_RESULTADOS if hay_resultado else ficha.estado,
-            estado_detalle=ficha.estado_detalle, documentos=ficha.documentos, pregunta=ficha.pregunta,
+            estado_detalle=ficha.estado_detalle_con_resultados if hay_resultado else ficha.estado_detalle, documentos=ficha.documentos, pregunta=ficha.pregunta,
             secciones=[SeccionFichaDTO(titulo=s.titulo, items=list(s.items)) for s in ficha.secciones],
             datos_documentados=[
                 DatoDocumentadoDTO(etiqueta=d.etiqueta, valor=d.valor, detalle=d.detalle, documento=d.documento)
@@ -74,9 +77,23 @@ class ObtenerResultadosModeloUseCase:
                     for s in r.series
                 ],
                 tablas=[
-                    TablaResultadoDTO(id=t.id, titulo=t.titulo, columnas=list(t.columnas), filas=[list(f) for f in t.filas], nota=t.nota)
+                    TablaResultadoDTO(id=t.id, titulo=t.titulo, columnas=list(t.columnas), filas=[list(f) for f in t.filas], nota=t.nota,
+                                      filtros_columna=dict(t.filtros_columna))
                     for t in r.tablas
                 ],
                 advertencias=list(r.advertencias),
+                dimensiones=[
+                    DimensionFiltroDTO(id=d.id, etiqueta=d.etiqueta, opciones=list(d.opciones), por_defecto=d.por_defecto) for d in r.dimensiones
+                ],
+                graficos=[
+                    GraficoResultadoDTO(
+                        id=g.id, titulo=g.titulo, unidad=g.unidad, etiquetas=dict(g.etiquetas),
+                        lineas=[
+                            LineaGraficoDTO(nombre=l.nombre, estilo=l.estilo, puntos=[PuntoSerieDTO(x=p.x, y=p.y, p10=p.p10, p90=p.p90) for p in l.puntos])
+                            for l in g.lineas
+                        ],
+                    )
+                    for g in r.graficos
+                ],
             ),
         )

@@ -11,7 +11,9 @@ from domain.entities.modelo_carbon import (
     ComparacionXM, CriterioValidez, EpisodioValidacion, ErrorPorHorizonte, HistoricoCarbonMensual,
     InventarioCarbon, PaqueteModeloCarbon, ProyeccionCarbonMensual, SupuestoCarbon, TrimestreCarbon,
 )
-from domain.entities.modelo_analitico import Indicador, PuntoSerie, ResultadoModelo, SerieResultado, TablaResultado
+from domain.entities.modelo_analitico import (
+    DimensionFiltro, GraficoResultado, Indicador, LineaGrafico, PuntoSerie, ResultadoModelo, SerieResultado, TablaResultado,
+)
 from domain.entities.modelo_dns import (
     CambioReporte, EventoDns, ImportanciaVariable, MetricaModelo, PaqueteModeloDns, PronosticoSubarea, SubareaDns,
     ZonaPriorizada,
@@ -378,7 +380,8 @@ class ResultadoModeloRepositoryEnMemoria(ResultadoModeloRepository):
 
 
 def crear_resultado_modelo(modelo_id: str = "apagon") -> ResultadoModelo:
-    """Resultado minimo pero completo: un indicador con nivel, dos series (una con banda), una tabla y una advertencia."""
+    """Resultado pequeno pero completo: un indicador con nivel, dos series (una con banda), un grafico con dos lineas filtrado por
+    una dimension, dos tablas (una filtrable por esa dimension) y una advertencia."""
     return ResultadoModelo(
         modelo_id=modelo_id, generado_en=datetime(2026, 10, 1, 12, 30), origen="Corrida de prueba",
         configuracion=(("Simulaciones", "3000"),),
@@ -389,7 +392,19 @@ def crear_resultado_modelo(modelo_id: str = "apagon") -> ResultadoModelo:
             SerieResultado("embalse", "Embalse", "%", "linea",
                            (PuntoSerie("2026-10", 60.0, 50.0, 70.0), PuntoSerie("2026-11", 55.0, 40.0, 65.0))),
         ),
-        tablas=(TablaResultado("semaforo", "Semáforo", ("Mes", "Semáforo", "Índice"),
-                               (("2026-10", "Verde", 20.0), ("2026-11", "Amarillo", None)), "Nota de prueba"),),
+        tablas=(
+            TablaResultado("semaforo", "Semáforo", ("Mes", "Semáforo", "Índice"),
+                           (("2026-10", "Verde", 20.0), ("2026-11", "Amarillo", None)), "Nota de prueba"),
+            TablaResultado("por_campo", "Por campo", ("Campo", "Valor"), (("NACIONAL", 1.0), ("CAMPO A", 2.0)), None, (("serie", "Campo"),)),
+        ),
         advertencias=("Solo adecuación de generación nacional.",),
+        dimensiones=(DimensionFiltro("serie", "Campo", ("NACIONAL", "CAMPO A"), "NACIONAL"),),
+        graficos=(
+            GraficoResultado(
+                "g_nacional", "NACIONAL: observado y pronóstico", "MPCD",
+                (LineaGrafico("Observado", (PuntoSerie("2026-06", 10.0), PuntoSerie("2026-07", 11.0))),
+                 LineaGrafico("Pronóstico", (PuntoSerie("2026-08", 12.0, 10.0, 14.0),), "punteada")),
+                (("serie", "NACIONAL"),),
+            ),
+        ),
     )

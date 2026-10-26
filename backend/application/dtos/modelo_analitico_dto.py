@@ -69,6 +69,28 @@ class TablaResultadoDTO(BaseModel):
     columnas: list[str]
     filas: list[list[Celda]]
     nota: Optional[str] = None
+    filtros_columna: dict[str, str] = {}  # dimension -> columna por la que se filtran las filas
+
+
+class LineaGraficoDTO(BaseModel):
+    nombre: str
+    estilo: str
+    puntos: list[PuntoSerieDTO]
+
+
+class GraficoResultadoDTO(BaseModel):
+    id: str
+    titulo: str
+    unidad: str
+    lineas: list[LineaGraficoDTO]
+    etiquetas: dict[str, str]  # dimension -> valor
+
+
+class DimensionFiltroDTO(BaseModel):
+    id: str
+    etiqueta: str
+    opciones: list[str]
+    por_defecto: str
 
 
 class ParametroDTO(BaseModel):
@@ -84,6 +106,8 @@ class ResultadoModeloDTO(BaseModel):
     series: list[SerieResultadoDTO]
     tablas: list[TablaResultadoDTO]
     advertencias: list[str]
+    dimensiones: list[DimensionFiltroDTO] = []
+    graficos: list[GraficoResultadoDTO] = []
 
 
 class ResultadosModeloDTO(BaseModel):

@@ -5,7 +5,10 @@ from datetime import datetime
 from typing import Optional
 
 from domain.entities.modelo_analitico import (
+    DimensionFiltro,
+    GraficoResultado,
     Indicador,
+    LineaGrafico,
     PuntoSerie,
     ResultadoModelo,
     SerieResultado,
@@ -30,10 +33,22 @@ def a_json(r: ResultadoModelo) -> str:
                 for s in r.series
             ],
             "tablas": [
-                {"id": t.id, "titulo": t.titulo, "columnas": list(t.columnas), "filas": [list(f) for f in t.filas], "nota": t.nota}
+                {"id": t.id, "titulo": t.titulo, "columnas": list(t.columnas), "filas": [list(f) for f in t.filas], "nota": t.nota,
+                 "filtros_columna": [list(f) for f in t.filtros_columna]}
                 for t in r.tablas
             ],
             "advertencias": list(r.advertencias),
+            "dimensiones": [
+                {"id": d.id, "etiqueta": d.etiqueta, "opciones": list(d.opciones), "por_defecto": d.por_defecto} for d in r.dimensiones
+            ],
+            "graficos": [
+                {"id": g.id, "titulo": g.titulo, "unidad": g.unidad, "etiquetas": [list(e) for e in g.etiquetas],
+                 "lineas": [
+                     {"nombre": l.nombre, "estilo": l.estilo, "puntos": [{"x": p.x, "y": p.y, "p10": p.p10, "p90": p.p90} for p in l.puntos]}
+                     for l in g.lineas
+                 ]}
+                for g in r.graficos
+            ],
         },
         ensure_ascii=False,
     )
@@ -54,10 +69,23 @@ def desde_json(modelo_id: str, generado_en: datetime, contenido: str) -> Resulta
         ),
         tablas=tuple(
             TablaResultado(id=t["id"], titulo=t["titulo"], columnas=tuple(t["columnas"]),
-                           filas=tuple(tuple(f) for f in t["filas"]), nota=t["nota"])
+                           filas=tuple(tuple(f) for f in t["filas"]), nota=t["nota"],
+                           filtros_columna=tuple((a, b) for a, b in t.get("filtros_columna", [])))
             for t in d["tablas"]
         ),
         advertencias=tuple(d["advertencias"]),
+        # Los resultados guardados antes de existir estos campos se leen igual (sin dimensiones ni graficos).
+        dimensiones=tuple(
+            DimensionFiltro(id=x["id"], etiqueta=x["etiqueta"], opciones=tuple(x["opciones"]), por_defecto=x["por_defecto"])
+            for x in d.get("dimensiones", [])
+        ),
+        graficos=tuple(
+            GraficoResultado(
+                id=g["id"], titulo=g["titulo"], unidad=g["unidad"], etiquetas=tuple((a, b) for a, b in g["etiquetas"]),
+                lineas=tuple(LineaGrafico(nombre=l["nombre"], estilo=l["estilo"], puntos=tuple(PuntoSerie(**p) for p in l["puntos"])) for l in g["lineas"]),
+            )
+            for g in d.get("graficos", [])
+        ),
     )
 
 

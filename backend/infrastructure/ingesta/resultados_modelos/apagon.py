@@ -1,6 +1,7 @@
 """Lee las salidas del modelo de riesgo de apagon (script 6) y arma un ResultadoModelo.
 
-Archivos (carpeta `resultados_modelo_riesgo_apagon/` bajo la carpeta del proyecto):
+Archivos (carpeta `Resultados/resultados_modelo_riesgo_apagon/` bajo la carpeta del proyecto; tambien se acepta
+`resultados_modelo_riesgo_apagon/` directamente bajo ella):
 * resumen_mensual.csv (obligatorio): una fila por mes con percentiles, probabilidades, margen, indice y semaforo
 * detalle_franjas_horarias.csv, metadatos_corrida.json, configuracion_corrida.json (opcionales)
 
@@ -11,7 +12,15 @@ from __future__ import annotations
 from collections import defaultdict
 from pathlib import Path
 
-from domain.entities.modelo_analitico import Indicador, PuntoSerie, ResultadoModelo, SerieResultado, TablaResultado
+from domain.entities.modelo_analitico import (
+    GraficoResultado,
+    Indicador,
+    LineaGrafico,
+    PuntoSerie,
+    ResultadoModelo,
+    SerieResultado,
+    TablaResultado,
+)
 from infrastructure.ingesta.resultados_modelos.comun import (
     SalidaModeloInvalidaError,
     celda,
@@ -22,7 +31,7 @@ from infrastructure.ingesta.resultados_modelos.comun import (
     numero,
 )
 
-CARPETA = Path("resultados_modelo_riesgo_apagon")
+CARPETAS = (Path("Resultados") / "resultados_modelo_riesgo_apagon", Path("resultados_modelo_riesgo_apagon"))
 SEMAFOROS = {"VERDE": "ok", "AMARILLO": "alerta", "ROJO": "critico"}
 COLUMNAS = {
     "mes", "oni_p10", "oni_p50", "oni_p90", "embalse_pct_p10", "embalse_pct_p50", "embalse_pct_p90",
@@ -34,6 +43,8 @@ NOMBRES_PARAMETROS = {
     "modo_oni": "Modo ONI", "oni_manual": "ONI manual", "n_simulaciones": "Simulaciones", "horizonte_meses": "Horizonte (meses)",
     "semilla": "Semilla", "ultimo_oni_observado": "Último ONI observado", "ultimo_mes_historico_demanda": "Último mes de demanda observada",
     "capacidad_vigente_mw": "Capacidad vigente (MW)",
+    "n_meses_calibracion_demanda": "Meses de demanda para calibrar",
+    "n_meses_calibracion_oni_historico": "Meses de ONI histórico",
 }
 NOMBRES_FRANJA = {
     "madrugada_00_05": "Madrugada (0-5 h)", "manana_06_11": "Mañana (6-11 h)", "tarde_12_17": "Tarde (12-17 h)",
@@ -42,7 +53,8 @@ NOMBRES_FRANJA = {
 
 
 def leer_apagon(carpeta: Path) -> ResultadoModelo:
-    base = Path(carpeta) / CARPETA
+    raiz = Path(carpeta)
+    base = next((raiz / c for c in CARPETAS if (raiz / c / "resumen_mensual.csv").is_file()), raiz / CARPETAS[0])
     archivo = "resumen_mensual.csv"
     filas = leer_csv(base / archivo, COLUMNAS)
     meses = []
@@ -75,6 +87,23 @@ def leer_apagon(carpeta: Path) -> ResultadoModelo:
     def simple(titulo, id_, unidad, valor, tipo="linea"):
         return SerieResultado(id_, titulo, unidad, tipo, tuple(PuntoSerie(x=m["mes"], y=valor(m)) for m in meses))
 
+    def linea(nombre, columna, factor=1.0, con_banda=False, estilo="continua"):
+        puntos = tuple(
+            PuntoSerie(x=m["mes"], y=num(m, f"{columna}_p50" if con_banda else columna, factor),
+                       p10=num(m, f"{columna}_p10", factor) if con_banda else None, p90=num(m, f"{columna}_p90", factor) if con_banda else None)
+            for m in meses
+        )
+        return LineaGrafico(nombre, puntos, estilo)
+
+    graficos = [
+        GraficoResultado("demanda_oferta", "Demanda y oferta mensual (P10–P50–P90)", "GWh",
+                         (linea("Demanda", "demanda_mwh", 1 / 1000, True), linea("Oferta total", "oferta_total_mwh", 1 / 1000, True))),
+    ]
+    fuentes = [("Hidráulica", "generacion_hidro_mwh_p50"), ("Térmica", "generacion_termica_mwh_p50"), ("Renovable", "generacion_renovable_mwh_p50")]
+    if all(c in filas[0] for _, c in fuentes):
+        graficos.append(GraficoResultado("generacion_fuentes", "Generación mediana (P50) por fuente", "GWh",
+                                         tuple(linea(n, c, 1 / 1000) for n, c in fuentes)))
+
     series = (
         simple("Índice de riesgo (0-100)", "indice_riesgo", "puntos", lambda m: m["indice"]),
         simple("Probabilidad de déficit", "probabilidad_deficit", "%", lambda m: m["prob"] * 100),
@@ -82,8 +111,6 @@ def leer_apagon(carpeta: Path) -> ResultadoModelo:
         simple("Margen de reserva (P50)", "margen_reserva", "%", lambda m: num(m, "margen_reserva_pct_p50", 100)),
         banda("Nivel útil de los embalses (P10-P50-P90)", "embalse", "%", "embalse_pct"),
         banda("ONI simulado (P10-P50-P90)", "oni", "puntos", "oni"),
-        banda("Demanda mensual (P10-P50-P90)", "demanda", "GWh", "demanda_mwh", 1 / 1000),
-        banda("Oferta total mensual (P10-P50-P90)", "oferta", "GWh", "oferta_total_mwh", 1 / 1000),
         simple("Déficit esperado (P50)", "deficit_p50", "GWh", lambda m: num(m, "deficit_mwh_p50", 1 / 1000), "barras"),
         simple("Déficit en el escenario adverso (P90)", "deficit_p90", "GWh", lambda m: num(m, "deficit_mwh_p90", 1 / 1000), "barras"),
     )
@@ -136,7 +163,8 @@ def leer_apagon(carpeta: Path) -> ResultadoModelo:
     return ResultadoModelo(
         modelo_id="apagon", generado_en=momento_de(base / archivo),
         origen=f"Modelo de riesgo de apagón (Monte Carlo) · {len(meses)} meses, {meses[0]['mes']} a {meses[-1]['mes']}",
-        configuracion=tuple(config_unica), indicadores=indicadores, series=series, tablas=tuple(tablas), advertencias=advertencias,
+        configuracion=tuple(config_unica), indicadores=indicadores, series=series, graficos=tuple(graficos), tablas=tuple(tablas),
+        advertencias=advertencias,
     )
 
 
