@@ -24,7 +24,7 @@ import {
   useSerieDns,
   useZonasDns,
 } from "@/lib/hooks/useDns";
-import { useEstadoUrl } from "@/lib/hooks/useEstadoUrl";
+import { useEstadoUrl, type EsquemaUrl } from "@/lib/hooks/useEstadoUrl";
 import { formatearFecha } from "@/lib/utils/formatters";
 
 /**
@@ -34,8 +34,26 @@ import { formatearFecha } from "@/lib/utils/formatters";
  * Los filtros viven en la URL (un solo estado) y llegan a cada bloque: todos responden a la vez. Los bloques
  * que son resultado del modelo sobre todo el histórico (zonas, cambios, modelo) solo usan región y subárea.
  */
+/** Paneles largos que se pueden ampliar. En la URL: `?ampliar=zonas,modelo` (por defecto, ninguno: todos miden lo mismo que su vecino). */
+type PanelAmpliableDns = "zonas" | "modelo";
+const PANELES_AMPLIABLES: readonly PanelAmpliableDns[] = ["zonas", "modelo"];
+const ESQUEMA_AMPLIAR: EsquemaUrl<{ ampliar: PanelAmpliableDns[] }> = {
+  ampliar: {
+    param: "ampliar",
+    defecto: () => [],
+    leer: (crudo) => {
+      const validos = PANELES_AMPLIABLES.filter((p) => crudo.split(",").includes(p));
+      return validos.length > 0 ? validos : undefined;
+    },
+    escribir: (valor) => valor.join(","),
+  },
+};
+
 export function TableroDns() {
   const [enUrl, { actualizar }] = useEstadoUrl(ESQUEMA_DNS);
+  const [{ ampliar }, { actualizar: actualizarAmpliar }] = useEstadoUrl(ESQUEMA_AMPLIAR);
+  const alternarAmpliado = (panel: PanelAmpliableDns) =>
+    actualizarAmpliar({ ampliar: ampliar.includes(panel) ? ampliar.filter((p) => p !== panel) : PANELES_AMPLIABLES.filter((p) => p === panel || ampliar.includes(p)) });
   const catalogo = useCatalogoDns();
 
   // Una región o subárea escrita a mano en la URL que no existe en el catálogo se ignora (la API la rechazaría con 422);
@@ -90,16 +108,23 @@ export function TableroDns() {
 
         <SerieDnsChart serie={serie} />
 
-        <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-2">
-          <ZonasDnsPanel zonas={zonas} subareaSeleccionada={filtros.subarea} onSeleccionar={seleccionarZona} />
+        {/* Simetría: por defecto cada fila mide lo que mide su panel corto. Si se amplía el largo, la fila deja de estirar al vecino. */}
+        <div className={`grid grid-cols-1 gap-5 xl:grid-cols-2 ${ampliar.includes("zonas") ? "xl:items-start" : "xl:items-stretch"}`}>
+          <ZonasDnsPanel
+            zonas={zonas}
+            subareaSeleccionada={filtros.subarea}
+            onSeleccionar={seleccionarZona}
+            ampliado={ampliar.includes("zonas")}
+            onAlternarAmpliado={() => alternarAmpliado("zonas")}
+          />
           <CausasDnsPanel causas={causas} />
         </div>
 
         <PatronesDnsChart patrones={patrones} />
 
-        <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-2">
+        <div className={`grid grid-cols-1 gap-5 xl:grid-cols-2 ${ampliar.includes("modelo") ? "xl:items-start" : "xl:items-stretch"}`}>
           <CambiosReporteDnsPanel cambios={cambios} />
-          <ModeloDnsPanel modelo={modelo} />
+          <ModeloDnsPanel modelo={modelo} ampliado={ampliar.includes("modelo")} onAlternarAmpliado={() => alternarAmpliado("modelo")} />
         </div>
       </main>
 

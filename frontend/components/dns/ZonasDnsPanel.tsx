@@ -1,6 +1,7 @@
 "use client";
 
-import { Card, CardHeader } from "@/components/ui/Card";
+import { CardHeader } from "@/components/ui/Card";
+import { PanelAmpliable } from "@/components/ui/PanelAmpliable";
 import { ErrorBloque } from "@/components/ui/ErrorBloque";
 import { SkeletonChart } from "@/components/ui/Skeleton";
 import type { ZonaDns } from "@/lib/api/types";
@@ -13,24 +14,34 @@ interface ZonasDnsPanelProps {
   subareaSeleccionada: string | null;
   /** Un clic en una zona la elige como filtro de subárea de todo el tablero. */
   onSeleccionar: (zona: ZonaDns) => void;
+  /** Por defecto mide lo mismo que el panel de al lado; ampliado muestra todas las zonas. */
+  ampliado: boolean;
+  onAlternarAmpliado: () => void;
 }
 
 /**
  * Ranking del índice de priorización de zonas (0-100). Es un resultado del modelo sobre todo el histórico: solo
  * respeta la región y la subárea. Cada fila es un botón (teclado y lector de pantalla) que filtra el tablero.
  */
-export function ZonasDnsPanel({ zonas, subareaSeleccionada, onSeleccionar }: ZonasDnsPanelProps) {
+export function ZonasDnsPanel({ zonas, subareaSeleccionada, onSeleccionar, ampliado, onAlternarAmpliado }: ZonasDnsPanelProps) {
   if (zonas.error) return <ErrorBloque que="el ranking de zonas" mensaje={zonas.error} />;
   if (!zonas.datos) return <SkeletonChart />;
 
   const filas = zonas.datos.zonas;
   return (
-    <Card>
-      <CardHeader
-        title="Priorización de zonas"
-        subtitle="Índice 0-100 sobre todo el histórico · rojo: la energía de los últimos 24 meses empeoró"
-        ayuda={AYUDAS_DNS.zonas}
-      />
+    <PanelAmpliable
+      id="panel-zonas"
+      resumen={`${filas.length} ${filas.length === 1 ? "zona" : "zonas"}`}
+      ampliado={ampliado}
+      onAlternar={onAlternarAmpliado}
+      encabezado={
+        <CardHeader
+          title="Priorización de zonas"
+          subtitle="Índice 0-100 sobre todo el histórico · rojo: la energía de los últimos 24 meses empeoró"
+          ayuda={AYUDAS_DNS.zonas}
+        />
+      }
+    >
       <div className="overflow-x-auto px-5 pb-5 pt-3">
         {filas.length === 0 ? (
           <p className="py-6 text-center text-sm text-foreground-muted">El modelo no prioriza ninguna subárea de este ámbito.</p>
@@ -87,6 +98,6 @@ export function ZonasDnsPanel({ zonas, subareaSeleccionada, onSeleccionar }: Zon
           </table>
         )}
       </div>
-    </Card>
+    </PanelAmpliable>
   );
 }

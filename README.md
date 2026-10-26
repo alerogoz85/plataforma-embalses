@@ -311,7 +311,7 @@ escribe una ruta a mano. **Cada vista y cada filtro tienen su dirección**: el e
 |---|---|
 | `/embalses` | `region`, `embalse`, `desde`, `hasta` (AAAA-MM-DD), `h` (30, 90, 180, 360 días), `hs` (1, 3, 6, 12 meses), `q`, `orden`, `dir` |
 | `/carbon` | `historia` (12, 36, 60, 0), `horizonte` (1, 3, 6, 9), `unidad` (gbtu, kt), `dias` (15, 30, 45, 60) |
-| `/dns` | `periodo` (12, 36, 60, 0), `region`, `subarea`, `origen` (programada, no_programada), `medida` (eventos, energia) |
+| `/dns` | `periodo` (12, 36, 60, 0), `region`, `subarea`, `origen` (programada, no_programada), `medida` (eventos, energia), `ampliar` (zonas, modelo) |
 | `/gas`, `/optimizacion`, `/apagon` | `desde`, `hasta` (AAAA-MM) |
 
 - **Validación:** cada parámetro se lee contra la misma lista cerrada que acepta la API (`lib/utils/url.ts`); uno inválido se ignora y queda el defecto, así una
@@ -371,6 +371,7 @@ el sistema deja de suministrar en un evento. Es el único de los modelos 2 a 5 q
 - **Gráficos y detalle:** serie mensual (eventos o energía) con el **pronóstico del modelo** como punto aparte, ranking de zonas
   (clic en una zona filtra el tablero), patrones por hora/día/franja, causas, cambios en la forma de reportar y modelo predictivo
   (error frente a la persistencia, variables que más pesan y pronóstico por subárea).
+- **Simetría y ampliación:** «Priorización de zonas» y «Modelo predictivo» son largos, así que por defecto miden **lo mismo que el panel de al lado** y se desplazan por dentro; «Ver todo» los extiende para ver todos los datos (el estado queda en `?ampliar=`). Es el componente reutilizable [`PanelAmpliable`](frontend/components/ui/PanelAmpliable.tsx): contraído se superpone a su celda del grid, así la fila mide lo que mide la vecina (mínimo 26 rem; en pantallas angostas, máximo 28 rem).
 - **Honestidad del dato:** se excluyen los eventos con «hora desconocida» (00:00:00 exacto) de los patrones; el mes del corte se
   atenúa por parcial; el aumento de 2024-2025 viene en parte de cambios de metodología de reporte; parte de las causas se infiere del texto.
 - **Backend:** `domain/entities/modelo_dns.py` y `domain/services/analisis_dns.py` (cálculos puros: ventanas, filtros, patrones),
@@ -732,7 +733,7 @@ repositorios en memoria; DuckDB se prueba aparte). La descarga real de SIMEM/XM
 se verificó manualmente (carga completa e incremental) y contra el agregado
 oficial de XM, pero no en las pruebas automáticas, que no usan red.
 
-### Frontend — 420 pruebas (Vitest + React Testing Library + jsdom)
+### Frontend — 430 pruebas (Vitest + React Testing Library + jsdom)
 
 Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 ([`tests/mocks/fetch.ts`](frontend/tests/mocks/fetch.ts)) con datos de ejemplo
@@ -755,6 +756,7 @@ Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 | `components/Header.test.tsx` | 7 | Accesos «Tableros» (vuelve al panel, ausente en el propio panel) e «Información» (`/informacion` en pestaña nueva), orden junto al botón de tema, título/subtítulo personalizables y fecha de corte |
 | `rutas/estadoEnUrl.test.tsx` | 20 | **Filtros en la URL** en embalses, carbón, DNS y modelos: la dirección abre la vista ya filtrada y consulta la API con ella, cada cambio escribe la URL (solo lo no-defecto), restablecer la limpia, valores inválidos o inexistentes se ignoran, región→subárea, clic en una zona |
 | `hooks/useEstadoUrl.test.tsx`, `utils/url.test.ts`, `utils/rutas.test.ts` | 10 + 16 + 18 | Lectura/escritura del estado en la URL (composición de cambios, `replaceState` sin apilar historial), lectores validados, rutas, alias, anclas de la guía y redirecciones de `next.config` |
+| `components/PanelAmpliable.test.tsx` | 10 | Paneles ampliables de DNS: contraído por defecto (zona desplazable accesible, botón con `aria-expanded`), filas estiradas al mismo alto y soltadas al ampliar, `?ampliar=` en la URL |
 | `app/noEncontrada.test.tsx` | 3 | Página 404 (un solo h1, camino de vuelta, lista de tableros) y esqueleto de carga |
 | `panel/panel.test.tsx` | 12 | Panel «Tableros Analíticos»: un solo h1, grupos «con datos» y «en desarrollo», acceso al tablero y a su capítulo de la guía sin enlaces anidados, marca «En desarrollo» solo donde corresponde, rutas del manejador central |
 | `utils/carbon.test.ts` | 16 | Conversión GBTU/día ↔ kt/día, semáforo del uso del techo en los umbrales exactos (85 y 100 %), etiquetas de trimestre y mes, serie con punto puente sin el mes en curso, comparación con XM |
@@ -766,14 +768,14 @@ Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 | `carbon/carbon.test.tsx` | 24 | Página de carbón con la API simulada: valores por defecto, resumen pedido una sola vez, tarjetas, **cada filtro vuelve a consultar solo lo que le corresponde** (horizonte → 4 endpoints; días → resumen e inventario; historia → serie; unidad → sin red), restablecer, opciones = lista cerrada de la API, ayudas ⓘ, errores por bloque, techo/récord/banda del gráfico, aviso del mes en curso y de XM sobre el techo, validación accesible |
 | `app/ayudas.test.tsx` | 6 | Catálogo de ayudas (títulos únicos, sin textos obsoletos) y auditoría: todo encabezado, columna, filtro y tarjeta tiene su ⓘ y todos abren y cierran |
 
-### Frontend — pruebas de extremo a extremo (Playwright, 34)
+### Frontend — pruebas de extremo a extremo (Playwright, 37)
 
 [`frontend/e2e/`](frontend/e2e) abre el **build de producción** en un navegador real (Chrome local; Chromium en CI) con la
 API simulada ([`e2e/api.ts`](frontend/e2e/api.ts), mismos datos de ejemplo que las pruebas unitarias), así que no dependen del
 backend ni de la red. Cubren lo que jsdom no puede ver: los gráficos **sí se dibujan** (curvas, bandas, líneas de techo y récord,
 barras), los filtros reescalan los ejes y consultan lo que corresponde, el panel navega a cada tablero, el diseño en celular
 (375 px) no se desborda en `/`, `/embalses` y `/carbon`, el modo oscuro se recuerda al recargar y un error de la API se muestra por
-bloque sin romper la página; además, el tablero DNS, los tres tableros de modelos (sin y con resultados simulados) y el panel de seis tarjetas, los alias de ruta, la página 404 y que los filtros vivan en la URL (enlace profundo, recarga, «atrás»). Corren en CI después del build.
+bloque sin romper la página; además, el tablero DNS, los tres tableros de modelos (sin y con resultados simulados) y el panel de seis tarjetas, la simetría de los paneles de DNS (misma altura contraídos, sin desborde en celular), los alias de ruta, la página 404 y que los filtros vivan en la URL (enlace profundo, recarga, «atrás»). Corren en CI después del build.
 
 Recharts se sustituye (en las pruebas unitarias) por un doble
 ([`tests/mocks/recharts.tsx`](frontend/tests/mocks/recharts.tsx)) porque jsdom no

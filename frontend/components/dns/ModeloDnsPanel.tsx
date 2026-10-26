@@ -1,6 +1,7 @@
 "use client";
 
-import { Card, CardHeader } from "@/components/ui/Card";
+import { CardHeader } from "@/components/ui/Card";
+import { PanelAmpliable } from "@/components/ui/PanelAmpliable";
 import { ErrorBloque } from "@/components/ui/ErrorBloque";
 import { SkeletonChart } from "@/components/ui/Skeleton";
 import type { ModeloDns } from "@/lib/api/types";
@@ -14,7 +15,14 @@ const NOMBRE_VARIABLE: Record<string, string> = { n_eventos: "Número de eventos
  * Modelo predictivo: cuánto mejora a la persistencia (suponer que el mes siguiente será igual al actual), qué variables
  * pesan más y el pronóstico por subárea. Las métricas no cambian con los filtros; el pronóstico respeta región y subárea.
  */
-export function ModeloDnsPanel({ modelo }: { modelo: { datos: ModeloDns | null; error: string | null } }) {
+interface ModeloDnsPanelProps {
+  modelo: { datos: ModeloDns | null; error: string | null };
+  /** Por defecto mide lo mismo que el panel de al lado; ampliado muestra métricas, variables y pronóstico completos. */
+  ampliado: boolean;
+  onAlternarAmpliado: () => void;
+}
+
+export function ModeloDnsPanel({ modelo, ampliado, onAlternarAmpliado }: ModeloDnsPanelProps) {
   if (modelo.error) return <ErrorBloque que="el modelo predictivo" mensaje={modelo.error} />;
   if (!modelo.datos) return <SkeletonChart />;
   const m = modelo.datos;
@@ -22,12 +30,19 @@ export function ModeloDnsPanel({ modelo }: { modelo: { datos: ModeloDns | null; 
   const maxImportancia = Math.max(...m.importancia.map((i) => i.importancia_n_eventos), 0.0001);
 
   return (
-    <Card>
-      <CardHeader
-        title="Modelo predictivo"
-        subtitle={`Pronóstico de ${etiquetaMesDns(m.periodo_pronostico)} por subárea, evaluado contra la persistencia`}
-        ayuda={AYUDAS_DNS.modelo}
-      />
+    <PanelAmpliable
+      id="panel-modelo"
+      resumen={`${m.pronostico.length} ${m.pronostico.length === 1 ? "subárea" : "subáreas"} y más`}
+      ampliado={ampliado}
+      onAlternar={onAlternarAmpliado}
+      encabezado={
+        <CardHeader
+          title="Modelo predictivo"
+          subtitle={`Pronóstico de ${etiquetaMesDns(m.periodo_pronostico)} por subárea, evaluado contra la persistencia`}
+          ayuda={AYUDAS_DNS.modelo}
+        />
+      }
+    >
       <div className="space-y-6 px-5 pb-5 pt-3">
         {variables.map((v) => (
           <section key={v} aria-label={`Métricas de ${NOMBRE_VARIABLE[v] ?? v}`} className="overflow-x-auto">
@@ -98,6 +113,6 @@ export function ModeloDnsPanel({ modelo }: { modelo: { datos: ModeloDns | null; 
           )}
         </section>
       </div>
-    </Card>
+    </PanelAmpliable>
   );
 }
