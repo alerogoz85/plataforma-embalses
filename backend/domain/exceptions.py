@@ -68,3 +68,10 @@ class ModeloDnsNoCargadoError(DomainError):
 
 class FiltroInvalidoError(DomainError):
     """Un filtro pide una region o subarea que no existe en el modelo cargado."""
+
+
+class ModeloNoEncontradoError(DomainError):
+    """El modelo pedido no es uno de los tableros de modelos analiticos."""
+
+    def __init__(self, modelo_id: str) -> None:
+        super().__init__(f"El modelo '{modelo_id}' no existe")

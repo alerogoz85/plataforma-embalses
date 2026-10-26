@@ -11,6 +11,7 @@ from domain.entities.modelo_carbon import (
     ComparacionXM, CriterioValidez, EpisodioValidacion, ErrorPorHorizonte, HistoricoCarbonMensual,
     InventarioCarbon, PaqueteModeloCarbon, ProyeccionCarbonMensual, SupuestoCarbon, TrimestreCarbon,
 )
+from domain.entities.modelo_analitico import Indicador, PuntoSerie, ResultadoModelo, SerieResultado, TablaResultado
 from domain.entities.modelo_dns import (
     CambioReporte, EventoDns, ImportanciaVariable, MetricaModelo, PaqueteModeloDns, PronosticoSubarea, SubareaDns,
     ZonaPriorizada,
@@ -21,6 +22,7 @@ from domain.repositories.embalse_repository import EmbalseRepository
 from domain.repositories.medicion_repository import MedicionRepository
 from domain.repositories.metadatos_repository import MetadatosRepository
 from domain.repositories.modelo_carbon_repository import ModeloCarbonRepository
+from domain.repositories.modelo_analitico_repository import ResultadoModeloRepository
 from domain.repositories.modelo_dns_repository import ModeloDnsRepository
 from domain.value_objects.banda import Banda
 from domain.repositories.proyeccion_senda_repository import ProyeccionSendaRepository
@@ -360,4 +362,34 @@ def crear_paquete_dns() -> PaqueteModeloDns:
             PronosticoSubarea("Are0002", 5.0, 250_000.0),
             PronosticoSubarea("Are0003", 2.0, 100_000.0),
         ],
+    )
+
+
+# ------------------------------------------------------------------ modelos analiticos (gas, optimizacion, apagon)
+class ResultadoModeloRepositoryEnMemoria(ResultadoModeloRepository):
+    def __init__(self, *resultados: ResultadoModelo) -> None:
+        self.resultados = {r.modelo_id: r for r in resultados}
+
+    def obtener(self, modelo_id: str) -> Optional[ResultadoModelo]:
+        return self.resultados.get(modelo_id)
+
+    def reemplazar(self, resultado: ResultadoModelo) -> None:
+        self.resultados[resultado.modelo_id] = resultado
+
+
+def crear_resultado_modelo(modelo_id: str = "apagon") -> ResultadoModelo:
+    """Resultado minimo pero completo: un indicador con nivel, dos series (una con banda), una tabla y una advertencia."""
+    return ResultadoModelo(
+        modelo_id=modelo_id, generado_en=datetime(2026, 10, 1, 12, 30), origen="Corrida de prueba",
+        configuracion=(("Simulaciones", "3000"),),
+        indicadores=(Indicador("Meses en rojo", "2", "de 3 meses", "critico"),),
+        series=(
+            SerieResultado("indice", "Índice de riesgo", "puntos", "linea",
+                           (PuntoSerie("2026-10", 20.0), PuntoSerie("2026-11", 45.5), PuntoSerie("2026-12", 80.0))),
+            SerieResultado("embalse", "Embalse", "%", "linea",
+                           (PuntoSerie("2026-10", 60.0, 50.0, 70.0), PuntoSerie("2026-11", 55.0, 40.0, 65.0))),
+        ),
+        tablas=(TablaResultado("semaforo", "Semáforo", ("Mes", "Semáforo", "Índice"),
+                               (("2026-10", "Verde", 20.0), ("2026-11", "Amarillo", None)), "Nota de prueba"),),
+        advertencias=("Solo adecuación de generación nacional.",),
     )

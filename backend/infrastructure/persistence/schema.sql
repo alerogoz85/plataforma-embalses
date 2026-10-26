@@ -160,3 +160,12 @@ CREATE TABLE IF NOT EXISTS dns_importancia (
 CREATE TABLE IF NOT EXISTS dns_pronostico (
     codigo_subarea VARCHAR NOT NULL, n_eventos DOUBLE NOT NULL, energia_kwh DOUBLE NOT NULL
 );
+
+-- ---------------------------------------------------------------------------
+-- Resultados importados de los modelos analiticos (gas, optimizacion, apagon): el ultimo de cada modelo.
+-- El contenido es un JSON validado por el dominio (ResultadoModelo) antes de escribirse; no se consulta
+-- por dentro. Sin llave primaria por la misma razon que las demas tablas de modelos (ver arriba).
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS modelo_resultados (
+    modelo_id VARCHAR NOT NULL, generado_en TIMESTAMP NOT NULL, contenido VARCHAR NOT NULL
+);

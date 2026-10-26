@@ -10,6 +10,7 @@ from domain.exceptions import (
     FiltroInvalidoError,
     ModeloCarbonNoCargadoError,
     ModeloDnsNoCargadoError,
+    ModeloNoEncontradoError,
     SinMedicionesError,
 )
 
@@ -29,6 +30,10 @@ def registrar_manejadores_excepciones(app: FastAPI) -> None:
 
     @app.exception_handler(ModeloDnsNoCargadoError)
     async def _manejar_modelo_dns_no_cargado(request: Request, exc: ModeloDnsNoCargadoError):
+        return JSONResponse(status_code=404, content={"detalle": str(exc)})
+
+    @app.exception_handler(ModeloNoEncontradoError)
+    async def _manejar_modelo_no_encontrado(request: Request, exc: ModeloNoEncontradoError):
         return JSONResponse(status_code=404, content={"detalle": str(exc)})
 
     @app.exception_handler(FiltroInvalidoError)
