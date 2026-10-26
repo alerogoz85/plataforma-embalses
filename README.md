@@ -26,8 +26,10 @@ y un manual con capturas de cada tablero).
 > la procedencia y la fecha de corte. Las **proyecciones** no vienen de XM: son la
 > salida del modelo de largo plazo del proyecto `1. Modelo niveles de embalses`
 > (importada a la base), con un respaldo estadístico propio (Holt-Winters) solo
-> para Agregado Bogotá; no son proyecciones oficiales (ver
-> [Alcance y límites](#alcance-y-límites)). Existe una fuente
+> para Agregado Bogotá; no son proyecciones oficiales. Los tableros de carbón, demanda
+> no atendida, gas, optimización y apagón muestran la salida de **sus propios modelos**
+> (se importan de cada proyecto; ver [Tableros y modelos](#tableros-y-modelos)). Los límites
+> de todo esto están en [Alcance y límites](#alcance-y-límites). Existe una fuente
 > sintética opcional para demostraciones sin red; si se usa, el dashboard lo
 > declara ("Datos no reales").
 
@@ -263,6 +265,13 @@ y
   desde dic-2022) tienen menos historia.
 - La API solo lee de la base local: para tener datos al día hay que ejecutar la
   sincronización.
+- **Carbón y DNS** muestran la corrida vigente de su modelo (carbón: proyección oct-2026 a jun-2027 con escenarios P10-P90, que no son
+  intervalos de confianza; DNS: eventos hasta el último reportado, con el mes del corte parcial). Se actualizan importando una corrida nueva.
+- **DNS**: los eventos EDAC se cuentan aparte (su valor es carga desconectada, no kWh); los patrones por hora excluyen la «hora desconocida»;
+  parte de las causas se infiere del texto; el aumento de eventos de 2024-2025 viene en parte de cambios en la forma de reportar.
+- **Gas, optimización y apagón no tienen resultados**: sus carpetas de datos están vacías y sus documentos reconocen que no hay corrida final
+  (gas y apagón) o que es una prueba técnica no publicable (optimización). Sus tableros muestran la ficha y cómo cargar resultados; los lectores de
+  sus salidas se probaron con archivos sintéticos y falta validarlos con salidas reales.
 
 ## Tableros y modelos
 
@@ -370,13 +379,14 @@ documentos dicen que no hay corrida final (gas y apagón) o que la corrida es un
 ```
 plataforma-embalses/
 ├── backend/
-│   ├── domain/                  # Entidades, value objects, servicios (cálculo hídrico, autonomía, interpolación diaria), interfaces de repositorio
+│   ├── domain/                  # Entidades, value objects, servicios (cálculo hídrico, autonomía, interpolación diaria, análisis DNS), interfaces de repositorio; entidades de los modelos de carbón, DNS y modelos analíticos
 │   ├── application/              # DTOs, puertos, casos de uso (incl. SincronizarDatos)
 │   ├── infrastructure/
 │   │   ├── persistence/          # DuckDB (schema.sql, conexión thread-safe, repositorios)
 │   │   ├── fuentes/              # Clientes HTTP (SIMEM, XM) y adaptador SimemXmFuenteMediciones
 │   │   ├── data_generation/      # Fuente sintética opcional (catálogo + generador)
-│   │   ├── ingesta/              # CLI de sincronización e importación de la proyección de Outputs
+│   │   ├── ingesta/              # CLI de sincronización e importadores: proyección de Outputs, modelo de carbón, modelo DNS y resultados de gas/optimización/apagón (lectores en resultados_modelos/)
+│   │   ├── fichas/               # Fichas documentadas de gas, optimización y apagón (redactadas a partir de sus documentos)
 │   │   └── ml/                   # Adaptador de pronóstico Holt-Winters (respaldo)
 │   ├── presentation/api/         # FastAPI: main, dependencies (composition root), routers, arranque_vercel
 │   ├── index.py, vercel.json     # Punto de entrada y configuración del despliegue en Vercel
@@ -564,7 +574,7 @@ que un despliegue automático no tendría datos.
 scripts/desplegar-vercel.sh          # copia data/hidrologia.duckdb, empaqueta y publica
 ```
 
-- **La base viaja con el despliegue.** `data/hidrologia.duckdb` (~7 MB) se copia a
+- **La base viaja con el despliegue.** `data/hidrologia.duckdb` (~11 MB) se copia a
   `backend/data/` (ignorado por git) y se empaqueta. El disco de la función es de
   solo lectura, así que al arrancar se copia a `/tmp`
   ([`arranque_vercel.py`](backend/presentation/api/arranque_vercel.py)).
@@ -826,7 +836,7 @@ Las pruebas encontraron **tres defectos reales**, ya corregidos:
   Comparte con el tablero el tema claro/oscuro (clave `tema` de `localStorage`) y
   dibuja los diagramas con mermaid desde jsDelivr. **Es documentación a mano:** las
   cifras están al corte del 25-oct-2026 y hay que actualizarlas al editar el
-  archivo (las capturas de embalses se regeneran con `node scripts/capturas-guia.mjs`); las coordenadas de los marcadores están en la constante `SHOTS` y las
+  archivo (las capturas se regeneran con `node scripts/capturas-guia.mjs`; con argumentos `panel carbon dns apagon` hace las páginas completas y mide sus zonas); las coordenadas de los marcadores están en la constante `SHOTS` y las
   capturas en `public/informacion/img/`.
 - **Filtros globales**: región y embalse gobiernan **todo el tablero a la vez**.
   La página mantiene un único «ámbito» (el embalse elegido; si no hay, la región;
@@ -861,7 +871,18 @@ Las pruebas encontraron **tres defectos reales**, ya corregidos:
   [`ayudas.tsx`](frontend/components/dashboard/ayudas.tsx).
 - **Frontend sin librería de fetching externa**: un hook (`useAsyncResource`)
   cubre los flujos de datos del dashboard sin añadir SWR/React Query.
-- **Selección de embalse auto-corregida durante el render**: al cambiar de
-  región, la app valida en cada render que el embalse seleccionado siga en la
-  lista filtrada y, si no, elige el primero — sin `useEffect`, con el patrón de
-  ajuste de estado durante el render recomendado por React 19.
+- **Cambio de región sin efectos secundarios**: al elegir una región, el filtro de embalse
+  vuelve a «Todos» dentro del mismo manejador del cambio (no con `useEffect`), de modo que
+  no hay un render intermedio con una selección inválida. Los demás tableros siguen el mismo
+  patrón (en DNS, la subárea vuelve a «Todas»).
+- **Un mismo esquema para todos los tableros**: encabezado, filtros globales en un único estado de la
+  página, tarjetas, gráficos y detalle, con las ayudas ⓘ en un archivo aparte por tablero. Los bloques
+  que son resultado del modelo sobre todo el histórico (zonas, cambios de reporte, modelo en DNS) no
+  reciben el filtro de período y la pantalla lo dice, en vez de aparentar que cambian.
+- **Resultados de los modelos: se importan, no se calculan**: la API solo lee. Cada importador valida
+  todo antes de escribir y reemplaza en una transacción; el dominio valida de nuevo (bandas P10 ≤ P50 ≤ P90,
+  claves únicas, referencias existentes). Los tableros de gas, optimización y apagón comparten un motor
+  (ficha + resultado genérico) porque hoy no hay resultados que justifiquen una pantalla a medida, y
+  «sin resultados» es un estado normal (`disponible: false`), no un error.
+- **No inventar lo que el modelo no entregó**: sin resultados, esos tableros muestran la ficha, las cifras
+  ya publicadas en los documentos (rotuladas con su fuente) y qué archivos hacen falta; nunca valores de ejemplo.
