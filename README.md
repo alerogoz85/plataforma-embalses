@@ -1,4 +1,4 @@
-# Plataforma de Tableros Analíticos (Embalses y Carbón térmico)
+# Plataforma de Tableros Analíticos
 
 [![CI](https://github.com/alerogoz85/plataforma-embalses/actions/workflows/ci.yml/badge.svg)](https://github.com/alerogoz85/plataforma-embalses/actions/workflows/ci.yml)
 
@@ -9,10 +9,11 @@ la proyección del modelo de largo plazo (Prophet + XGBoost, escenarios ENSO).
 Backend con arquitectura hexagonal y dashboard Next.js con ayuda contextual (ⓘ)
 en cada encabezado técnico.
 
-La página principal (`/`) es un **panel de acceso a tableros**: el primero es el de
-**Embalses** (`/embalses`) y el segundo el del **Modelo de carbón térmico** (`/carbon`),
-construido con la misma estructura (encabezado, filtros globales, tarjetas, gráficos) y
-la misma arquitectura y seguridad. Ver [Tableros y modelo de carbón térmico](#tableros-y-modelo-de-carbón-térmico).
+La página principal (`/`) es un **panel de acceso a tableros**, todos con la misma estructura
+(encabezado, filtros globales, tarjetas, gráficos), arquitectura y seguridad: **Embalses**
+(`/embalses`), **Carbón térmico** (`/carbon`), **Demanda no atendida** (`/dns`) y, para los modelos
+que aún no entregan resultados finales, **Gas natural** (`/gas`), **Optimización hidrotérmica**
+(`/optimizacion`) y **Riesgo de apagón** (`/apagon`). Ver [Tableros y modelos](#tableros-y-modelos).
 
 **Guía técnica y manual de usuario:** botón «Información» del encabezado, o directamente
 [plataforma-embalses.vercel.app/informacion](https://plataforma-embalses.vercel.app/informacion)
@@ -37,7 +38,7 @@ y un manual con capturas de cada tablero).
 - [Datos y fuentes](#datos-y-fuentes)
 - [Modelo de cálculo hídrico](#modelo-de-cálculo-hídrico)
 - [Alcance y límites](#alcance-y-límites)
-- [Tableros y modelo de carbón térmico](#tableros-y-modelo-de-carbón-térmico)
+- [Tableros y modelos](#tableros-y-modelos)
 - [Estructura del repositorio](#estructura-del-repositorio)
 - [Cómo ejecutar el proyecto](#cómo-ejecutar-el-proyecto)
 - [Despliegue en Vercel](#despliegue-en-vercel)
@@ -263,15 +264,17 @@ y
 - La API solo lee de la base local: para tener datos al día hay que ejecutar la
   sincronización.
 
-## Tableros y modelo de carbón térmico
+## Tableros y modelos
 
 ### Panel y rutas
 
 | Ruta | Qué es |
 |---|---|
-| `/` | Panel principal: una tarjeta de acceso por tablero (primero Embalses, luego Carbón térmico) |
+| `/` | Panel principal: una tarjeta de acceso por tablero (las de modelos sin resultados finales llevan la marca «En desarrollo») |
 | `/embalses` | Tablero de monitoreo de embalses |
 | `/carbon` | Tablero del modelo de carbón térmico |
+| `/dns` | Tablero de demanda no atendida (DNS) |
+| `/gas`, `/optimizacion`, `/apagon` | Tableros de los modelos de gas, optimización hidrotérmica y riesgo de apagón (ficha + resultados importables) |
 | `/informacion` | Guía técnica y manual de usuario (página estática) |
 
 Los tableros se registran en [`frontend/lib/tableros.ts`](frontend/lib/tableros.ts); el panel
@@ -315,12 +318,49 @@ En el frontend: `lib/api` (tipos y cliente) → `lib/hooks/useCarbon.ts` (un hoo
 `useAsyncResource`) → `lib/utils/carbon.ts` (funciones puras: unidades, semáforo, series) →
 `components/carbon/*` → `app/carbon/page.tsx`. Los textos de ayuda están aparte en `ayudasCarbon.tsx`.
 
+### Tablero de demanda no atendida (DNS)
+
+Analiza los **15.799 eventos DNS y EDAC** reportados a SIMEM por subárea operativa (2013 a ago-2026). DNS es la energía que
+el sistema deja de suministrar en un evento. Es el único de los modelos 2 a 5 que hoy trae resultados reales.
+
+- **Filtros globales:** *Período* (12/36/60 meses o todo el histórico), *Región*, *Subárea* (limitada a la región elegida), *Origen*
+  (programada/no programada) y *Restablecer filtros*. Llegan a **todos** los bloques de eventos; los resultados del modelo sobre todo
+  el histórico (zonas, cambios de reporte, modelo) solo respetan región y subárea, y la interfaz lo dice.
+- **Tarjetas:** eventos (con variación frente al período anterior de igual duración: subir es desfavorable), energía no atendida (GWh),
+  eventos críticos (≥ 100 MWh) y eventos no programados. Los EDAC se cuentan aparte: su valor es carga desconectada, no kWh de DNS.
+- **Gráficos y detalle:** serie mensual (eventos o energía) con el **pronóstico del modelo** como punto aparte, ranking de zonas
+  (clic en una zona filtra el tablero), patrones por hora/día/franja, causas, cambios en la forma de reportar y modelo predictivo
+  (error frente a la persistencia, variables que más pesan y pronóstico por subárea).
+- **Honestidad del dato:** se excluyen los eventos con «hora desconocida» (00:00:00 exacto) de los patrones; el mes del corte se
+  atenúa por parcial; el aumento de 2024-2025 viene en parte de cambios de metodología de reporte; parte de las causas se infiere del texto.
+- **Backend:** `domain/entities/modelo_dns.py` y `domain/services/analisis_dns.py` (cálculos puros: ventanas, filtros, patrones),
+  8 casos de uso, repositorio DuckDB (`dns_*`) e importador `python -m infrastructure.ingesta.importar_modelo_dns --carpeta "../../2. Modelo DNS"`
+  (valida, reemplaza en una transacción y no se borra con `--reiniciar`). Los patrones por hora y día coinciden exactamente con los CSV del modelo.
+
+### Tableros de gas, optimización hidrotérmica y riesgo de apagón
+
+Los proyectos 3, 4 y 5 traen documentos (CRISP-DM) y código, pero **no resultados**: sus carpetas `Datos` están vacías y sus propios
+documentos dicen que no hay corrida final (gas y apagón) o que la corrida es una prueba técnica marcada `publishable = false`
+(optimización). Por eso comparten un solo motor y la plataforma **no inventa cifras**:
+
+- **Ficha documentada** (`infrastructure/fichas/catalogo.py`, redactada a partir de los documentos): pregunta, método, datos,
+  alcance, limitaciones, siguientes pasos, estado real y cifras ya publicadas (rotuladas con su documento).
+- **Resultados importables:** cuando el modelo entregue sus salidas, se cargan con
+  `python -m infrastructure.ingesta.importar_resultado_modelo --modelo <gas|optimizacion|apagon> --carpeta <proyecto>`. Hay un lector por modelo
+  (`infrastructure/ingesta/resultados_modelos/`): **apagón** lee `resultados_modelo_riesgo_apagon/*.csv|json` (semáforo mensual, probabilidades,
+  margen de reserva, bandas P10-P90, franjas); **gas** lee los libros de Excel de las curvas de declinación y de Prophet; **optimización** lee
+  `05_resultados/*.json` y advierte si la corrida no es publicable. Todos validan antes de escribir y reemplazan solo el resultado de ese modelo.
+- **Interfaz:** estado, cifras documentadas, ficha y, con resultados, indicadores con nivel, advertencias, series (con un filtro *Desde/Hasta* que las
+  recorta todas a la vez), tablas y procedencia. Sin resultados dice qué archivos se esperan y el comando para cargarlos.
+- **API:** `GET /api/v1/modelos/{gas|optimizacion|apagon}/ficha` y `/resultados` (`disponible: false` es un estado normal, no un error).
+
 ### Seguridad
 
-- **Solo lectura:** todos los endpoints son `GET`; el resto de métodos responde 405 y CORS solo permite `GET`.
-- **Entradas cerradas:** cada parámetro se valida contra una lista fija (`horizonte_meses` ∈ {1,3,6,9},
-  `historia_meses` ∈ {0,12,36,60}, `dias` ∈ {15,30,45,60}); cualquier otro valor, incluido texto,
-  responde 422 con los valores permitidos. La interfaz solo ofrece esas opciones.
+- **Solo lectura:** todos los endpoints (carbón, DNS y modelos) son `GET`; el resto de métodos responde 405 y CORS solo permite `GET`.
+- **Entradas cerradas:** cada parámetro se valida contra una lista fija (carbón: `horizonte_meses` ∈ {1,3,6,9},
+  `historia_meses` ∈ {0,12,36,60}, `dias` ∈ {15,30,45,60}; DNS: `periodo_meses` ∈ {12,36,60,0}, `origen` ∈ {programada, no_programada};
+  modelos: id ∈ {gas, optimizacion, apagon}); cualquier otro valor, incluido texto, responde 422 (o 404 para un modelo inexistente). La región y la
+  subárea de DNS tienen largo y caracteres acotados y además se comprueban contra el catálogo cargado. La interfaz solo ofrece esas opciones.
 - **Sin texto libre en SQL:** consultas parametrizadas; la API solo lee la base local y no llama a servicios externos.
 - **Importación segura:** el importador valida los archivos antes de escribir y reemplaza en una transacción (rollback si falla).
 - **Sin secretos** en el código ni en el repositorio; los mensajes de error no exponen rutas ni trazas.
@@ -351,6 +391,8 @@ plataforma-embalses/
 │   │   ├── layout/                # Header (franja GOV.CO + logo, accesos «Tableros» e «Información»), Footer, ThemeToggle
 │   │   ├── panel/                  # TableroCard (acceso a cada tablero del panel)
 │   │   ├── dashboard/              # KpiCard, SistemaRiesgoCard, RiskBadge, FiltersPanel, MainChart, RegionBarChart, SendaVolumenPanel, EmbalsesTable, ayudas.tsx (textos de ayuda)
+│   │   ├── dns/                    # Tablero DNS: FiltrosDns, KpisDns, SerieDnsChart, ZonasDnsPanel, PatronesDnsChart, CausasDnsPanel, CambiosReporteDnsPanel, ModeloDnsPanel, ayudasDns.tsx
+│   │   ├── modelos/                # Tableros de gas/optimización/apagón: TableroModelo, EstadoModeloCard, FichaPanel, ResultadosPanel, SerieModeloChart, TablaModeloCard, SinResultadosCard
 │   │   ├── carbon/                 # Tablero de carbón: FiltrosCarbon, KpisCarbon, SerieCarbonChart, TrimestresChart, InventarioChart, ComparacionXmChart, ValidacionCarbonPanel, SupuestosCarbon, ayudasCarbon.tsx
 │   │   └── ui/                     # Card, Campo (filtro con ⓘ), Skeleton, InfoButton (botón ⓘ)
 │   ├── scripts/capturas-guia.mjs # Regenera las capturas de embalses de la guía (Playwright + API local)
@@ -358,9 +400,9 @@ plataforma-embalses/
 │   ├── tests/                    # Pruebas (Vitest + Testing Library): utils, api, hooks, components, app, mocks, fixtures
 │   └── lib/
 │       ├── api/                    # client.ts, types.ts (espejo de los DTOs del backend)
-│       ├── hooks/                  # useAsyncResource, useResumenNacional, useEmbalseDetalle, usePrediccion, useSendaVolumen, useFuenteDatos, useCarbon
+│       ├── hooks/                  # useAsyncResource, useResumenNacional, useEmbalseDetalle, usePrediccion, useSendaVolumen, useFuenteDatos, useCarbon, useDns, useModelos
 │       ├── tableros.ts             # Registro de tableros del panel (agregar uno = una entrada)
-│       └── utils/                  # formatters.ts, dates.ts, carbon.ts (unidades, semáforo, series)
+│       └── utils/                  # formatters.ts, dates.ts, carbon.ts (unidades, semáforo, series), dns.ts, modelos.ts
 ├── scripts/                       # desplegar-vercel.sh (publica la API en Vercel)
 ├── data/                          # hidrologia.duckdb (generado por la sincronización, no versionado)
 └── README.md
@@ -433,6 +475,20 @@ La carpeta debe traer `resultados/proyeccion_carbon.xlsx`, `resultados/evaluacio
 y `datos/base/base_mensual_nacional.parquet`. El importador **valida todo antes de escribir**,
 reemplaza la corrida anterior en una sola transacción (si algo falla no queda a medias) y no se
 borra con `--reiniciar`. Sin importar el modelo, `/api/v1/carbon/*` responde 404 con la instrucción.
+Luego hay que volver a publicar la API (`scripts/desplegar-vercel.sh`).
+
+#### Demanda no atendida (DNS) y modelos de gas, optimización y apagón
+
+```bash
+# DNS: lee Datos/outputs y Datos/outputs_datos del proyecto «2. Modelo DNS»
+python -m infrastructure.ingesta.importar_modelo_dns --carpeta "../../2. Modelo DNS"
+
+# Gas, optimización o apagón: cuando el modelo entregue sus salidas (ver la ficha de cada tablero)
+python -m infrastructure.ingesta.importar_resultado_modelo --modelo apagon --carpeta "../../5. Modelo apagón/Scripts"
+```
+
+Ambos validan los archivos antes de escribir, reemplazan en una transacción (el de modelos, solo el resultado de ese modelo) y no se borran con
+`--reiniciar`. Hasta que se importe un resultado, los tableros de gas, optimización y apagón muestran su ficha y cómo cargarlo.
 Luego hay que volver a publicar la API (`scripts/desplegar-vercel.sh`).
 
 Levanta la API:
@@ -548,6 +604,11 @@ Prefijo base: `/api/v1`
 | GET | `/carbon/inventario` | kt de carbón requeridos por mes (P50 y P90). Query: `horizonte_meses`, `dias` |
 | GET | `/carbon/comparacion-xm` | Modelo frente al caso estocástico de XM y el techo. Query: `horizonte_meses` |
 | GET | `/carbon/validacion` | Criterios de validez (35 de 38), error por horizonte, episodios críticos y supuestos |
+| GET | `/dns/catalogo` | Regiones, subáreas, rango de fechas y mes del pronóstico del modelo DNS |
+| GET | `/dns/resumen`, `/dns/serie`, `/dns/patrones`, `/dns/causas` | Indicadores, serie mensual con pronóstico, patrones por hora/día/franja y causas. Query: `periodo_meses` = 12, 36, 60 o 0 (todo), `origen` = `programada` o `no_programada`, `region`, `subarea` (código, p. ej. `Are0018`) |
+| GET | `/dns/zonas`, `/dns/cambios-reporte`, `/dns/modelo` | Resultados del modelo DNS sobre todo el histórico (índice de priorización, cambios en la forma de reportar, métricas y pronóstico por subárea). Query: `region`, `subarea` |
+| GET | `/modelos/{id}/ficha` | Ficha documentada de un modelo (`id` = `gas`, `optimizacion` o `apagon`): pregunta, método, datos, alcance, limitaciones, estado y archivos que espera el importador |
+| GET | `/modelos/{id}/resultados` | Resultados importados del modelo (indicadores, series, tablas, advertencias). Sin importar: `disponible = false` (200) |
 | GET | `/fuente-datos` | Procedencia de los datos (fuente, si son reales, fecha de corte, última actualización) |
 | GET | `/salud` | Health check |
 
@@ -555,7 +616,7 @@ Los campos que la fuente no publica se devuelven como `null`. Errores de
 dominio se traducen a HTTP de forma centralizada en
 [`presentation/api/error_handlers.py`](backend/presentation/api/error_handlers.py):
 `EmbalseNoEncontradoError`/`SinMedicionesError` → 404,
-`DatosHistoricosInsuficientesError` → 422, `ModeloCarbonNoCargadoError` → 404, cualquier otro `DomainError` → 400.
+`DatosHistoricosInsuficientesError` → 422, `ModeloCarbonNoCargadoError`, `ModeloDnsNoCargadoError` y `ModeloNoEncontradoError` → 404, `FiltroInvalidoError` → 422, cualquier otro `DomainError` → 400.
 
 ## Pruebas
 
@@ -591,9 +652,9 @@ gh pr create --fill                # abrir el pull request
 gh pr merge --squash --delete-branch   # cuando los checks estén en verde
 ```
 
-### Backend — 362 pruebas (pytest)
+### Backend — 583 pruebas (pytest)
 
-362 pruebas con pytest, sin red ni base de datos externa (repositorios,
+583 pruebas con pytest, sin red ni base de datos externa (repositorios,
 fuente y pronóstico en memoria —ver [`tests/fakes.py`](backend/tests/fakes.py)—, y
 DuckDB sobre archivos temporales). Las pruebas HTTP usan `TestClient` de FastAPI
 (requiere `httpx`, incluido en `requirements-dev.txt`):
@@ -611,6 +672,10 @@ DuckDB sobre archivos temporales). Las pruebas HTTP usan `TestClient` de FastAPI
 | `test_api_http.py` | 74 | Contrato HTTP sobre la app real con los casos de uso reales y repositorios en memoria: los 9 endpoints, códigos 404/405/422 y su `detalle`, filtros y validación de parámetros, `null` en datos no publicados, CSV/JSON descargable (celdas vacías, no ceros), la ruta `/resumen` frente a `/{id}`, forma del JSON de la senda (origen de la proyección y horizonte efectivo), OpenAPI y CORS (origen permitido, otros rechazados, preflight solo GET) |
 | `test_modelo_carbon.py` | 42 | Modelo de carbón: `Banda` P10≤P50≤P90, validación del paquete (vacíos, claves repetidas, poder calorífico), casos de uso (pico dentro del horizonte, uso del techo, probabilidad, inventario = consumo × días, trimestres parciales, horizontes/historias/días fuera de lista), lectura y validación de los archivos del modelo, repositorio DuckDB (ida y vuelta, reemplazo transaccional con rollback, `--reiniciar` no lo borra) |
 | `test_api_carbon.py` | 47 | Contrato HTTP de los 5 endpoints `/carbon/*`: forma del JSON, valores por defecto, 404 «modelo no cargado», 422 con la lista de valores permitidos por cada parámetro, solo GET (405 en el resto), OpenAPI |
+| `test_modelo_dns.py` | 69 | Modelo DNS: entidades y validaciones, ventana del período y comparación con el período previo, filtros (región, subárea, origen), patrones sin «hora desconocida», causas, casos de uso, lectura de los CSV del modelo y repositorio DuckDB (ida y vuelta, rollback, `--reiniciar`) |
+| `test_api_dns.py` | 64 | Contrato HTTP de los 8 endpoints `/dns/*`: formas del JSON, 404 sin corrida, 422 por período/origen/región/subárea inválidos o con caracteres peligrosos, solo GET |
+| `test_modelos_analiticos.py` | 61 | Gas, optimización y apagón: validación de resultados (bandas, series, tablas), integridad de las fichas, casos de uso, repositorio, lectores de salidas (conversión de unidades, valores inválidos, archivos faltantes, advertencia de corrida no publicable) e importador |
+| `test_api_modelos.py` | 27 | Contrato HTTP de `/modelos/{id}/ficha` y `/resultados`: estados, `disponible = false`, 404 por modelo inexistente, 422 por identificador inválido, solo GET |
 | `test_arranque_vercel.py` | 4 | Copia de la base empaquetada a `/tmp` (no pisa copias existentes, error claro si falta) |
 | `test_sincronizacion_y_persistencia.py` | 19 | Sincronización completa/incremental/idempotente, procedencia, ida y vuelta en DuckDB con nulos, upsert, esquema heredado (rechazo y `--reiniciar`) |
 
@@ -626,7 +691,7 @@ repositorios en memoria; DuckDB se prueba aparte). La descarga real de SIMEM/XM
 se verificó manualmente (carga completa e incremental) y contra el agregado
 oficial de XM, pero no en las pruebas automáticas, que no usan red.
 
-### Frontend — 264 pruebas (Vitest + React Testing Library + jsdom)
+### Frontend — 348 pruebas (Vitest + React Testing Library + jsdom)
 
 Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 ([`tests/mocks/fetch.ts`](frontend/tests/mocks/fetch.ts)) con datos de ejemplo
@@ -647,20 +712,24 @@ Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 | `components/ThemeToggle.test.tsx` | 6 | Preferencia guardada vs. del sistema, clase `dark`, sincronía entre botones |
 | `app/page.test.tsx` | 23 | Página completa con la API simulada: KPIs, procedencia real/no real, filtros por defecto en «Todos» con el total nacional, rango de 180 días, **filtros globales**: elegir un embalse o una región filtra tarjetas, gráfico principal, distribución regional, senda y tabla; al cambiar de región el embalse vuelve a «Todos»; las fechas solo mueven el histórico diario; restablecer filtros; error de API |
 | `components/Header.test.tsx` | 7 | Accesos «Tableros» (vuelve al panel, ausente en el propio panel) e «Información» (`/informacion` en pestaña nueva), orden junto al botón de tema, título/subtítulo personalizables y fecha de corte |
-| `panel/panel.test.tsx` | 6 | Panel principal: embalses primero y carbón segundo, un acceso por tablero con nombre accesible y procedencia, ids y rutas únicos |
+| `panel/panel.test.tsx` | 7 | Panel principal: orden de los seis tableros, un acceso por tablero con nombre accesible y procedencia, marca «En desarrollo» solo en los que aún no muestran resultados, ids y rutas únicos |
 | `utils/carbon.test.ts` | 16 | Conversión GBTU/día ↔ kt/día, semáforo del uso del techo en los umbrales exactos (85 y 100 %), etiquetas de trimestre y mes, serie con punto puente sin el mes en curso, comparación con XM |
 | `carbon/clienteCarbon.test.ts` | 8 | URLs y parámetros de los 5 endpoints, la historia `0` se envía, errores 404/422 como `ApiError` |
+| `dns/dns.test.tsx` | 30 | Página DNS con la API simulada: 8 endpoints, tarjetas y sentido de las variaciones, **cada filtro llega a los bloques que corresponde** (período y origen no a zonas/cambios/modelo; región a todos), región→subárea, clic en una zona, restablecer, serie con pronóstico, patrones, causas, cambios, modelo y errores por bloque |
+| `dns/clienteDns.test.ts`, `utils/dns.test.ts` | 10 + 13 | URLs y parámetros del DNS (el período `0` se envía; zonas/cambios/modelo no llevan período ni origen), formato de variaciones y construcción de la serie con pronóstico |
+| `modelos/modelos.test.tsx` | 19 | Tableros de gas/optimización/apagón: estado documentado, sin resultados no hay filtros ni gráficos, ficha, errores, con resultados: indicadores con nivel, series con banda, «—» por dato vacío y **filtro Desde/Hasta que recorta todas las series** |
+| `utils/modelos.test.ts` | 11 | Etiquetas de período, opciones y recorte de series, banda apilada |
 | `carbon/carbon.test.tsx` | 24 | Página de carbón con la API simulada: valores por defecto, resumen pedido una sola vez, tarjetas, **cada filtro vuelve a consultar solo lo que le corresponde** (horizonte → 4 endpoints; días → resumen e inventario; historia → serie; unidad → sin red), restablecer, opciones = lista cerrada de la API, ayudas ⓘ, errores por bloque, techo/récord/banda del gráfico, aviso del mes en curso y de XM sobre el techo, validación accesible |
 | `app/ayudas.test.tsx` | 6 | Catálogo de ayudas (títulos únicos, sin textos obsoletos) y auditoría: todo encabezado, columna, filtro y tarjeta tiene su ⓘ y todos abren y cierran |
 
-### Frontend — pruebas de extremo a extremo (Playwright, 14)
+### Frontend — pruebas de extremo a extremo (Playwright, 25)
 
 [`frontend/e2e/`](frontend/e2e) abre el **build de producción** en un navegador real (Chrome local; Chromium en CI) con la
 API simulada ([`e2e/api.ts`](frontend/e2e/api.ts), mismos datos de ejemplo que las pruebas unitarias), así que no dependen del
 backend ni de la red. Cubren lo que jsdom no puede ver: los gráficos **sí se dibujan** (curvas, bandas, líneas de techo y récord,
 barras), los filtros reescalan los ejes y consultan lo que corresponde, el panel navega a cada tablero, el diseño en celular
 (375 px) no se desborda en `/`, `/embalses` y `/carbon`, el modo oscuro se recuerda al recargar y un error de la API se muestra por
-bloque sin romper la página. Corren en CI después del build.
+bloque sin romper la página; además, el tablero DNS, los tres tableros de modelos (sin y con resultados simulados) y el panel de seis tarjetas. Corren en CI después del build.
 
 Recharts se sustituye (en las pruebas unitarias) por un doble
 ([`tests/mocks/recharts.tsx`](frontend/tests/mocks/recharts.tsx)) porque jsdom no
