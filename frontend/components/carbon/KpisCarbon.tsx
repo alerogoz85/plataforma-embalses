@@ -15,7 +15,7 @@ import {
   nivelUsoTecho,
 } from "@/lib/utils/carbon";
 import { AYUDAS_CARBON } from "./ayudasCarbon";
-import { ErrorCarbon } from "./ErrorCarbon";
+import { ErrorBloque } from "@/components/ui/ErrorBloque";
 
 const ICONO_FUEGO = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -53,7 +53,7 @@ interface KpisCarbonProps {
 export function KpisCarbon({ resumen, unidad, dias }: KpisCarbonProps) {
   const { datos, error } = resumen;
 
-  if (error) return <ErrorCarbon que="los indicadores" mensaje={error} />;
+  if (error) return <ErrorBloque que="los indicadores" mensaje={error} />;
   if (!datos) {
     return (
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

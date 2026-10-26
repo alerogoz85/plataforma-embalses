@@ -33,6 +33,38 @@ test.describe("Panel de tableros", () => {
   });
 });
 
+test.describe("Tablero DNS con el navegador real", () => {
+  test("se abre desde el panel y dibuja sus graficos", async ({ page }) => {
+    await simularApi(page);
+    await page.goto("/");
+    await page.getByRole("link", { name: "Abrir el tablero de Demanda no atendida" }).click();
+    await expect(page).toHaveURL(/\/dns$/);
+    await expect(page.getByRole("heading", { level: 1, name: "Demanda no atendida (DNS)" })).toBeVisible();
+    await expect(page).toHaveTitle("Demanda no atendida (DNS) · Tableros Analíticos");
+    await expect(page.locator(".recharts-bar-rectangle").first()).toBeVisible();
+    expect(await page.locator(".recharts-wrapper").count()).toBeGreaterThanOrEqual(4); // serie + 3 patrones
+  });
+
+  test("elegir una region consulta todos los bloques con ella y la subarea queda limitada", async ({ page }) => {
+    const llamadas = await simularApi(page);
+    await page.goto("/dns");
+    await expect(page.getByText("5.963")).toBeVisible();
+    await page.getByRole("combobox", { name: "Región" }).selectOption("Norte");
+    await expect.poll(() => llamadas.filter((u) => u.searchParams.get("region") === "Norte").map((u) => u.pathname.split("/").pop()).sort())
+      .toEqual(["causas", "cambios-reporte", "modelo", "patrones", "resumen", "serie", "zonas"].sort());
+    await expect(page.getByRole("combobox", { name: "Subárea" }).locator("option")).toHaveCount(3);
+  });
+
+  test("en celular /dns no tiene desplazamiento horizontal", async ({ page }) => {
+    await simularApi(page);
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto("/dns");
+    await page.waitForLoadState("networkidle");
+    const { ancho, visible } = await page.evaluate(() => ({ ancho: document.documentElement.scrollWidth, visible: window.innerWidth }));
+    expect(ancho).toBeLessThanOrEqual(visible);
+  });
+});
+
 test.describe("Graficos realmente dibujados (lo que jsdom no ve)", () => {
   test("carbon: linea, banda, techo y record, barras e inventario se pintan como SVG", async ({ page }) => {
     await simularApi(page);

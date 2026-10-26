@@ -5,7 +5,7 @@
  * tablero nuevo basta con crear su carpeta en `app/<ruta>/` y agregar aquí una entrada.
  * Es solo información de presentación: ningún dato sensible ni de negocio vive aquí.
  */
-export type IconoTablero = "embalses" | "carbon";
+export type IconoTablero = "embalses" | "carbon" | "dns";
 
 export interface Tablero {
   /** Identificador estable (se usa como clave y en las pruebas). */
@@ -41,5 +41,15 @@ export const TABLEROS: readonly Tablero[] = [
     fuente: "Modelo de carbón térmico (ENOS → aportes → carbón, Monte Carlo) con datos de Sinergox, SIMEM y NOAA.",
     incluye: ["Escenarios P10, P50 y P90", "Uso del techo físico", "Inventario en días de consumo", "Validación del modelo"],
     icono: "carbon",
+  },
+  {
+    id: "dns",
+    ruta: "/dns",
+    titulo: "Demanda no atendida",
+    descripcion:
+      "Eventos de demanda no atendida (DNS) por subárea operativa del SIN desde 2013: dónde, cuándo y por qué ocurren, qué zonas priorizar y qué pronostica el modelo para el mes siguiente.",
+    fuente: "Eventos DNS y EDAC reportados a SIMEM; índice de priorización, patrones y modelo predictivo del Ministerio.",
+    incluye: ["Priorización de zonas", "Patrones por hora y día", "Causas de los eventos", "Pronóstico mensual"],
+    icono: "dns",
   },
 ];

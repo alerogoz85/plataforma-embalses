@@ -18,6 +18,13 @@ const ICONOS: Record<IconoTablero, React.ReactNode> = {
       <path d="M6 21l2-3h8l2 3" />
     </>
   ),
+  // Rayo cortado: energía que no llegó
+  dns: (
+    <>
+      <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />
+      <path d="M3 3l18 18" />
+    </>
+  ),
 };
 
 /** Tarjeta de acceso a un tablero. Toda la tarjeta es un enlace (área de clic grande y un solo foco). */

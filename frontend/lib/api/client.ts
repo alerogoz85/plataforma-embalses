@@ -1,8 +1,16 @@
 import type {
+  CambioReporteDns,
+  CatalogoDns,
+  CausasDns,
   ComparacionXm,
   EmbalseDetalle,
   FuenteDatos,
   InventarioMensual,
+  ModeloDns,
+  PatronesDns,
+  ResumenDns,
+  SerieDns,
+  ZonaDns,
   Prediccion,
   RegionResumen,
   ResumenCarbon,
@@ -133,6 +141,46 @@ export function obtenerComparacionXm(horizonteMeses: number, signal?: AbortSigna
 export function obtenerValidacionCarbon(signal?: AbortSignal): Promise<ValidacionCarbon> {
   return obtenerJSON<ValidacionCarbon>("/api/v1/carbon/validacion", signal);
 }
+
+// ---- Modelo de demanda no atendida (DNS): solo lectura; periodo y origen son listas cerradas
+export interface FiltrosDnsApi {
+  periodoMeses: number;
+  region?: string | null;
+  subarea?: string | null;
+  origen?: string | null;
+}
+
+const queryDns = (f: FiltrosDnsApi, conPeriodoYOrigen = true) =>
+  construirQuery({
+    periodo_meses: conPeriodoYOrigen ? f.periodoMeses : undefined,
+    origen: conPeriodoYOrigen ? (f.origen ?? undefined) : undefined,
+    region: f.region ?? undefined,
+    subarea: f.subarea ?? undefined,
+  });
+
+export const obtenerCatalogoDns = (signal?: AbortSignal) => obtenerJSON<CatalogoDns>("/api/v1/dns/catalogo", signal);
+
+export const obtenerResumenDns = (f: FiltrosDnsApi, signal?: AbortSignal) =>
+  obtenerJSON<ResumenDns>(`/api/v1/dns/resumen${queryDns(f)}`, signal);
+
+export const obtenerSerieDns = (f: FiltrosDnsApi, signal?: AbortSignal) =>
+  obtenerJSON<SerieDns>(`/api/v1/dns/serie${queryDns(f)}`, signal);
+
+export const obtenerPatronesDns = (f: FiltrosDnsApi, signal?: AbortSignal) =>
+  obtenerJSON<PatronesDns>(`/api/v1/dns/patrones${queryDns(f)}`, signal);
+
+export const obtenerCausasDns = (f: FiltrosDnsApi, signal?: AbortSignal) =>
+  obtenerJSON<CausasDns>(`/api/v1/dns/causas${queryDns(f)}`, signal);
+
+// Estos tres son resultados del modelo sobre todo el historico: solo respetan region y subarea.
+export const obtenerZonasDns = (f: FiltrosDnsApi, signal?: AbortSignal) =>
+  obtenerJSON<{ zonas: ZonaDns[] }>(`/api/v1/dns/zonas${queryDns(f, false)}`, signal);
+
+export const obtenerCambiosReporteDns = (f: FiltrosDnsApi, signal?: AbortSignal) =>
+  obtenerJSON<{ cambios: CambioReporteDns[] }>(`/api/v1/dns/cambios-reporte${queryDns(f, false)}`, signal);
+
+export const obtenerModeloDns = (f: FiltrosDnsApi, signal?: AbortSignal) =>
+  obtenerJSON<ModeloDns>(`/api/v1/dns/modelo${queryDns(f, false)}`, signal);
 
 export function urlReporte(embalseId: string, formato: "csv" | "json", rango: { fechaInicio?: string; fechaFin?: string } = {}): string {
   const query = construirQuery({

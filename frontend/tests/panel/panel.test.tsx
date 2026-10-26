@@ -5,25 +5,28 @@ import PanelPage from "@/app/page";
 import { TABLEROS } from "@/lib/tableros";
 
 describe("Panel principal de tableros", () => {
-  it("el primer tablero es embalses y el segundo carbon termico", () => {
+  it("el primer tablero es embalses, el segundo carbon termico y el tercero demanda no atendida", () => {
     expect(TABLEROS.map((t) => [t.id, t.ruta])).toEqual([
       ["embalses", "/embalses"],
       ["carbon", "/carbon"],
+      ["dns", "/dns"],
     ]);
   });
 
   it("muestra un acceso por cada tablero registrado, en ese orden", () => {
     render(<PanelPage />);
     const accesos = within(screen.getByRole("region", { name: "Tableros disponibles" })).getAllByRole("link");
-    expect(accesos.map((a) => a.getAttribute("href"))).toEqual(["/embalses", "/carbon"]);
+    expect(accesos.map((a) => a.getAttribute("href"))).toEqual(["/embalses", "/carbon", "/dns"]);
     expect(within(accesos[0]).getByRole("heading", { name: "Embalses" })).toBeInTheDocument();
     expect(within(accesos[1]).getByRole("heading", { name: "Carbón térmico" })).toBeInTheDocument();
+    expect(within(accesos[2]).getByRole("heading", { name: "Demanda no atendida" })).toBeInTheDocument();
   });
 
   it("cada acceso tiene un nombre accesible claro", () => {
     render(<PanelPage />);
     expect(screen.getByRole("link", { name: "Abrir el tablero de Embalses" })).toHaveAttribute("href", "/embalses");
     expect(screen.getByRole("link", { name: "Abrir el tablero de Carbón térmico" })).toHaveAttribute("href", "/carbon");
+    expect(screen.getByRole("link", { name: "Abrir el tablero de Demanda no atendida" })).toHaveAttribute("href", "/dns");
   });
 
   it("cada tarjeta dice de donde salen sus datos y que incluye", () => {

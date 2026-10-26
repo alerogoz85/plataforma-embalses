@@ -1,6 +1,9 @@
 import type { Page } from "@playwright/test";
 
 import { FUENTE_REAL, crearDetalle, crearPrediccion, crearResumen, crearSenda } from "../tests/fixtures";
+import {
+  crearCambiosDns, crearCatalogoDns, crearCausasDns, crearModeloDns, crearPatronesDns, crearResumenDns, crearSerieDns, crearZonasDns,
+} from "../tests/dns/fixturesDns";
 import { crearComparacionXm, crearInventario, crearResumenCarbon, crearSerieCarbon, crearValidacionCarbon } from "../tests/carbon/fixturesCarbon";
 
 /** Peticiones a la API que hizo la pagina (ruta + parametros), en orden. */
@@ -28,6 +31,14 @@ export async function simularApi(page: Page): Promise<Llamadas> {
     if (p === "/carbon/inventario") return json(crearInventario());
     if (p === "/carbon/comparacion-xm") return json(crearComparacionXm());
     if (p === "/carbon/validacion") return json(crearValidacionCarbon());
+    if (p === "/dns/catalogo") return json(crearCatalogoDns());
+    if (p === "/dns/resumen") return json(crearResumenDns());
+    if (p === "/dns/serie") return json(crearSerieDns());
+    if (p === "/dns/zonas") return json(crearZonasDns());
+    if (p === "/dns/patrones") return json(crearPatronesDns());
+    if (p === "/dns/causas") return json(crearCausasDns());
+    if (p === "/dns/cambios-reporte") return json(crearCambiosDns());
+    if (p === "/dns/modelo") return json(crearModeloDns());
     return ruta.fulfill({ status: 404, json: { detalle: `sin simulacion para ${p}` } });
   });
   return llamadas;
