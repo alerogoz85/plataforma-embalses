@@ -18,3 +18,7 @@ backend/data/
 # Variables de entorno locales (`vercel link` crea .env.local con un token temporal)
 .env*
 !.env.example
+
+# Pruebas de extremo a extremo (Playwright)
+frontend/test-results/
+frontend/playwright-report/

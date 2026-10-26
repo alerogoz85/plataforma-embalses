@@ -459,6 +459,9 @@ cd plataforma-embalses/backend && source .venv/bin/activate && python -m pytest 
 
 # Frontend
 cd plataforma-embalses/frontend && npm test          # una corrida; `npm run test:watch` para desarrollo
+
+# Extremo a extremo (navegador real; requiere `npm run build` antes y Chrome instalado)
+cd plataforma-embalses/frontend && npm run test:e2e
 ```
 
 ## Despliegue en Vercel
@@ -646,12 +649,20 @@ Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 | `carbon/carbon.test.tsx` | 24 | Página de carbón con la API simulada: valores por defecto, resumen pedido una sola vez, tarjetas, **cada filtro vuelve a consultar solo lo que le corresponde** (horizonte → 4 endpoints; días → resumen e inventario; historia → serie; unidad → sin red), restablecer, opciones = lista cerrada de la API, ayudas ⓘ, errores por bloque, techo/récord/banda del gráfico, aviso del mes en curso y de XM sobre el techo, validación accesible |
 | `app/ayudas.test.tsx` | 6 | Catálogo de ayudas (títulos únicos, sin textos obsoletos) y auditoría: todo encabezado, columna, filtro y tarjeta tiene su ⓘ y todos abren y cierran |
 
-Recharts se sustituye por un doble
+### Frontend — pruebas de extremo a extremo (Playwright, 14)
+
+[`frontend/e2e/`](frontend/e2e) abre el **build de producción** en un navegador real (Chrome local; Chromium en CI) con la
+API simulada ([`e2e/api.ts`](frontend/e2e/api.ts), mismos datos de ejemplo que las pruebas unitarias), así que no dependen del
+backend ni de la red. Cubren lo que jsdom no puede ver: los gráficos **sí se dibujan** (curvas, bandas, líneas de techo y récord,
+barras), los filtros reescalan los ejes y consultan lo que corresponde, el panel navega a cada tablero, el diseño en celular
+(375 px) no se desborda en `/`, `/embalses` y `/carbon`, el modo oscuro se recuerda al recargar y un error de la API se muestra por
+bloque sin romper la página. Corren en CI después del build.
+
+Recharts se sustituye (en las pruebas unitarias) por un doble
 ([`tests/mocks/recharts.tsx`](frontend/tests/mocks/recharts.tsx)) porque jsdom no
 calcula tamaños y no dibuja SVG: las pruebas verifican **los datos y la
 configuración que el código entrega a los gráficos** (puntos, series, ejes,
-colores), no el dibujo. No hay pruebas de extremo a extremo con un navegador ni
-regresión visual.
+colores), no el dibujo. No hay regresión visual (comparación de capturas).
 
 Además de que pasen, se comprobó que detectan fallos: se introdujeron 16
 regresiones a propósito (orden invertido, `null` mostrado como 0, clic en enlace
