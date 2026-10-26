@@ -9,14 +9,14 @@ la proyección del modelo de largo plazo (Prophet + XGBoost, escenarios ENSO).
 Backend con arquitectura hexagonal y dashboard Next.js con ayuda contextual (ⓘ)
 en cada encabezado técnico.
 
-La página principal (`/`) es un **panel de acceso a tableros**, todos con la misma estructura
+La página principal (`/`) es **Tableros Analíticos**, un panel de acceso a tableros, todos con la misma estructura
 (encabezado, filtros globales, tarjetas, gráficos), arquitectura y seguridad: **Embalses**
 (`/embalses`), **Carbón térmico** (`/carbon`), **Demanda no atendida** (`/dns`) y, para los modelos
 que aún no entregan resultados finales, **Gas natural** (`/gas`), **Optimización hidrotérmica**
 (`/optimizacion`) y **Riesgo de apagón** (`/apagon`). Ver [Tableros y modelos](#tableros-y-modelos).
 
 **Guía técnica y manual de usuario:** botón «Información» del encabezado, o directamente
-[plataforma-embalses.vercel.app/informacion](https://plataforma-embalses.vercel.app/informacion)
+[tableros-analiticos.vercel.app/informacion](https://tableros-analiticos.vercel.app/informacion)
 (cargue e integración de datos con diagramas y periodicidad, cálculos, API, plataformas
 y un manual con capturas de cada tablero).
 
@@ -291,6 +291,28 @@ se dibuja a partir de esa lista, así que **agregar un tablero nuevo = una entra
 + una carpeta en `app/`**. Todos comparten `Header` (con el enlace «Tableros» de vuelta al panel),
 `Footer`, `Card`, `KpiCard`, `Campo` (filtro con ⓘ) y los tokens de la identidad GOV.CO.
 
+### Rutas y direcciones (URL)
+
+[`frontend/lib/rutas.ts`](frontend/lib/rutas.ts) es el **manejador central de rutas**: la única fuente de las direcciones (rutas de cada tablero,
+capítulos de la guía, alias y construcción de URLs con parámetros). El panel, el encabezado, `next.config.ts` y las pruebas salen de ahí; nadie
+escribe una ruta a mano. **Cada vista y cada filtro tienen su dirección**: el estado se guarda en la URL con el hook
+[`useEstadoUrl`](frontend/lib/hooks/useEstadoUrl.ts), así que un enlace reproduce la vista exacta, recargar no la pierde y «atrás» funciona.
+
+| Ruta | Parámetros (lo que vale el defecto no aparece) |
+|---|---|
+| `/embalses` | `region`, `embalse`, `desde`, `hasta` (AAAA-MM-DD), `h` (30, 90, 180, 360 días), `hs` (1, 3, 6, 12 meses), `q`, `orden`, `dir` |
+| `/carbon` | `historia` (12, 36, 60, 0), `horizonte` (1, 3, 6, 9), `unidad` (gbtu, kt), `dias` (15, 30, 45, 60) |
+| `/dns` | `periodo` (12, 36, 60, 0), `region`, `subarea`, `origen` (programada, no_programada), `medida` (eventos, energia) |
+| `/gas`, `/optimizacion`, `/apagon` | `desde`, `hasta` (AAAA-MM) |
+
+- **Validación:** cada parámetro se lee contra la misma lista cerrada que acepta la API (`lib/utils/url.ts`); uno inválido se ignora y queda el defecto, así una
+  dirección escrita a mano nunca produce un 422 ni rompe la página. En DNS, la región y la subárea se contrastan además con el catálogo cargado.
+- **Escritura:** `window.history.replaceState` (la vía que documenta Next para sincronizar con `useSearchParams`): sin viaje al servidor por cada cambio
+  y sin llenar el historial. Las páginas leen la URL dentro de un `Suspense` con un esqueleto de carga.
+- **Alias y 404:** `/tableros`, `/demanda-no-atendida`, `/riesgo-apagon`, `/gas-natural`… redirigen (308) a la ruta canónica; una dirección inexistente
+  muestra [`app/not-found.tsx`](frontend/app/not-found.tsx) con el camino de vuelta al panel y la lista de tableros.
+- **Panel:** organiza los tableros en «con datos» y «modelos en desarrollo» y cada tarjeta tiene dos accesos (el tablero y su capítulo de la guía).
+
 ### Qué muestra el tablero de carbón
 
 El modelo encadena **ENOS (RONI) → aportes hídricos → uso del techo térmico → consumo de
@@ -535,13 +557,13 @@ cd plataforma-embalses/frontend && npm run test:e2e
 
 ## Despliegue en Vercel
 
-En producción: **https://plataforma-embalses.vercel.app**
+En producción: **https://tableros-analiticos.vercel.app** (la dirección anterior, `plataforma-embalses.vercel.app`, redirige a esta con un 308 que conserva la ruta y los parámetros).
 
 Son dos proyectos de Vercel:
 
 | Proyecto | Carpeta | Qué es | Cómo se despliega | URL |
 |---|---|---|---|---|
-| `plataforma-embalses` | `frontend/` | Sitio Next.js | **Automático por Git** | https://plataforma-embalses.vercel.app |
+| `tableros-analiticos` | `frontend/` | Sitio Next.js | **Automático por Git** | https://tableros-analiticos.vercel.app |
 | `plataforma-embalses-api` | `backend/` | FastAPI como función Python ([`index.py`](backend/index.py), [`vercel.json`](backend/vercel.json)) | Por CLI: `scripts/desplegar-vercel.sh` | https://plataforma-embalses-api.vercel.app |
 
 ### Sitio: despliegues automáticos por Git
@@ -701,7 +723,7 @@ repositorios en memoria; DuckDB se prueba aparte). La descarga real de SIMEM/XM
 se verificó manualmente (carga completa e incremental) y contra el agregado
 oficial de XM, pero no en las pruebas automáticas, que no usan red.
 
-### Frontend — 348 pruebas (Vitest + React Testing Library + jsdom)
+### Frontend — 420 pruebas (Vitest + React Testing Library + jsdom)
 
 Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 ([`tests/mocks/fetch.ts`](frontend/tests/mocks/fetch.ts)) con datos de ejemplo
@@ -722,7 +744,10 @@ Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 | `components/ThemeToggle.test.tsx` | 6 | Preferencia guardada vs. del sistema, clase `dark`, sincronía entre botones |
 | `app/page.test.tsx` | 23 | Página completa con la API simulada: KPIs, procedencia real/no real, filtros por defecto en «Todos» con el total nacional, rango de 180 días, **filtros globales**: elegir un embalse o una región filtra tarjetas, gráfico principal, distribución regional, senda y tabla; al cambiar de región el embalse vuelve a «Todos»; las fechas solo mueven el histórico diario; restablecer filtros; error de API |
 | `components/Header.test.tsx` | 7 | Accesos «Tableros» (vuelve al panel, ausente en el propio panel) e «Información» (`/informacion` en pestaña nueva), orden junto al botón de tema, título/subtítulo personalizables y fecha de corte |
-| `panel/panel.test.tsx` | 7 | Panel principal: orden de los seis tableros, un acceso por tablero con nombre accesible y procedencia, marca «En desarrollo» solo en los que aún no muestran resultados, ids y rutas únicos |
+| `rutas/estadoEnUrl.test.tsx` | 20 | **Filtros en la URL** en embalses, carbón, DNS y modelos: la dirección abre la vista ya filtrada y consulta la API con ella, cada cambio escribe la URL (solo lo no-defecto), restablecer la limpia, valores inválidos o inexistentes se ignoran, región→subárea, clic en una zona |
+| `hooks/useEstadoUrl.test.tsx`, `utils/url.test.ts`, `utils/rutas.test.ts` | 10 + 16 + 18 | Lectura/escritura del estado en la URL (composición de cambios, `replaceState` sin apilar historial), lectores validados, rutas, alias, anclas de la guía y redirecciones de `next.config` |
+| `app/noEncontrada.test.tsx` | 3 | Página 404 (un solo h1, camino de vuelta, lista de tableros) y esqueleto de carga |
+| `panel/panel.test.tsx` | 12 | Panel «Tableros Analíticos»: un solo h1, grupos «con datos» y «en desarrollo», acceso al tablero y a su capítulo de la guía sin enlaces anidados, marca «En desarrollo» solo donde corresponde, rutas del manejador central |
 | `utils/carbon.test.ts` | 16 | Conversión GBTU/día ↔ kt/día, semáforo del uso del techo en los umbrales exactos (85 y 100 %), etiquetas de trimestre y mes, serie con punto puente sin el mes en curso, comparación con XM |
 | `carbon/clienteCarbon.test.ts` | 8 | URLs y parámetros de los 5 endpoints, la historia `0` se envía, errores 404/422 como `ApiError` |
 | `dns/dns.test.tsx` | 30 | Página DNS con la API simulada: 8 endpoints, tarjetas y sentido de las variaciones, **cada filtro llega a los bloques que corresponde** (período y origen no a zonas/cambios/modelo; región a todos), región→subárea, clic en una zona, restablecer, serie con pronóstico, patrones, causas, cambios, modelo y errores por bloque |
@@ -732,14 +757,14 @@ Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 | `carbon/carbon.test.tsx` | 24 | Página de carbón con la API simulada: valores por defecto, resumen pedido una sola vez, tarjetas, **cada filtro vuelve a consultar solo lo que le corresponde** (horizonte → 4 endpoints; días → resumen e inventario; historia → serie; unidad → sin red), restablecer, opciones = lista cerrada de la API, ayudas ⓘ, errores por bloque, techo/récord/banda del gráfico, aviso del mes en curso y de XM sobre el techo, validación accesible |
 | `app/ayudas.test.tsx` | 6 | Catálogo de ayudas (títulos únicos, sin textos obsoletos) y auditoría: todo encabezado, columna, filtro y tarjeta tiene su ⓘ y todos abren y cierran |
 
-### Frontend — pruebas de extremo a extremo (Playwright, 25)
+### Frontend — pruebas de extremo a extremo (Playwright, 34)
 
 [`frontend/e2e/`](frontend/e2e) abre el **build de producción** en un navegador real (Chrome local; Chromium en CI) con la
 API simulada ([`e2e/api.ts`](frontend/e2e/api.ts), mismos datos de ejemplo que las pruebas unitarias), así que no dependen del
 backend ni de la red. Cubren lo que jsdom no puede ver: los gráficos **sí se dibujan** (curvas, bandas, líneas de techo y récord,
 barras), los filtros reescalan los ejes y consultan lo que corresponde, el panel navega a cada tablero, el diseño en celular
 (375 px) no se desborda en `/`, `/embalses` y `/carbon`, el modo oscuro se recuerda al recargar y un error de la API se muestra por
-bloque sin romper la página; además, el tablero DNS, los tres tableros de modelos (sin y con resultados simulados) y el panel de seis tarjetas. Corren en CI después del build.
+bloque sin romper la página; además, el tablero DNS, los tres tableros de modelos (sin y con resultados simulados) y el panel de seis tarjetas, los alias de ruta, la página 404 y que los filtros vivan en la URL (enlace profundo, recarga, «atrás»). Corren en CI después del build.
 
 Recharts se sustituye (en las pruebas unitarias) por un doble
 ([`tests/mocks/recharts.tsx`](frontend/tests/mocks/recharts.tsx)) porque jsdom no

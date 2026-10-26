@@ -11,7 +11,9 @@ const SALIDA = new URL("../public/informacion/img/", import.meta.url).pathname;
 const TMP = "/tmp/capturas-guia";
 mkdirSync(TMP, { recursive: true });
 
-const servidor = spawn("npx", ["next", "start", "-p", String(PUERTO)], { stdio: "ignore" });
+// detached + grupo de procesos: `npx` lanza a `next` como hijo y matar solo a `npx` lo dejaba vivo en el puerto.
+const servidor = spawn("npx", ["next", "start", "-p", String(PUERTO)], { stdio: "ignore", detached: true });
+const detenerServidor = () => { try { process.kill(-servidor.pid); } catch {} };
 for (let i = 0; i < 60; i++) {
   try { if ((await fetch(`http://localhost:${PUERTO}`)).ok) break; } catch {}
   await new Promise((r) => setTimeout(r, 1000));
@@ -50,13 +52,14 @@ try {
       const zonas = await p.evaluate(() => {
         const r = (e) => { const b = e.getBoundingClientRect(); return [Math.round(b.x + scrollX), Math.round(b.y + scrollY), Math.round(b.width), Math.round(b.height)]; };
         const m = document.querySelector("main");
-        return { alto: document.documentElement.scrollHeight, header: r(document.querySelector("header")), footer: r(document.querySelector("footer")),
+        return { articulos: [...document.querySelectorAll("article")].map(r), alto: document.documentElement.scrollHeight, header: r(document.querySelector("header")), footer: r(document.querySelector("footer")),
                  bloques: [...m.children].map((e) => [...e.children].length > 1 && e.className.includes("grid") ? [...e.children].map(r) : r(e)) };
       });
       console.log(nombre, JSON.stringify(zonas));
       await guardar(p, nombre, null);
       await p.context().close();
     }
+    detenerServidor();
     process.exit(0);
   }
 
@@ -117,6 +120,6 @@ try {
   await p.context().close();
 } finally {
   await navegador.close().catch(() => {});
-  servidor.kill();
+  detenerServidor();
   rmSync(TMP, { recursive: true, force: true });
 }
