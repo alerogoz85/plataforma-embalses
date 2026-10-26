@@ -60,3 +60,35 @@ describe("construirPuntosModelo", () => {
     expect(tieneBanda(series[0].puntos)).toBe(false);
   });
 });
+
+import { construirDatosGrafico, filasVisibles, graficosVisibles, opcionesPeriodo as opcionesPeriodoG, recortarGraficos } from "@/lib/utils/modelos";
+import { crearResultadoConDimensiones } from "../modelos/fixturesModelos";
+
+describe("graficos y dimensiones", () => {
+  const r = crearResultadoConDimensiones();
+
+  it("graficosVisibles deja solo los de la combinacion", () => {
+    expect(graficosVisibles(r.graficos, { serie: "CUSIANA", variable: "Fiscalizado" }).map((g) => g.id)).toEqual(["CUSIANA|Fiscalizado"]);
+    expect(graficosVisibles(r.graficos, { serie: "CUSIANA", variable: "Comercializado" })).toEqual([]);
+  });
+
+  it("filasVisibles filtra por las columnas declaradas y sin seleccion devuelve todo", () => {
+    const t = r.tablas[0];
+    expect(filasVisibles(t, { serie: "NACIONAL", variable: "Comercializado" })).toEqual([["NACIONAL", "Comercializado", "Amarillo"]]);
+    expect(filasVisibles(t, {})).toHaveLength(3);
+  });
+
+  it("opcionesPeriodo y recortarGraficos consideran las lineas de los graficos", () => {
+    expect(opcionesPeriodoG([], r.graficos)).toEqual(["2026-01", "2026-02", "2026-03", "2026-04"]);
+    const rec = recortarGraficos([r.graficos[0]], "2026-03", "");
+    expect(rec[0].lineas.map((l) => l.nombre)).toEqual(["Pronóstico", "Referencia Arps"]);
+  });
+
+  it("construirDatosGrafico une los meses, deja huecos (no ceros) y marca banda y linea punteada", () => {
+    const { datos, lineas } = construirDatosGrafico(r.graficos[0]);
+    expect(datos).toHaveLength(4);
+    expect(datos[0]).not.toHaveProperty("l1");
+    expect(lineas.map((l) => [l.estilo, l.banda])).toEqual([["continua", false], ["continua", true], ["punteada", false]]);
+    expect(datos[2]).toMatchObject({ l1: 12, l1_base: 10, l1_rango: 4 });
+  });
+});

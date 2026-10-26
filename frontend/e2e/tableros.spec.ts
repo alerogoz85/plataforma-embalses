@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { conResultados } from "../tests/modelos/fixturesModelos";
+import { conResultados, crearResultadoConDimensiones } from "../tests/modelos/fixturesModelos";
 import { simularApi } from "./api";
 
 test.describe("DNS: simetria de los paneles largos", () => {
@@ -230,6 +230,17 @@ test.describe("Tableros de modelos analiticos (gas, optimizacion, apagon)", () =
     await expect(page.locator(".recharts-yAxis-tick-labels").first()).toBeVisible();
     await page.getByRole("button", { name: /Restablecer filtros/ }).click();
     await expect(page.locator(".recharts-bar-rectangle")).toHaveCount(2);
+  });
+
+  test("gas con resultados: el filtro de campo cambia el grafico y viaja en la URL", async ({ page }) => {
+    await simularApi(page, { gas: conResultados(crearResultadoConDimensiones(), "gas") });
+    await page.goto("/gas");
+    await expect(page.getByRole("img", { name: /NACIONAL · Fiscalizado/ })).toBeVisible();
+    await page.getByRole("combobox", { name: "Campo" }).selectOption("CUSIANA");
+    await expect(page).toHaveURL(/serie=CUSIANA/);
+    await expect(page.getByRole("img", { name: /CUSIANA · Fiscalizado/ })).toBeVisible();
+    await page.goto("/gas?serie=NO_EXISTE");
+    await expect(page.getByRole("combobox", { name: "Campo" })).toHaveValue("NACIONAL");
   });
 
   for (const ruta of ["/gas", "/optimizacion", "/apagon"]) {

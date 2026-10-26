@@ -439,6 +439,31 @@ export interface TablaModelo {
   columnas: string[];
   filas: (string | number | null)[][];
   nota: string | null;
+  /** dimensión -> columna: con una dimensión elegida solo se muestran las filas cuya columna coincide con la opción. */
+  filtros_columna: Record<string, string>;
+}
+
+/** Un filtro del resultado (p. ej. el campo o la variable). Los gráficos y tablas que lo declaran se muestran solo si coinciden con la opción elegida. */
+export interface DimensionModelo {
+  id: string;
+  etiqueta: string;
+  opciones: string[];
+  por_defecto: string;
+}
+
+export interface LineaGraficoModelo {
+  nombre: string;
+  estilo: "continua" | "punteada";
+  puntos: PuntoSerieModelo[];
+}
+
+/** Gráfico con varias líneas sobre el mismo eje (observado, pronóstico, referencia…). */
+export interface GraficoModelo {
+  id: string;
+  titulo: string;
+  unidad: string;
+  lineas: LineaGraficoModelo[];
+  etiquetas: Record<string, string>;
 }
 
 export interface ResultadoModelo {
@@ -449,6 +474,8 @@ export interface ResultadoModelo {
   series: SerieModelo[];
   tablas: TablaModelo[];
   advertencias: string[];
+  dimensiones: DimensionModelo[];
+  graficos: GraficoModelo[];
 }
 
 export interface ResultadosModelo {
