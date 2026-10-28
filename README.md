@@ -42,6 +42,7 @@ y un manual con capturas de cada tablero).
 - [Modelo de cálculo hídrico](#modelo-de-cálculo-hídrico)
 - [Alcance y límites](#alcance-y-límites)
 - [Tableros y modelos](#tableros-y-modelos)
+- [Módulo de actualización de tableros](#módulo-de-actualización-de-tableros)
 - [Estructura del repositorio](#estructura-del-repositorio)
 - [Cómo ejecutar el proyecto](#cómo-ejecutar-el-proyecto)
 - [Despliegue en Vercel](#despliegue-en-vercel)
@@ -293,6 +294,7 @@ y
 | `/carbon` | Tablero del modelo de carbón térmico |
 | `/dns` | Tablero de demanda no atendida (DNS) |
 | `/gas`, `/optimizacion` | Tableros de los modelos de gas y optimización hidrotérmica (ficha + resultados importables) |
+| `/actualizar` | **Módulo de actualización de tableros** (acceso con cuenta; ver [Módulo de actualización](#módulo-de-actualización-de-tableros)) |
 | `/apagon` | **Gemelo digital de riesgo de apagón**: visor interactivo con menú izquierdo (modo de ONI, ONI, simulaciones, horizonte); sin escenarios importados queda la ficha |
 | `/informacion` | Guía técnica y manual de usuario (página estática) |
 
@@ -415,7 +417,7 @@ El tablero reproduce el visor de referencia (https://riesgo.spartanit.pro): men�
 
 ### Seguridad
 
-- **Solo lectura:** todos los endpoints (carbón, DNS y modelos) son `GET`; el resto de métodos responde 405 y CORS solo permite `GET`.
+- **Solo lectura, salvo el módulo de actualización:** todos los endpoints públicos (embalses, carbón, DNS y modelos) son `GET`; en ellos el resto de métodos responde 405. Lo único que escribe es `/api/v1/admin/*` (ver [Módulo de actualización](#módulo-de-actualización-de-tableros)), con sesión, token CSRF y permisos.
 - **Entradas cerradas:** cada parámetro se valida contra una lista fija (carbón: `horizonte_meses` ∈ {1,3,6,9},
   `historia_meses` ∈ {0,12,36,60}, `dias` ∈ {15,30,45,60}; DNS: `periodo_meses` ∈ {12,36,60,0}, `origen` ∈ {programada, no_programada};
   modelos: id ∈ {gas, optimizacion, apagon}); cualquier otro valor, incluido texto, responde 422 (o 404 para un modelo inexistente). La región y la
@@ -423,6 +425,71 @@ El tablero reproduce el visor de referencia (https://riesgo.spartanit.pro): men�
 - **Sin texto libre en SQL:** consultas parametrizadas; la API solo lee la base local y no llama a servicios externos.
 - **Importación segura:** el importador valida los archivos antes de escribir y reemplaza en una transacción (rollback si falla).
 - **Sin secretos** en el código ni en el repositorio; los mensajes de error no exponen rutas ni trazas.
+
+## Módulo de actualización de tableros
+
+`/actualizar` permite mantener al día los modelos **sin usar la línea de comandos**: se elige el tablero, se cargan sus archivos (Excel, CSV, JSON o Parquet según el modelo), se **revisan sin guardar nada** y, si todo está bien, se aplican. Es la única parte de la plataforma que escribe, por eso lleva su propio modelo de seguridad.
+
+### Qué se puede actualizar
+
+| Tablero (`id`) | Archivos que pide | Lector que los valida |
+|---|---|---|
+| Carbón térmico (`carbon`) | `proyeccion_carbon.xlsx`, `evaluacion_modelo.xlsx`, `base_mensual_nacional.parquet` | el mismo del importador de carbón |
+| Demanda no atendida (`dns`) | 6 CSV fijos y `pronostico_AAAA-MM.csv` | el mismo del importador de DNS |
+| Gas natural (`gas`) | `Pronostico_Gas_v2.xlsx` y, opcionales, el libro DCA y 4 CSV de backtesting/comparación | el mismo de `importar_resultado_modelo --modelo gas` |
+| Optimización (`optimizacion`) | `resumen.json` y, opcionales, `validacion_tecnica.json` y `manifest.json` | ídem |
+| Riesgo de apagón · resumen (`apagon`) | `resumen_mensual.csv` y, opcionales, franjas y 2 JSON | ídem |
+| Riesgo de apagón · visor (`apagon_visor`) | `escenarios_apagon.csv`: las 468 corridas del modelo | `escenarios_csv.py` (exige la tanda completa) |
+
+No hay un validador paralelo: los archivos se ubican en una carpeta temporal con la misma estructura que usan los importadores y se invoca **el mismo lector**, así que un archivo que el importador rechaza, el módulo también lo rechaza (y con el mismo motivo). El tablero de embalses se sigue alimentando de XM/SIMEM.
+
+Para el visor de apagón el módulo **no ejecuta el modelo**: el analista genera la tanda con `python -m infrastructure.ingesta.importar_escenarios_apagon --carpeta "../../5. Modelo apagón" --exportar-csv escenarios_apagon.csv` (≈2,9 MB) y la carga aquí.
+
+### Flujo
+
+1. **Iniciar sesión** (usuario y contraseña). 2. **Elegir el tablero** (solo aparecen los que la cuenta puede actualizar; queda en la URL: `?tablero=gas`). 3. **Cargar los archivos**: cada campo dice si es obligatorio y qué formato acepta. 4. **Revisar**: `POST /validar` devuelve el resumen (filas, fechas, series…), las advertencias del modelo o la lista de errores. Nada se guarda. 5. **Aplicar**: hay que marcar la confirmación; reemplaza los datos del tablero en una sola transacción. Cambiar o quitar un archivo después de revisar invalida la revisión.
+
+### Modelo de seguridad (defensa en capas)
+
+| Capa | Qué hace |
+|---|---|
+| **Cuentas** | Sin registro por la web: las crea un administrador con `python -m infrastructure.seguridad.crear_usuario` (la contraseña se pide sin mostrarla). Política: ≥ 12 caracteres, letras y números/símbolos, sin el nombre de usuario. Se guardan **solo como hash scrypt** con sal propia. |
+| **Roles y permisos** | `administrador` (todos los tableros, bitácora) y `cargador` (solo los tableros que se le asignan). Se comprueba en el servidor en cada paso; un intento sobre un tablero ajeno responde 403 y queda en la bitácora. |
+| **Contra adivinar contraseñas** | 5 intentos fallidos bloquean la cuenta 15 minutos (429 con `Retry-After`); 20 fallos desde una misma dirección frenan esa dirección. El error es el mismo exista o no el usuario y tarda lo mismo (no revela cuentas). |
+| **Sesión** | Cookie `HttpOnly` + `SameSite=Strict` (+ `Secure` en https), acotada a `/api/v1/admin`: el JavaScript de la página no la lee. Vence a los 30 min sin actividad y a las 8 h. En la base solo queda la **huella sha256** del token. |
+| **CSRF** | Toda petición que escribe exige además `X-CSRF-Token` (lo entrega el inicio de sesión), así que una página ajena no puede usar la sesión. CORS solo permite los orígenes configurados. |
+| **Archivos** | Nombre sin rutas ni caracteres de control y con extensión de la lista de ese archivo; el nombre del navegador **nunca** decide dónde se guarda (la ruta sale del catálogo y se comprueba que queda dentro de una carpeta temporal `0700`). Se revisa el **contenido real**, no la extensión: `.xlsx` debe ser un libro válido **sin macros, sin vínculos externos, sin cifrar y sin ser una bomba de compresión**; CSV y JSON, UTF-8 válido y sin bytes nulos; Parquet con su marca. Tope por archivo (4 MB), por envío (4,4 MB) y por contenido descomprimido (60 MB). Los CSV grandes viajan en `.gz` (el navegador los comprime) y se descomprimen con tope. |
+| **Integridad de lo aplicado** | Revisar devuelve el sha256 de cada archivo; aplicar exige esas huellas, **vuelve a revisar todo** y rechaza si los archivos cambiaron. La escritura es una transacción: si falla, los datos anteriores se conservan. |
+| **Bitácora** | Cada inicio de sesión (bueno o fallido), bloqueo, revisión, actualización y acceso denegado queda con fecha, usuario, tablero, resultado, huella de los archivos y dirección de origen; sin contraseñas, sin saltos de línea falsificables. Solo la ve el administrador (`GET /admin/auditoria`). |
+| **Errores** | Nunca se muestran rutas del servidor ni trazas; un archivo mal formado da un mensaje de estructura, no un 500. |
+| **Entorno sin persistencia** | En Vercel el disco se pierde: sin base externa (`DATABASE_URL`) aplicar responde 503 en lugar de «guardar» datos que desaparecerían. Revisar sigue funcionando. |
+
+Límites conocidos: el freno por dirección usa `X-Forwarded-For`, que un atacante puede variar (el bloqueo por cuenta no depende de eso); quien conozca un usuario puede bloquearlo 15 minutos con intentos fallidos (es el precio de frenar la adivinanza); y no hay autenticación de dos factores.
+
+### Dónde se guardan los datos (base externa)
+
+| Dato | Dónde |
+|---|---|
+| Embalses y mediciones (XM/SIMEM) | DuckDB empaquetado con la API (solo lectura) |
+| Carbón, DNS, resultados y escenarios de los modelos, usuarios, sesiones y bitácora | **Postgres** (Neon / Vercel Postgres) si hay `DATABASE_URL`; si no, el mismo DuckDB local |
+
+Los repositorios son los mismos sobre las dos bases: `PostgresConnection` ofrece la misma interfaz que `DuckDBConnection` y el DDL se traduce solo (`DOUBLE` → `DOUBLE PRECISION`). Variables de entorno de la API: `DATABASE_URL` (obligatoria en producción para poder aplicar), `MAX_UPLOAD_BYTES` (4 MB), `MAX_UPLOAD_TOTAL_BYTES` (4,4 MB, tope de una petición en Vercel), `MAX_CONTENT_BYTES` (60 MB), `CORS_ALLOWED_ORIGINS`.
+
+**Puesta en marcha en producción (una sola vez):**
+
+```bash
+# 1. En Vercel: Storage → crear una base Postgres (Neon) y conectarla al proyecto plataforma-embalses-api (inyecta DATABASE_URL).
+# 2. Copiar los datos actuales de los modelos y crear las cuentas (desde backend/, con DATABASE_URL del paso 1 en el entorno):
+python -m infrastructure.persistence.migrar_a_postgres
+python -m infrastructure.seguridad.crear_usuario --usuario ana --nombre "Ana Pérez" --rol administrador
+python -m infrastructure.seguridad.crear_usuario --usuario luis --nombre "Luis Gómez" --rol cargador --tableros gas,dns
+# 3. Volver a publicar la API:
+scripts/desplegar-vercel.sh
+```
+
+Desde entonces, actualizar un tablero es entrar a `/actualizar`: ya no hace falta publicar la API. La cadena `DATABASE_URL` es un secreto: no va al repositorio ni se imprime (los comandos anteriores no la muestran).
+
+Referencia: `POST/GET/DELETE /api/v1/admin/sesion`, `GET /admin/tableros`, `POST /admin/tableros/{id}/validar|aplicar` (multipart), `GET /admin/auditoria`.
 
 ## Estructura del repositorio
 
@@ -715,9 +782,9 @@ gh pr create --fill                # abrir el pull request
 gh pr merge --squash --delete-branch   # cuando los checks estén en verde
 ```
 
-### Backend — 638 pruebas (pytest)
+### Backend — 747 pruebas (+9 con Postgres) (pytest)
 
-638 pruebas con pytest, sin red ni base de datos externa (repositorios,
+747 pruebas con pytest, sin red ni base de datos externa (otras 9, contra un Postgres real, se omiten salvo que se defina `TEST_DATABASE_URL`) (repositorios,
 fuente y pronóstico en memoria —ver [`tests/fakes.py`](backend/tests/fakes.py)—, y
 DuckDB sobre archivos temporales). Las pruebas HTTP usan `TestClient` de FastAPI
 (requiere `httpx`, incluido en `requirements-dev.txt`):
@@ -738,6 +805,10 @@ DuckDB sobre archivos temporales). Las pruebas HTTP usan `TestClient` de FastAPI
 | `test_modelo_dns.py` | 69 | Modelo DNS: entidades y validaciones, ventana del período y comparación con el período previo, filtros (región, subárea, origen), patrones sin «hora desconocida», causas, casos de uso, lectura de los CSV del modelo y repositorio DuckDB (ida y vuelta, rollback, `--reiniciar`) |
 | `test_api_dns.py` | 64 | Contrato HTTP de los 8 endpoints `/dns/*`: formas del JSON, 404 sin corrida, 422 por período/origen/región/subárea inválidos o con caracteres peligrosos, solo GET |
 | `test_modelos_analiticos.py` | 61 | Gas, optimización y apagón: validación de resultados (bandas, series, tablas), integridad de las fichas, casos de uso, repositorio, lectores de salidas (conversión de unidades, valores inválidos, archivos faltantes, advertencia de corrida no publicable) e importador |
+| `test_seguridad_actualizacion.py` | 57 | Contraseñas (scrypt, política), inicio de sesión (bloqueo, error uniforme, freno por dirección, bitácora sin saltos de línea), sesión (vencimiento, CSRF, revocación), permisos por rol/tablero y **validador de archivos** (rutas peligrosas, macros, vínculos externos, bomba de compresión, UTF-8, JSON anidado) |
+| `test_api_actualizacion.py` | 38 | HTTP del módulo: cookie `HttpOnly`/`SameSite`, 401/403/404/422/429/503, CSRF, flujo validar→aplicar con huellas, archivos comprimidos y topes, errores sin rutas del servidor, el resto de la API sigue siendo GET |
+| `test_escenarios_csv.py` | 12 | CSV de la tanda de 468 escenarios: ida y vuelta, tanda incompleta, duplicados, valores inválidos, procedencia |
+| `test_postgres.py` | 11 (2 sin servidor) | Traducción del esquema y, con `TEST_DATABASE_URL`, los repositorios y la migración sobre Postgres real |
 | `test_escenarios_apagon.py` | 32 | Visor de apagón: entidad (51 ONI, 468 combinaciones, validaciones), repositorio (ida y vuelta, reemplazo atómico), adaptador de la salida del modelo y API (opciones, 404, 422, solo GET) |
 | `test_api_modelos.py` | 27 | Contrato HTTP de `/modelos/{id}/ficha` y `/resultados`: estados, `disponible = false`, 404 por modelo inexistente, 422 por identificador inválido, solo GET |
 | `test_arranque_vercel.py` | 4 | Copia de la base empaquetada a `/tmp` (no pisa copias existentes, error claro si falta) |
@@ -755,7 +826,7 @@ repositorios en memoria; DuckDB se prueba aparte). La descarga real de SIMEM/XM
 se verificó manualmente (carga completa e incremental) y contra el agregado
 oficial de XM, pero no en las pruebas automáticas, que no usan red.
 
-### Frontend — 460 pruebas (Vitest + React Testing Library + jsdom)
+### Frontend — 491 pruebas (Vitest + React Testing Library + jsdom)
 
 Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 ([`tests/mocks/fetch.ts`](frontend/tests/mocks/fetch.ts)) con datos de ejemplo
@@ -785,13 +856,14 @@ Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 | `carbon/clienteCarbon.test.ts` | 8 | URLs y parámetros de los 5 endpoints, la historia `0` se envía, errores 404/422 como `ApiError` |
 | `dns/dns.test.tsx` | 30 | Página DNS con la API simulada: 8 endpoints, tarjetas y sentido de las variaciones, **cada filtro llega a los bloques que corresponde** (período y origen no a zonas/cambios/modelo; región a todos), región→subárea, clic en una zona, restablecer, serie con pronóstico, patrones, causas, cambios, modelo y errores por bloque |
 | `dns/clienteDns.test.ts`, `utils/dns.test.ts` | 10 + 13 | URLs y parámetros del DNS (el período `0` se envía; zonas/cambios/modelo no llevan período ni origen), formato de variaciones y construcción de la serie con pronóstico |
+| `actualizacion/actualizacion.test.tsx`, `utils/archivos.test.ts` | 20 + 6 | Módulo de actualización: acceso (error, bloqueo, tipo password), tableros del catálogo, archivos obligatorios/opcionales y formato, revisar→aplicar con CSRF y huellas, revisión invalidada al cambiar un archivo, errores 422, sesión vencida, sin persistencia, bitácora solo del administrador |
 | `apagon/gemelo.test.tsx`, `utils/gemelo.test.ts` | 8 + 18 | Visor de apagón: valores iniciales, ONI/simulaciones/horizonte piden su escenario y viajan en la URL, modo pronóstico sin ONI, restablecer, parámetros inválidos, tabla mensual, respaldo sin escenarios, error; fase ENOS, umbrales del semáforo, indicadores, mapa de calor |
 | `modelos/modelos.test.tsx` | 21 | Tableros de gas/optimización/apagón: estado documentado, sin resultados no hay filtros ni gráficos, ficha, errores, con resultados: indicadores con nivel, series con banda, «—» por dato vacío y **filtro Desde/Hasta que recorta todas las series**, filtros por dimensión (campo/variable) que eligen gráfico y filas de la tabla |
 | `utils/modelos.test.ts` | 15 | Etiquetas de período, opciones y recorte de series, banda apilada, gráficos y filas por dimensión, huecos (nunca ceros) |
 | `carbon/carbon.test.tsx` | 24 | Página de carbón con la API simulada: valores por defecto, resumen pedido una sola vez, tarjetas, **cada filtro vuelve a consultar solo lo que le corresponde** (horizonte → 4 endpoints; días → resumen e inventario; historia → serie; unidad → sin red), restablecer, opciones = lista cerrada de la API, ayudas ⓘ, errores por bloque, techo/récord/banda del gráfico, aviso del mes en curso y de XM sobre el techo, validación accesible |
 | `app/ayudas.test.tsx` | 6 | Catálogo de ayudas (títulos únicos, sin textos obsoletos) y auditoría: todo encabezado, columna, filtro y tarjeta tiene su ⓘ y todos abren y cierran |
 
-### Frontend — pruebas de extremo a extremo (Playwright, 39)
+### Frontend — pruebas de extremo a extremo (Playwright, 41)
 
 [`frontend/e2e/`](frontend/e2e) abre el **build de producción** en un navegador real (Chrome local; Chromium en CI) con la
 API simulada ([`e2e/api.ts`](frontend/e2e/api.ts), mismos datos de ejemplo que las pruebas unitarias), así que no dependen del

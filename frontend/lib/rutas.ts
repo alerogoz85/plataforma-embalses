@@ -18,9 +18,10 @@ export const RUTAS = {
   gas: "/gas",
   optimizacion: "/optimizacion",
   apagon: "/apagon",
+  actualizar: "/actualizar",
 } as const;
 
-export type IdTablero = Exclude<keyof typeof RUTAS, "panel" | "informacion">;
+export type IdTablero = Exclude<keyof typeof RUTAS, "panel" | "informacion" | "actualizar">;
 export type Ruta = (typeof RUTAS)[keyof typeof RUTAS];
 
 /** Tableros en el orden en que se muestran. */

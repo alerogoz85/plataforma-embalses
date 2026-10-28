@@ -112,7 +112,8 @@ class ActualizarTableroUseCase:
             try:
                 objeto = adaptador.leer(carpeta)
             except adaptador.errores_de_lectura as error:
-                return [str(error)[:500]], [], (), None
+                # Los lectores nombran la ruta del archivo: se quita la carpeta temporal para no mostrar rutas del servidor.
+                return [str(error).replace(str(carpeta), "").replace("//", "/")[:500]], [], (), None
             except Exception:  # noqa: BLE001 - un archivo malformado no debe romper el servicio ni filtrar detalles internos
                 registro.exception("Error inesperado al leer los archivos de %s", definicion.id)
                 return ["No fue posible interpretar los archivos: la estructura no corresponde a la esperada para este tablero"], [], (), None

@@ -8,8 +8,8 @@ demanda no atendida, gas, optimización hidrotérmica y riesgo de apagón. La do
 
 | Carpeta | Qué hay |
 |---|---|
-| `app/` | Una carpeta por ruta (`/`, `/embalses`, `/carbon`, `/dns`, `/gas`, `/optimizacion`, `/apagon`), `not-found.tsx` (404) y `globals.css` (tokens de la identidad visual) |
-| `components/` | `panel/`, `layout/`, `ui/` (compartidos) y un grupo por tablero: `dashboard/` (embalses), `carbon/`, `dns/`, `modelos/` (gas y optimización), `apagon/` (visor interactivo) |
+| `app/` | Una carpeta por ruta (`/`, `/embalses`, `/carbon`, `/dns`, `/gas`, `/optimizacion`, `/apagon`, `/actualizar`), `not-found.tsx` (404) y `globals.css` (tokens de la identidad visual) |
+| `components/` | `panel/`, `layout/`, `ui/` (compartidos) y un grupo por tablero: `dashboard/` (embalses), `carbon/`, `dns/`, `modelos/` (gas y optimización), `apagon/` (visor interactivo), `actualizacion/` (módulo de carga de archivos con sesión) |
 | `lib/rutas.ts` | **Manejador central de rutas**: única fuente de las direcciones, anclas de la guía y alias (también lo usa `next.config.ts`) |
 | `lib/tableros.ts` | Registro de tableros: de aquí sale el panel |
 | `lib/hooks/useEstadoUrl.ts` | Guarda filtros y alternancias en la URL; los lectores validados están en `lib/utils/url.ts` |

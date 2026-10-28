@@ -2,6 +2,7 @@ import type { Page } from "@playwright/test";
 
 import { FUENTE_REAL, crearDetalle, crearPrediccion, crearResumen, crearSenda } from "../tests/fixtures";
 import { crearCatalogo, crearEscenario } from "../tests/apagon/fixturesEscenario";
+import { crearAuditoria, crearCatalogoAdmin, crearResultadoCarga, crearSesion } from "../tests/actualizacion/fixturesAdmin";
 import { conResultados, crearFichaModelo, sinResultados } from "../tests/modelos/fixturesModelos";
 import {
   crearCambiosDns, crearCatalogoDns, crearCausasDns, crearModeloDns, crearPatronesDns, crearResumenDns, crearSerieDns, crearZonasDns,
@@ -20,6 +21,7 @@ export async function simularApi(
   page: Page, resultados: Partial<Record<string, ReturnType<typeof conResultados>>> = {}, { escenariosApagon = false }: { escenariosApagon?: boolean } = {},
 ): Promise<Llamadas> {
   const llamadas: Llamadas = [];
+  let sesionAdmin = false;
   await page.route("**/api/v1/**", async (ruta) => {
     const url = new URL(ruta.request().url());
     llamadas.push(url);
@@ -44,6 +46,30 @@ export async function simularApi(
     if (p === "/dns/causas") return json(crearCausasDns());
     if (p === "/dns/cambios-reporte") return json(crearCambiosDns());
     if (p === "/dns/modelo") return json(crearModeloDns());
+    // Módulo de actualización: la sesión empieza cerrada y se abre con el inicio de sesión (la simulación mantiene ese estado).
+    // Con credenciales (cookie) el navegador exige un origen concreto y «allow-credentials», no «*».
+    if (p.startsWith("/admin/")) {
+      const metodo = ruta.request().method();
+      const cabeceras = {
+        "access-control-allow-origin": ruta.request().headers()["origin"] ?? "*", "access-control-allow-credentials": "true",
+        "access-control-allow-headers": "Content-Type, X-CSRF-Token", "access-control-allow-methods": "GET, POST, DELETE",
+      };
+      const responder = (status: number, cuerpo?: unknown) => ruta.fulfill({ status, headers: cabeceras, ...(cuerpo === undefined ? {} : { json: cuerpo }) });
+      if (metodo === "OPTIONS") return responder(204);
+      if (p === "/admin/sesion" && metodo === "POST") {
+        const { contrasena } = ruta.request().postDataJSON() as { contrasena: string };
+        if (contrasena !== "clave-correcta-2026") return responder(401, { detalle: "Usuario o contraseña incorrectos" });
+        sesionAdmin = true;
+        return responder(200, crearSesion());
+      }
+      if (!sesionAdmin) return responder(401, { detalle: "Debes iniciar sesión para continuar" });
+      if (p === "/admin/sesion" && metodo === "DELETE") { sesionAdmin = false; return responder(204); }
+      if (p === "/admin/sesion") return responder(200, crearSesion());
+      if (p === "/admin/tableros") return responder(200, crearCatalogoAdmin());
+      if (p === "/admin/auditoria") return responder(200, crearAuditoria());
+      if (p.endsWith("/validar")) return responder(200, crearResultadoCarga());
+      if (p.endsWith("/aplicar")) return responder(200, crearResultadoCarga({ aplicada: true }));
+    }
     // Visor de apagón: solo con `escenariosApagon`; sin él el catálogo dice «no disponible» y queda el tablero genérico.
     if (p === "/modelos/apagon/escenarios") return json(crearCatalogo({ disponible: escenariosApagon }));
     if (p === "/modelos/apagon/escenario" && escenariosApagon) {

@@ -200,6 +200,50 @@ test.describe("Tablero DNS con el navegador real", () => {
   });
 });
 
+test.describe("Módulo de actualización", () => {
+  test("acceso protegido, carga de un archivo, revisión, aplicación y cierre de sesión", async ({ page }) => {
+    await simularApi(page);
+    await page.goto("/actualizar");
+    await expect(page.getByRole("form", { name: "Iniciar sesión" })).toBeVisible();
+    await expect(page.getByText("1. Elige el tablero")).toHaveCount(0);
+
+    await page.getByLabel("Usuario").fill("ana");
+    await page.getByLabel("Contraseña").fill("incorrecta");
+    await page.getByRole("button", { name: "Ingresar" }).click();
+    await expect(page.getByRole("form", { name: "Iniciar sesión" }).getByRole("alert")).toContainText("Usuario o contraseña incorrectos");
+
+    await page.getByLabel("Contraseña").fill("clave-correcta-2026");
+    await page.getByRole("button", { name: "Ingresar" }).click();
+    await page.getByRole("radio", { name: /Optimización/ }).check();
+    await expect(page).toHaveURL(/tablero=optimizacion/);
+
+    await page.getByLabel("Resumen de la corrida (JSON)", { exact: true }).setInputFiles({ name: "resumen.json", mimeType: "application/json", buffer: Buffer.from('{"a":1}') });
+    await page.getByRole("button", { name: /Revisar archivos/ }).click();
+    await expect(page.getByText("Los archivos son válidos")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Aplicar actualización" })).toBeDisabled();
+    await page.getByRole("checkbox").check();
+    await page.getByRole("button", { name: "Aplicar actualización" }).click();
+    await expect(page.getByText("Tablero actualizado")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Ver el tablero" })).toHaveAttribute("href", "/optimizacion");
+
+    await page.getByRole("button", { name: "Cerrar sesión" }).click();
+    await expect(page.getByRole("form", { name: "Iniciar sesión" })).toBeVisible();
+  });
+
+  test("la página de actualización no tiene desplazamiento horizontal en celular", async ({ page }) => {
+    await simularApi(page);
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto("/actualizar");
+    await page.getByLabel("Usuario").fill("ana");
+    await page.getByLabel("Contraseña").fill("clave-correcta-2026");
+    await page.getByRole("button", { name: "Ingresar" }).click();
+    await page.getByRole("radio", { name: /Gas/ }).check();
+    await page.waitForLoadState("networkidle");
+    const { ancho, visible } = await page.evaluate(() => ({ ancho: document.documentElement.scrollWidth, visible: window.innerWidth }));
+    expect(ancho).toBeLessThanOrEqual(visible);
+  });
+});
+
 test.describe("Tableros de modelos analiticos (gas, optimizacion, apagon)", () => {
   for (const [ruta, titulo] of [["/gas", "Gas natural: oferta declarada y fiscalizada"], ["/optimizacion", "Optimización hidrotérmica (SDDP)"], ["/apagon", "Riesgo de apagón condicionado por ENOS"]]) {
     test(`${ruta} sin resultados muestra la ficha y como cargarlos, sin graficos`, async ({ page }) => {

@@ -339,3 +339,21 @@ class TestArchivosComprimidos:
         c, _ = entrar()
         cat = c.get(f"{U}/tableros").json()
         assert (cat["limite_bytes"], cat["limite_total_bytes"], cat["limite_contenido_bytes"]) == (4 * 1024 * 1024, 4_400_000, 60 * 1024 * 1024)
+
+
+class TestNoFiltraRutasDelServidor:
+    def test_el_error_de_un_lector_no_muestra_la_carpeta_temporal(self, entorno):
+        cr = entrar()
+        # DNS pide varios archivos; con solo el mapeo (vacio de datos) el lector se queja de uno que falta o de columnas.
+        files = [("archivos", ("mapeo.csv", b"a,b\n1,2\n", "text/csv"))]
+        r = cr[0].post(f"{U}/tableros/dns/validar", headers=csrf(cr), files=files, data={"claves": ["mapeo"]}).json()
+        texto = " ".join(r["errores"])
+        assert r["errores"] and "/tmp" not in texto and "actualizacion_" not in texto and "/var/" not in texto
+
+    def test_un_error_de_lectura_inesperado_no_filtra_detalles(self, entorno, monkeypatch):
+        def explota(_carpeta):
+            raise KeyError("/ruta/secreta/del/servidor")
+        monkeypatch.setattr(entorno.adaptadores["optimizacion"], "leer", explota)
+        cr = entrar()
+        r = cr[0].post(f"{U}/tableros/optimizacion/validar", headers=csrf(cr), **archivos_opt()).json()
+        assert not r["valido"] and "secreta" not in " ".join(r["errores"]) and "estructura" in " ".join(r["errores"])
