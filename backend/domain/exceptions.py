@@ -75,3 +75,10 @@ class ModeloNoEncontradoError(DomainError):
 
     def __init__(self, modelo_id: str) -> None:
         super().__init__(f"El modelo '{modelo_id}' no existe")
+
+
+class EscenarioNoDisponibleError(DomainError):
+    """No se ha importado la tanda de escenarios del visor de apagon (o no trae esa combinacion)."""
+
+    def __init__(self) -> None:
+        super().__init__("Aun no hay escenarios importados para esa combinacion de controles")

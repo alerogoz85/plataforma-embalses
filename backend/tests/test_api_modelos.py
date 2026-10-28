@@ -97,6 +97,9 @@ class TestSeguridad:
     def test_solo_lectura(self, cliente, metodo, ruta):
         assert getattr(cliente, metodo)(f"/api/v1/modelos/gas/{ruta}").status_code == 405
 
-    def test_openapi_lista_los_dos_endpoints(self, cliente):
+    def test_openapi_lista_los_endpoints(self, cliente):
         rutas = [r for r in cliente.get("/openapi.json").json()["paths"] if r.startswith("/api/v1/modelos")]
-        assert sorted(rutas) == ["/api/v1/modelos/{modelo_id}/ficha", "/api/v1/modelos/{modelo_id}/resultados"]
+        assert sorted(rutas) == [
+            "/api/v1/modelos/apagon/escenario", "/api/v1/modelos/apagon/escenarios",
+            "/api/v1/modelos/{modelo_id}/ficha", "/api/v1/modelos/{modelo_id}/resultados",
+        ]

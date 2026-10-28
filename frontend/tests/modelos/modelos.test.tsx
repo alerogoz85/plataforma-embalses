@@ -75,7 +75,9 @@ describe("Tablero de un modelo sin resultados", () => {
       const { llamadas } = api(id);
       const { unmount } = render(<Pagina />);
       await screen.findByText("Aún no hay resultados cargados");
-      expect(llamadas.map((u) => u.pathname).sort()).toEqual([`${M}/${id}/ficha`, `${M}/${id}/resultados`]);
+      // El apagón primero pregunta si hay escenarios del visor; sin ellos cae al tablero genérico.
+      const esperadas = [`${M}/${id}/ficha`, `${M}/${id}/resultados`, ...(id === "apagon" ? [`${M}/apagon/escenarios`] : [])].sort();
+      expect([...new Set(llamadas.map((u) => u.pathname))].sort()).toEqual(esperadas);
       unmount();
     }
   });

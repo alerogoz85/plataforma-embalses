@@ -1,13 +1,13 @@
 import { Suspense } from "react";
 
-import { TableroModelo } from "@/components/modelos/TableroModelo";
+import { TableroApagon } from "@/components/apagon/TableroApagon";
 import { CargandoTablero } from "@/components/ui/CargandoTablero";
 
-/** Tablero del modelo «Riesgo de apagón»: ficha documentada y, cuando existan, sus resultados importados (el período vive en la URL). */
+/** Tablero «Riesgo de apagón»: visor interactivo con los escenarios del modelo (los controles viven en la URL) o, sin ellos, la ficha documentada. */
 export default function Page() {
   return (
     <Suspense fallback={<CargandoTablero titulo="Riesgo de apagón condicionado por ENOS" />}>
-      <TableroModelo modeloId="apagon" titulo="Riesgo de apagón condicionado por ENOS" />
+      <TableroApagon />
     </Suspense>
   );
 }

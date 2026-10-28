@@ -116,3 +116,60 @@ class ResultadosModeloDTO(BaseModel):
     modelo_id: str
     disponible: bool
     resultado: Optional[ResultadoModeloDTO] = None
+
+
+class MesEscenarioDTO(BaseModel):
+    mes: str
+    indice_riesgo: float
+    probabilidad_deficit: float
+    probabilidad_apagon_severo: float
+    semaforo: str
+    oni_p10: float
+    oni_p50: float
+    oni_p90: float
+    embalse_pct_p10: float
+    embalse_pct_p50: float
+    embalse_pct_p90: float
+    demanda_mwh_p10: float
+    demanda_mwh_p50: float
+    demanda_mwh_p90: float
+    oferta_mwh_p10: float
+    oferta_mwh_p50: float
+    oferta_mwh_p90: float
+    deficit_mwh_p50: float
+    deficit_mwh_p90: float
+    margen_reserva_pct_p50: float
+    deficit_por_franja_mwh: list[float]
+
+
+class EscenarioApagonDTO(BaseModel):
+    modo: str
+    oni: Optional[float]
+    simulaciones: int
+    horizonte: int
+    meses: list[MesEscenarioDTO]
+
+
+class FuenteEscenariosDTO(BaseModel):
+    generado_en: datetime
+    origen: str
+    ultimo_oni_observado: Optional[float]
+    ultimo_mes_demanda: Optional[str]
+    semilla: int
+
+
+class CatalogoEscenariosDTO(BaseModel):
+    """Opciones de los controles del visor y procedencia. `disponible` es falso mientras no se importe la tanda."""
+
+    disponible: bool
+    modos: list[str]
+    oni_minimo: float
+    oni_maximo: float
+    oni_paso: float
+    oni_por_defecto: float
+    simulaciones: list[int]
+    simulaciones_por_defecto: int
+    horizontes: list[int]
+    horizonte_por_defecto: int
+    franjas: list[str]
+    fuente: Optional[FuenteEscenariosDTO] = None

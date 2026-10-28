@@ -72,3 +72,4 @@ const Nada = () => null;
 export const CartesianGrid = Nada;
 export const Tooltip = Nada;
 export const Legend = Nada;
+export const LabelList = Nada;

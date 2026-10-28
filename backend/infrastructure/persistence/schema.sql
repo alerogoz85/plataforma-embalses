@@ -169,3 +169,12 @@ CREATE TABLE IF NOT EXISTS dns_pronostico (
 CREATE TABLE IF NOT EXISTS modelo_resultados (
     modelo_id VARCHAR NOT NULL, generado_en TIMESTAMP NOT NULL, contenido VARCHAR NOT NULL
 );
+
+-- ---------------------------------------------------------------------------
+-- Escenarios precalculados del modelo de apagon: una fila por combinacion de los controles del visor
+-- (modo de ONI, ONI, simulaciones, horizonte) mas una fila 'fuente' con la procedencia de la tanda.
+-- Contenido = JSON validado por el dominio (EscenarioApagon) antes de escribirse.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS modelo_escenarios (
+    modelo_id VARCHAR NOT NULL, clave VARCHAR NOT NULL, generado_en TIMESTAMP NOT NULL, contenido VARCHAR NOT NULL
+);

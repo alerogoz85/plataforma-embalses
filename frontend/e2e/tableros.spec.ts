@@ -232,6 +232,23 @@ test.describe("Tableros de modelos analiticos (gas, optimizacion, apagon)", () =
     await expect(page.locator(".recharts-bar-rectangle")).toHaveCount(2);
   });
 
+  test("el visor de apagón: los controles piden otro escenario, viajan en la URL y no hay desplazamiento horizontal en celular", async ({ page }) => {
+    const llamadas = await simularApi(page, {}, { escenariosApagon: true });
+    await page.goto("/apagon");
+    await expect(page.getByRole("heading", { level: 1, name: /Gemelo digital de riesgo de apagón/ })).toBeVisible();
+    await expect(page.locator(".recharts-bar-rectangle").first()).toBeVisible();
+    await page.getByRole("slider", { name: "ONI objetivo (°C)" }).fill("-1.5");
+    await expect(page).toHaveURL(/oni=-1\.5/);
+    await expect(page.getByLabel("Fase ENOS")).toContainText("La Niña moderada");
+    await page.getByRole("radio", { name: /Pronóstico ENOS/ }).check();
+    await expect(page.getByRole("slider", { name: "ONI objetivo (°C)" })).toHaveCount(0);
+    await expect.poll(() => llamadas.filter((u) => u.pathname.endsWith("/apagon/escenario")).at(-1)?.searchParams.get("modo")).toBe("probabilistico");
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.waitForLoadState("networkidle");
+    const { ancho, visible } = await page.evaluate(() => ({ ancho: document.documentElement.scrollWidth, visible: window.innerWidth }));
+    expect(ancho).toBeLessThanOrEqual(visible);
+  });
+
   test("gas con resultados: el filtro de campo cambia el grafico y viaja en la URL", async ({ page }) => {
     await simularApi(page, { gas: conResultados(crearResultadoConDimensiones(), "gas") });
     await page.goto("/gas");

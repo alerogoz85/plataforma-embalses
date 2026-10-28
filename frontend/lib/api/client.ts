@@ -1,4 +1,7 @@
 import type {
+  CatalogoEscenarios,
+  EscenarioApagon,
+  ModoOni,
   CambioReporteDns,
   CatalogoDns,
   FichaModelo,
@@ -190,6 +193,23 @@ export const obtenerFichaModelo = (modeloId: string, signal?: AbortSignal) =>
 
 export const obtenerResultadosModelo = (modeloId: string, signal?: AbortSignal) =>
   obtenerJSON<ResultadosModelo>(`/api/v1/modelos/${encodeURIComponent(modeloId)}/resultados`, signal);
+
+export const obtenerCatalogoEscenariosApagon = (signal?: AbortSignal) =>
+  obtenerJSON<CatalogoEscenarios>("/api/v1/modelos/apagon/escenarios", signal);
+
+export interface ParametrosEscenario {
+  modo: ModoOni;
+  /** Solo en modo manual: en modo probabilístico el modelo usa el pronóstico ENOS y el ONI no interviene. */
+  oni: number;
+  simulaciones: number;
+  horizonte: number;
+}
+
+export const obtenerEscenarioApagon = (p: ParametrosEscenario, signal?: AbortSignal) =>
+  obtenerJSON<EscenarioApagon>(
+    `/api/v1/modelos/apagon/escenario${construirQuery({ modo: p.modo, oni: p.modo === "manual" ? p.oni : undefined, simulaciones: p.simulaciones, horizonte: p.horizonte })}`,
+    signal,
+  );
 
 export function urlReporte(embalseId: string, formato: "csv" | "json", rango: { fechaInicio?: string; fechaFin?: string } = {}): string {
   const query = construirQuery({
