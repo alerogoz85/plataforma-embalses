@@ -292,7 +292,8 @@ y
 | `/embalses` | Tablero de monitoreo de embalses |
 | `/carbon` | Tablero del modelo de carbón térmico |
 | `/dns` | Tablero de demanda no atendida (DNS) |
-| `/gas`, `/optimizacion`, `/apagon` | Tableros de los modelos de gas, optimización hidrotérmica y riesgo de apagón (ficha + resultados importables) |
+| `/gas`, `/optimizacion` | Tableros de los modelos de gas y optimización hidrotérmica (ficha + resultados importables) |
+| `/apagon` | **Gemelo digital de riesgo de apagón**: visor interactivo con menú izquierdo (modo de ONI, ONI, simulaciones, horizonte); sin escenarios importados queda la ficha |
 | `/informacion` | Guía técnica y manual de usuario (página estática) |
 
 Los tableros se registran en [`frontend/lib/tableros.ts`](frontend/lib/tableros.ts); el panel
@@ -312,7 +313,8 @@ escribe una ruta a mano. **Cada vista y cada filtro tienen su dirección**: el e
 | `/embalses` | `region`, `embalse`, `desde`, `hasta` (AAAA-MM-DD), `h` (30, 90, 180, 360 días), `hs` (1, 3, 6, 12 meses), `q`, `orden`, `dir` |
 | `/carbon` | `historia` (12, 36, 60, 0), `horizonte` (1, 3, 6, 9), `unidad` (gbtu, kt), `dias` (15, 30, 45, 60) |
 | `/dns` | `periodo` (12, 36, 60, 0), `region`, `subarea`, `origen` (programada, no_programada), `medida` (eventos, energia), `ampliar` (zonas, modelo) |
-| `/gas`, `/optimizacion`, `/apagon` | `desde`, `hasta` (AAAA-MM) |
+| `/gas`, `/optimizacion` | `desde`, `hasta` (AAAA-MM) y los filtros del modelo (gas: `serie`, `variable`) |
+| `/apagon` | `modo` (`manual`\|`probabilistico`), `oni` (−2,5 a 2,5 de 0,1 en 0,1), `simulaciones` (1000\|2000\|5000), `horizonte` (12\|18\|24) |
 
 - **Validación:** cada parámetro se lee contra la misma lista cerrada que acepta la API (`lib/utils/url.ts`); uno inválido se ignora y queda el defecto, así una
   dirección escrita a mano nunca produce un 422 ni rompe la página. En DNS, la región y la subárea se contrastan además con el catálogo cargado.
@@ -394,6 +396,22 @@ solo tiene una prueba técnica marcada `publishable = false` y sigue sin resulta
   punteadas, con banda P10-P90) y tablas filtrables por esas dimensiones; cada filtro viaja en la URL (`?serie=CUSIANA&variable=Fiscalizado`).
 - **Interfaz:** estado, cifras documentadas, ficha y, con resultados, filtros del modelo y *Desde/Hasta* (recortan todos los gráficos y tablas a la vez), indicadores con nivel, advertencias, series, gráficos, tablas (el semáforo se muestra como insignia con texto) y procedencia. Sin resultados dice qué archivos se esperan y el comando para cargarlos.
 - **API:** `GET /api/v1/modelos/{gas|optimizacion|apagon}/ficha` y `/resultados` (`disponible: false` es un estado normal, no un error).
+
+#### Visor interactivo del riesgo de apagón (`/apagon`)
+
+El tablero reproduce el visor de referencia (https://riesgo.spartanit.pro): menú izquierdo con **Modo de ONI** (pronóstico ENOS o manual), **ONI objetivo**
+(−2,5 a 2,5 °C, de 0,1 en 0,1, con la fase ENOS), **Simulaciones** (1000, 2000, 5000) y **Horizonte** (12, 18, 24 meses); a la derecha, cuatro indicadores,
+índice por mes, probabilidades de déficit y de apagón severo, mapa de calor por franja horaria, oferta frente a demanda y la tabla mensual completa.
+
+- **No recalcula en la API.** Cada combinación de controles tiene su corrida del modelo Monte Carlo ya calculada (468: 51 ONI × 3 × 3 y el modo
+  probabilístico × 3 × 3, con la semilla fija del modelo) y guardada en la tabla `modelo_escenarios`. La API solo devuelve la que corresponde:
+  `GET /api/v1/modelos/apagon/escenarios` (opciones de los controles y procedencia) y `GET /api/v1/modelos/apagon/escenario?modo=&oni=&simulaciones=&horizonte=`
+  (valores fuera de las opciones → 422; sin importar → 404).
+- **Cómo se generan:** `python -m infrastructure.ingesta.importar_escenarios_apagon --carpeta "../../5. Modelo apagón"` ejecuta el script del modelo en cada
+  combinación (≈2,5 min) y reemplaza la tanda de una sola vez. Necesita las dependencias del modelo (pandas, pyarrow, scipy, statsmodels, scikit-learn,
+  matplotlib), que no son de la API: corre en el equipo del analista. Después hay que volver a publicar la API.
+- **Sin escenarios** el tablero cae al genérico (ficha y cómo cargarlos). Los cuatro controles viven en la URL y un valor inválido se ignora.
+- Los números salen del script y de los datos de `5. Modelo apagón`; si el visor de referencia corre otra versión del script o de los datos, sus cifras pueden diferir.
 
 ### Seguridad
 
@@ -527,6 +545,8 @@ python -m infrastructure.ingesta.importar_modelo_dns --carpeta "../../2. Modelo 
 
 # Gas, optimización o apagón: cuando el modelo entregue sus salidas (ver la ficha de cada tablero)
 python -m infrastructure.ingesta.importar_resultado_modelo --modelo apagon --carpeta "../../5. Modelo apagón"
+# Visor interactivo de apagón: corre el modelo en cada combinación de controles (≈2,5 min; requiere las dependencias del modelo)
+python -m infrastructure.ingesta.importar_escenarios_apagon --carpeta "../../5. Modelo apagón"
 ```
 
 Ambos validan los archivos antes de escribir, reemplazan en una transacción (el de modelos, solo el resultado de ese modelo) y no se borran con
@@ -694,9 +714,9 @@ gh pr create --fill                # abrir el pull request
 gh pr merge --squash --delete-branch   # cuando los checks estén en verde
 ```
 
-### Backend — 606 pruebas (pytest)
+### Backend — 638 pruebas (pytest)
 
-606 pruebas con pytest, sin red ni base de datos externa (repositorios,
+638 pruebas con pytest, sin red ni base de datos externa (repositorios,
 fuente y pronóstico en memoria —ver [`tests/fakes.py`](backend/tests/fakes.py)—, y
 DuckDB sobre archivos temporales). Las pruebas HTTP usan `TestClient` de FastAPI
 (requiere `httpx`, incluido en `requirements-dev.txt`):
@@ -717,6 +737,7 @@ DuckDB sobre archivos temporales). Las pruebas HTTP usan `TestClient` de FastAPI
 | `test_modelo_dns.py` | 69 | Modelo DNS: entidades y validaciones, ventana del período y comparación con el período previo, filtros (región, subárea, origen), patrones sin «hora desconocida», causas, casos de uso, lectura de los CSV del modelo y repositorio DuckDB (ida y vuelta, rollback, `--reiniciar`) |
 | `test_api_dns.py` | 64 | Contrato HTTP de los 8 endpoints `/dns/*`: formas del JSON, 404 sin corrida, 422 por período/origen/región/subárea inválidos o con caracteres peligrosos, solo GET |
 | `test_modelos_analiticos.py` | 61 | Gas, optimización y apagón: validación de resultados (bandas, series, tablas), integridad de las fichas, casos de uso, repositorio, lectores de salidas (conversión de unidades, valores inválidos, archivos faltantes, advertencia de corrida no publicable) e importador |
+| `test_escenarios_apagon.py` | 32 | Visor de apagón: entidad (51 ONI, 468 combinaciones, validaciones), repositorio (ida y vuelta, reemplazo atómico), adaptador de la salida del modelo y API (opciones, 404, 422, solo GET) |
 | `test_api_modelos.py` | 27 | Contrato HTTP de `/modelos/{id}/ficha` y `/resultados`: estados, `disponible = false`, 404 por modelo inexistente, 422 por identificador inválido, solo GET |
 | `test_arranque_vercel.py` | 4 | Copia de la base empaquetada a `/tmp` (no pisa copias existentes, error claro si falta) |
 | `test_sincronizacion_y_persistencia.py` | 19 | Sincronización completa/incremental/idempotente, procedencia, ida y vuelta en DuckDB con nulos, upsert, esquema heredado (rechazo y `--reiniciar`) |
@@ -733,7 +754,7 @@ repositorios en memoria; DuckDB se prueba aparte). La descarga real de SIMEM/XM
 se verificó manualmente (carga completa e incremental) y contra el agregado
 oficial de XM, pero no en las pruebas automáticas, que no usan red.
 
-### Frontend — 436 pruebas (Vitest + React Testing Library + jsdom)
+### Frontend — 460 pruebas (Vitest + React Testing Library + jsdom)
 
 Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 ([`tests/mocks/fetch.ts`](frontend/tests/mocks/fetch.ts)) con datos de ejemplo
@@ -763,12 +784,13 @@ Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 | `carbon/clienteCarbon.test.ts` | 8 | URLs y parámetros de los 5 endpoints, la historia `0` se envía, errores 404/422 como `ApiError` |
 | `dns/dns.test.tsx` | 30 | Página DNS con la API simulada: 8 endpoints, tarjetas y sentido de las variaciones, **cada filtro llega a los bloques que corresponde** (período y origen no a zonas/cambios/modelo; región a todos), región→subárea, clic en una zona, restablecer, serie con pronóstico, patrones, causas, cambios, modelo y errores por bloque |
 | `dns/clienteDns.test.ts`, `utils/dns.test.ts` | 10 + 13 | URLs y parámetros del DNS (el período `0` se envía; zonas/cambios/modelo no llevan período ni origen), formato de variaciones y construcción de la serie con pronóstico |
+| `apagon/gemelo.test.tsx`, `utils/gemelo.test.ts` | 8 + 18 | Visor de apagón: valores iniciales, ONI/simulaciones/horizonte piden su escenario y viajan en la URL, modo pronóstico sin ONI, restablecer, parámetros inválidos, tabla mensual, respaldo sin escenarios, error; fase ENOS, umbrales del semáforo, indicadores, mapa de calor |
 | `modelos/modelos.test.tsx` | 21 | Tableros de gas/optimización/apagón: estado documentado, sin resultados no hay filtros ni gráficos, ficha, errores, con resultados: indicadores con nivel, series con banda, «—» por dato vacío y **filtro Desde/Hasta que recorta todas las series**, filtros por dimensión (campo/variable) que eligen gráfico y filas de la tabla |
 | `utils/modelos.test.ts` | 15 | Etiquetas de período, opciones y recorte de series, banda apilada, gráficos y filas por dimensión, huecos (nunca ceros) |
 | `carbon/carbon.test.tsx` | 24 | Página de carbón con la API simulada: valores por defecto, resumen pedido una sola vez, tarjetas, **cada filtro vuelve a consultar solo lo que le corresponde** (horizonte → 4 endpoints; días → resumen e inventario; historia → serie; unidad → sin red), restablecer, opciones = lista cerrada de la API, ayudas ⓘ, errores por bloque, techo/récord/banda del gráfico, aviso del mes en curso y de XM sobre el techo, validación accesible |
 | `app/ayudas.test.tsx` | 6 | Catálogo de ayudas (títulos únicos, sin textos obsoletos) y auditoría: todo encabezado, columna, filtro y tarjeta tiene su ⓘ y todos abren y cierran |
 
-### Frontend — pruebas de extremo a extremo (Playwright, 38)
+### Frontend — pruebas de extremo a extremo (Playwright, 39)
 
 [`frontend/e2e/`](frontend/e2e) abre el **build de producción** en un navegador real (Chrome local; Chromium en CI) con la
 API simulada ([`e2e/api.ts`](frontend/e2e/api.ts), mismos datos de ejemplo que las pruebas unitarias), así que no dependen del

@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 
 import { FUENTE_REAL, crearDetalle, crearPrediccion, crearResumen, crearSenda } from "../tests/fixtures";
+import { crearCatalogo, crearEscenario } from "../tests/apagon/fixturesEscenario";
 import { conResultados, crearFichaModelo, sinResultados } from "../tests/modelos/fixturesModelos";
 import {
   crearCambiosDns, crearCatalogoDns, crearCausasDns, crearModeloDns, crearPatronesDns, crearResumenDns, crearSerieDns, crearZonasDns,
@@ -15,7 +16,9 @@ export type Llamadas = URL[];
  * Devuelve la lista (viva) de llamadas para poder comprobar que cada filtro consulta lo correcto.
  */
 /** `resultados` permite simular que un modelo analitico (gas, optimizacion, apagon) ya tiene resultados importados. */
-export async function simularApi(page: Page, resultados: Partial<Record<string, ReturnType<typeof conResultados>>> = {}): Promise<Llamadas> {
+export async function simularApi(
+  page: Page, resultados: Partial<Record<string, ReturnType<typeof conResultados>>> = {}, { escenariosApagon = false }: { escenariosApagon?: boolean } = {},
+): Promise<Llamadas> {
   const llamadas: Llamadas = [];
   await page.route("**/api/v1/**", async (ruta) => {
     const url = new URL(ruta.request().url());
@@ -41,6 +44,12 @@ export async function simularApi(page: Page, resultados: Partial<Record<string, 
     if (p === "/dns/causas") return json(crearCausasDns());
     if (p === "/dns/cambios-reporte") return json(crearCambiosDns());
     if (p === "/dns/modelo") return json(crearModeloDns());
+    // Visor de apagón: solo con `escenariosApagon`; sin él el catálogo dice «no disponible» y queda el tablero genérico.
+    if (p === "/modelos/apagon/escenarios") return json(crearCatalogo({ disponible: escenariosApagon }));
+    if (p === "/modelos/apagon/escenario" && escenariosApagon) {
+      const q = url.searchParams;
+      return json(crearEscenario({ modo: q.get("modo") as "manual", oni: Number(q.get("oni") ?? 1), simulaciones: Number(q.get("simulaciones")), horizonte: Number(q.get("horizonte")) }));
+    }
     const modelo = /^\/modelos\/([a-z]+)\/(ficha|resultados)$/.exec(p);
     if (modelo) {
       const [, id, recurso] = modelo;

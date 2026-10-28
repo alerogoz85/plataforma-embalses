@@ -1,8 +1,15 @@
 """Casos de uso de los tableros de modelos analiticos (gas, optimizacion, apagon): ficha y resultados."""
 from __future__ import annotations
 
+from dataclasses import asdict
+from typing import Optional
+
 from application.dtos.modelo_analitico_dto import (
     ArchivoEsperadoDTO,
+    CatalogoEscenariosDTO,
+    EscenarioApagonDTO,
+    FuenteEscenariosDTO,
+    MesEscenarioDTO,
     DatoDocumentadoDTO,
     DimensionFiltroDTO,
     GraficoResultadoDTO,
@@ -17,9 +24,10 @@ from application.dtos.modelo_analitico_dto import (
     SeccionFichaDTO,
     TablaResultadoDTO,
 )
+from domain.entities import escenario_apagon as esc
 from domain.entities.modelo_analitico import ESTADO_CON_RESULTADOS, MODELOS_CON_FICHA
-from domain.exceptions import ModeloNoEncontradoError
-from domain.repositories.modelo_analitico_repository import FichaModeloRepository, ResultadoModeloRepository
+from domain.exceptions import EscenarioNoDisponibleError, FiltroInvalidoError, ModeloNoEncontradoError
+from domain.repositories.modelo_analitico_repository import EscenarioApagonRepository, FichaModeloRepository, ResultadoModeloRepository
 
 
 def _validar(modelo_id: str) -> None:
@@ -96,4 +104,52 @@ class ObtenerResultadosModeloUseCase:
                     for g in r.graficos
                 ],
             ),
+        )
+
+
+class ObtenerCatalogoEscenariosApagonUseCase:
+    """Opciones de los controles del visor de apagon y procedencia de la tanda de escenarios importada."""
+
+    def __init__(self, escenarios: EscenarioApagonRepository) -> None:
+        self._escenarios = escenarios
+
+    def ejecutar(self) -> CatalogoEscenariosDTO:
+        fuente = self._escenarios.fuente()
+        return CatalogoEscenariosDTO(
+            disponible=fuente is not None, modos=list(esc.MODOS_ONI),
+            oni_minimo=esc.ONI_MINIMO, oni_maximo=esc.ONI_MAXIMO, oni_paso=esc.ONI_PASO, oni_por_defecto=esc.ONI_POR_DEFECTO,
+            simulaciones=list(esc.SIMULACIONES), simulaciones_por_defecto=esc.SIMULACIONES_POR_DEFECTO,
+            horizontes=list(esc.HORIZONTES), horizonte_por_defecto=esc.HORIZONTE_POR_DEFECTO, franjas=list(esc.FRANJAS),
+            fuente=None if fuente is None else FuenteEscenariosDTO(
+                generado_en=fuente.generado_en, origen=fuente.origen, ultimo_oni_observado=fuente.ultimo_oni_observado,
+                ultimo_mes_demanda=fuente.ultimo_mes_demanda, semilla=fuente.semilla),
+        )
+
+
+class ObtenerEscenarioApagonUseCase:
+    def __init__(self, escenarios: EscenarioApagonRepository) -> None:
+        self._escenarios = escenarios
+
+    def ejecutar(self, modo: str, oni: Optional[float], simulaciones: int, horizonte: int) -> EscenarioApagonDTO:
+        """El escenario de esa combinacion; los valores se validan contra las opciones del visor (FiltroInvalidoError -> 422)."""
+        if modo not in esc.MODOS_ONI:
+            raise FiltroInvalidoError(f"Modo de ONI desconocido; admitidos: {', '.join(esc.MODOS_ONI)}")
+        if modo == esc.MODO_MANUAL:
+            oni = esc.ONI_POR_DEFECTO if oni is None else oni
+            # Solo los valores del deslizador (de 0,1 en 0,1): uno intermedio no tiene escenario y se rechaza.
+            if abs(oni * 10 - round(oni * 10)) > 1e-6 or round(oni, 1) not in esc.valores_oni():
+                raise FiltroInvalidoError(f"El ONI debe estar entre {esc.ONI_MINIMO} y {esc.ONI_MAXIMO} de {esc.ONI_PASO} en {esc.ONI_PASO}")
+        else:
+            oni = None
+        if simulaciones not in esc.SIMULACIONES:
+            raise FiltroInvalidoError(f"Simulaciones admitidas: {', '.join(map(str, esc.SIMULACIONES))}")
+        if horizonte not in esc.HORIZONTES:
+            raise FiltroInvalidoError(f"Horizontes admitidos: {', '.join(map(str, esc.HORIZONTES))}")
+        oni = None if oni is None else round(oni, 1)
+        e = self._escenarios.obtener(modo, oni, simulaciones, horizonte)
+        if e is None:
+            raise EscenarioNoDisponibleError()
+        return EscenarioApagonDTO(
+            modo=e.modo, oni=e.oni, simulaciones=e.simulaciones, horizonte=e.horizonte,
+            meses=[MesEscenarioDTO(**{**asdict(m), "deficit_por_franja_mwh": list(m.deficit_por_franja_mwh)}) for m in e.meses],
         )

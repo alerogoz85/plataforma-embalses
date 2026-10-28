@@ -483,3 +483,55 @@ export interface ResultadosModelo {
   disponible: boolean;
   resultado: ResultadoModelo | null;
 }
+
+// ---- Visor de riesgo de apagón (escenarios precalculados por el modelo, uno por combinación de controles)
+export type ModoOni = "probabilistico" | "manual";
+export type SemaforoApagon = "VERDE" | "AMARILLO" | "ROJO";
+
+export interface MesEscenario {
+  mes: string; // AAAA-MM
+  indice_riesgo: number;
+  probabilidad_deficit: number; // 0-1
+  probabilidad_apagon_severo: number; // 0-1
+  semaforo: SemaforoApagon;
+  oni_p10: number;
+  oni_p50: number;
+  oni_p90: number;
+  embalse_pct_p10: number;
+  embalse_pct_p50: number;
+  embalse_pct_p90: number;
+  demanda_mwh_p10: number;
+  demanda_mwh_p50: number;
+  demanda_mwh_p90: number;
+  oferta_mwh_p10: number;
+  oferta_mwh_p50: number;
+  oferta_mwh_p90: number;
+  deficit_mwh_p50: number;
+  deficit_mwh_p90: number;
+  margen_reserva_pct_p50: number;
+  /** En el orden de `CatalogoEscenarios.franjas`. */
+  deficit_por_franja_mwh: number[];
+}
+
+export interface EscenarioApagon {
+  modo: ModoOni;
+  oni: number | null;
+  simulaciones: number;
+  horizonte: number;
+  meses: MesEscenario[];
+}
+
+export interface CatalogoEscenarios {
+  disponible: boolean;
+  modos: ModoOni[];
+  oni_minimo: number;
+  oni_maximo: number;
+  oni_paso: number;
+  oni_por_defecto: number;
+  simulaciones: number[];
+  simulaciones_por_defecto: number;
+  horizontes: number[];
+  horizonte_por_defecto: number;
+  franjas: string[];
+  fuente: { generado_en: string; origen: string; ultimo_oni_observado: number | null; ultimo_mes_demanda: string | null; semilla: number } | null;
+}

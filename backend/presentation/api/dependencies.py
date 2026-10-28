@@ -9,7 +9,12 @@ from pathlib import Path
 from application.ports.output.forecasting_port import ForecastingPort
 from application.use_cases.generar_prediccion import GenerarPrediccionUseCase
 from application.use_cases.listar_embalses import ListarEmbalsesUseCase
-from application.use_cases.modelo_analitico import ObtenerFichaModeloUseCase, ObtenerResultadosModeloUseCase
+from application.use_cases.modelo_analitico import (
+    ObtenerCatalogoEscenariosApagonUseCase,
+    ObtenerEscenarioApagonUseCase,
+    ObtenerFichaModeloUseCase,
+    ObtenerResultadosModeloUseCase,
+)
 from application.use_cases.modelo_dns import (
     ObtenerCambiosReporteDnsUseCase,
     ObtenerCatalogoDnsUseCase,
@@ -35,7 +40,7 @@ from domain.repositories.embalse_repository import EmbalseRepository
 from domain.repositories.medicion_repository import MedicionRepository
 from domain.repositories.metadatos_repository import MetadatosRepository
 from domain.repositories.modelo_carbon_repository import ModeloCarbonRepository
-from domain.repositories.modelo_analitico_repository import FichaModeloRepository, ResultadoModeloRepository
+from domain.repositories.modelo_analitico_repository import EscenarioApagonRepository, FichaModeloRepository, ResultadoModeloRepository
 from domain.repositories.modelo_dns_repository import ModeloDnsRepository
 from domain.repositories.proyeccion_senda_repository import ProyeccionSendaRepository
 from infrastructure.ml.holt_winters_forecasting_service import HoltWintersForecastingService
@@ -45,6 +50,7 @@ from infrastructure.persistence.duckdb_medicion_repository import DuckDBMedicion
 from infrastructure.persistence.duckdb_metadatos_repository import DuckDBMetadatosRepository
 from infrastructure.persistence.duckdb_modelo_carbon_repository import DuckDBModeloCarbonRepository
 from infrastructure.persistence.duckdb_modelo_dns_repository import DuckDBModeloDnsRepository
+from infrastructure.persistence.duckdb_escenario_apagon_repository import DuckDBEscenarioApagonRepository
 from infrastructure.persistence.duckdb_modelo_resultado_repository import DuckDBModeloResultadoRepository
 from infrastructure.fichas.catalogo import FichasEnCodigo
 from infrastructure.persistence.duckdb_proyeccion_senda_repository import DuckDBProyeccionSendaRepository
@@ -236,3 +242,18 @@ def obtener_ficha_modelo_use_case() -> ObtenerFichaModeloUseCase:
 @lru_cache
 def obtener_resultados_modelo_use_case() -> ObtenerResultadosModeloUseCase:
     return ObtenerResultadosModeloUseCase(obtener_resultado_modelo_repository())
+
+
+@lru_cache
+def obtener_escenario_apagon_repository() -> EscenarioApagonRepository:
+    return DuckDBEscenarioApagonRepository(obtener_conexion())
+
+
+@lru_cache
+def obtener_catalogo_escenarios_apagon_use_case() -> ObtenerCatalogoEscenariosApagonUseCase:
+    return ObtenerCatalogoEscenariosApagonUseCase(obtener_escenario_apagon_repository())
+
+
+@lru_cache
+def obtener_escenario_apagon_use_case() -> ObtenerEscenarioApagonUseCase:
+    return ObtenerEscenarioApagonUseCase(obtener_escenario_apagon_repository())
