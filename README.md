@@ -489,6 +489,17 @@ scripts/desplegar-vercel.sh
 
 Desde entonces, actualizar un tablero es entrar a `/actualizar`: ya no hace falta publicar la API. La cadena `DATABASE_URL` es un secreto: no va al repositorio ni se imprime (los comandos anteriores no la muestran).
 
+**Probar el módulo en local (sin Postgres).** Usa una copia de la base para que las cuentas no viajen en el despliegue (la base `data/hidrologia.duckdb` se empaqueta con la API):
+
+```bash
+mkdir -p data/local && cp data/hidrologia.duckdb data/local/hidrologia.duckdb   # con la API detenida; el nombre del archivo debe seguir siendo hidrologia.duckdb
+cd backend && source .venv/bin/activate
+python -m infrastructure.seguridad.crear_usuario --usuario ana --nombre "Ana Pérez" --rol administrador --db-path ../data/local/hidrologia.duckdb
+HIDROLOGIA_DB_PATH=../data/local/hidrologia.duckdb uvicorn presentation.api.main:app --port 8000
+```
+
+DuckDB admite un solo proceso a la vez: crea la cuenta con la API detenida. Agrega `data/local/` a tu `.git/info/exclude`.
+
 Referencia: `POST/GET/DELETE /api/v1/admin/sesion`, `GET /admin/tableros`, `POST /admin/tableros/{id}/validar|aplicar` (multipart), `GET /admin/auditoria`.
 
 ## Estructura del repositorio
