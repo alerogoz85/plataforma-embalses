@@ -82,3 +82,49 @@ class EscenarioNoDisponibleError(DomainError):
 
     def __init__(self) -> None:
         super().__init__("Aun no hay escenarios importados para esa combinacion de controles")
+
+
+# --- Modulo de actualizacion de tableros (seguridad y carga de archivos) ---------------------------------
+class CredencialesInvalidasError(DomainError):
+    """Usuario o contraseña incorrectos. El mensaje es el mismo exista o no el usuario (no revela cuentas)."""
+
+    def __init__(self) -> None:
+        super().__init__("Usuario o contraseña incorrectos")
+
+
+class CuentaBloqueadaError(DomainError):
+    def __init__(self, minutos: int) -> None:
+        super().__init__(f"Demasiados intentos fallidos. Intenta de nuevo en {minutos} minutos")
+        self.minutos = minutos
+
+
+class SesionInvalidaError(DomainError):
+    """Sin sesion, sesion vencida o token CSRF incorrecto."""
+
+    def __init__(self, mensaje: str = "Debes iniciar sesión para continuar") -> None:
+        super().__init__(mensaje)
+
+
+class AccesoDenegadoError(DomainError):
+    def __init__(self, mensaje: str = "No tienes permiso para esta acción") -> None:
+        super().__init__(mensaje)
+
+
+class TableroNoActualizableError(DomainError):
+    def __init__(self, tablero_id: str) -> None:
+        super().__init__(f"El tablero '{tablero_id}' no se actualiza con este módulo")
+
+
+class CargaInvalidaError(DomainError):
+    """Los archivos recibidos no cumplen: formato, tamaño, contenido o estructura. Lleva la lista de motivos."""
+
+    def __init__(self, errores: list[str]) -> None:
+        super().__init__("; ".join(errores))
+        self.errores = errores
+
+
+class AlmacenamientoNoPersistenteError(DomainError):
+    """Se intento guardar en un entorno donde lo escrito se perderia (p. ej. Vercel sin base externa)."""
+
+    def __init__(self) -> None:
+        super().__init__("Este entorno no tiene almacenamiento persistente: configura DATABASE_URL para poder actualizar los tableros")

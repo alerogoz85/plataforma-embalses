@@ -9,6 +9,7 @@ import duckdb
 from domain.exceptions import EsquemaIncompatibleError
 
 _SCHEMA_PATH = Path(__file__).parent / "schema.sql"
+_SCHEMA_SEGURIDAD_PATH = Path(__file__).parent / "schema_seguridad.sql"
 _TABLAS = ("mediciones", "embalses", "fuente_datos")
 
 
@@ -64,6 +65,7 @@ class DuckDBConnection:
         ddl = _SCHEMA_PATH.read_text(encoding="utf-8")
         with self._lock_consultas:
             self._conexion.execute(ddl)
+            self._conexion.execute(_SCHEMA_SEGURIDAD_PATH.read_text(encoding="utf-8"))
 
     def obtener_una_fila(self, consulta: str, parametros: Sequence = ()) -> Optional[tuple]:
         with self._lock_consultas:

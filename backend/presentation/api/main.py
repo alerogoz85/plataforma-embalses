@@ -8,6 +8,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from presentation.api.routers.admin_router import router as admin_router
 from presentation.api.error_handlers import registrar_manejadores_excepciones
 from presentation.api.routers.carbon_router import router as carbon_router
 from presentation.api.routers.dns_router import router as dns_router
@@ -20,7 +21,7 @@ from presentation.api.routers.senda_volumen_router import router as senda_volume
 app = FastAPI(
     title="Plataforma de Tableros Analiticos",
     description=(
-        "API REST de solo lectura de los tableros analiticos. Embalses: datos publicos de "
+        "API REST de los tableros analiticos: de solo lectura, salvo el modulo de actualizacion (/api/v1/admin) que exige sesion. Embalses: datos publicos de "
         "XM/SIMEM (volumen y energia utiles, aportes, descargas) y pronosticos de %V_util a 1, 3, "
         "6 y 12 meses por embalse y region. Carbon termico: proyeccion del consumo de carbon del "
         "SIN con escenarios ENOS, su validacion y la comparacion con XM. Demanda no atendida (DNS): "
@@ -38,8 +39,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origenes_permitidos,
     allow_credentials=True,
-    allow_methods=["GET"],
-    allow_headers=["*"],
+    # GET para todo; POST y DELETE solo los usa el modulo de actualizacion (/api/v1/admin), que ademas exige sesion y token CSRF.
+    allow_methods=["GET", "POST", "DELETE"],
+    allow_headers=["Content-Type", "X-CSRF-Token"],
 )
 
 registrar_manejadores_excepciones(app)
@@ -51,6 +53,16 @@ app.include_router(fuente_datos_router)
 app.include_router(carbon_router)
 app.include_router(dns_router)
 app.include_router(modelos_router)
+app.include_router(admin_router)
+
+
+@app.middleware("http")
+async def _cabeceras_de_seguridad(request, call_next):
+    respuesta = await call_next(request)
+    respuesta.headers.setdefault("X-Content-Type-Options", "nosniff")
+    if request.url.path.startswith("/api/v1/admin"):
+        respuesta.headers["Cache-Control"] = "no-store"
+    return respuesta
 
 
 @app.get("/api/v1/salud", tags=["salud"], summary="Health check")
