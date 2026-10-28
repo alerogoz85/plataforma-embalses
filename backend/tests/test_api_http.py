@@ -489,9 +489,11 @@ class TestCors:
         assert respuesta.status_code == 200
         assert "GET" in respuesta.headers["access-control-allow-methods"]
 
-    def test_el_preflight_rechaza_metodos_de_escritura(self, cliente):
-        respuesta = cliente.options(
-            "/api/v1/embalses/resumen",
-            headers={"Origin": self.ORIGEN_PERMITIDO, "Access-Control-Request-Method": "DELETE"},
-        )
-        assert respuesta.status_code == 400
+    def test_el_preflight_rechaza_metodos_que_nadie_usa(self, cliente):
+        # POST y DELETE solo los usa el modulo de actualizacion (con sesion y CSRF); PUT y PATCH no los usa nadie.
+        for metodo in ("PUT", "PATCH"):
+            respuesta = cliente.options(
+                "/api/v1/embalses/resumen",
+                headers={"Origin": self.ORIGEN_PERMITIDO, "Access-Control-Request-Method": metodo},
+            )
+            assert respuesta.status_code == 400

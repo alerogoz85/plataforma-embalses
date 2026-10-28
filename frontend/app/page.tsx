@@ -62,7 +62,12 @@ export default function PanelPage() {
         </aside>
       </main>
 
-      <Footer>Tableros Analíticos del Ministerio de Minas y Energía · Datos públicos de XM y SIMEM y modelos propios</Footer>
+      <Footer>
+        Tableros Analíticos del Ministerio de Minas y Energía · Datos públicos de XM y SIMEM y modelos propios ·{" "}
+        <a href={RUTAS.actualizar} className="underline">
+          Acceso para actualizar datos
+        </a>
+      </Footer>
     </div>
   );
 }

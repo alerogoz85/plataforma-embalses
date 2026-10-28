@@ -535,3 +535,61 @@ export interface CatalogoEscenarios {
   franjas: string[];
   fuente: { generado_en: string; origen: string; ultimo_oni_observado: number | null; ultimo_mes_demanda: string | null; semilla: number } | null;
 }
+
+// ---- Módulo de actualización de tableros (/api/v1/admin)
+export interface UsuarioAdmin {
+  nombre_usuario: string;
+  nombre: string;
+  rol: "administrador" | "cargador";
+  tableros: string[];
+}
+
+export interface SesionAdmin {
+  usuario: UsuarioAdmin;
+  token_csrf: string;
+  vence_en: string;
+}
+
+export interface ArchivoRequerido {
+  clave: string;
+  etiqueta: string;
+  formatos: string[];
+  obligatorio: boolean;
+  descripcion: string;
+  patron_nombre: string | null;
+}
+
+export interface TableroActualizable {
+  id: string;
+  titulo: string;
+  descripcion: string;
+  archivos: ArchivoRequerido[];
+}
+
+export interface CatalogoActualizacion {
+  tableros: TableroActualizable[];
+  limite_bytes: number;
+  limite_total_bytes: number;
+  limite_contenido_bytes: number;
+  almacenamiento_persistente: boolean;
+}
+
+export interface ResultadoCarga {
+  tablero: string;
+  valido: boolean;
+  aplicada: boolean;
+  resumen: { etiqueta: string; valor: string }[];
+  errores: string[];
+  advertencias: string[];
+  huellas: { clave: string; sha256: string }[];
+}
+
+export interface RegistroAuditoria {
+  momento: string;
+  usuario: string;
+  accion: string;
+  tablero: string | null;
+  resultado: "ok" | "rechazado" | "error";
+  detalle: string;
+  ip: string;
+}
