@@ -452,7 +452,8 @@ plataforma-embalses/
 │   │   ├── panel/                  # TableroCard (acceso a cada tablero del panel)
 │   │   ├── dashboard/              # KpiCard, SistemaRiesgoCard, RiskBadge, FiltersPanel, MainChart, RegionBarChart, SendaVolumenPanel, EmbalsesTable, ayudas.tsx (textos de ayuda)
 │   │   ├── dns/                    # Tablero DNS: FiltrosDns, KpisDns, SerieDnsChart, ZonasDnsPanel, PatronesDnsChart, CausasDnsPanel, CambiosReporteDnsPanel, ModeloDnsPanel, ayudasDns.tsx
-│   │   ├── modelos/                # Tableros de gas/optimización/apagón: TableroModelo, EstadoModeloCard, FichaPanel, ResultadosPanel, SerieModeloChart, TablaModeloCard, SinResultadosCard
+│   │   ├── modelos/                # Tableros de gas y optimización (y respaldo del apagón): TableroModelo, EstadoModeloCard, FichaPanel, ResultadosPanel, SerieModeloChart, GraficoModeloChart, TablaModeloCard, SinResultadosCard
+│   │   ├── apagon/                 # Visor interactivo del riesgo de apagón: TableroApagon, GemeloApagon, PanelControles, ControlDeslizador, GraficosEscenario, TablaMensualEscenario, ayudasApagon.tsx
 │   │   ├── carbon/                 # Tablero de carbón: FiltrosCarbon, KpisCarbon, SerieCarbonChart, TrimestresChart, InventarioChart, ComparacionXmChart, ValidacionCarbonPanel, SupuestosCarbon, ayudasCarbon.tsx
 │   │   └── ui/                     # Card, Campo (filtro con ⓘ), Skeleton, InfoButton (botón ⓘ)
 │   ├── scripts/capturas-guia.mjs # Regenera las capturas de embalses de la guía (Playwright + API local)
