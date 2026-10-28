@@ -131,8 +131,8 @@ C4Component
     title Componentes — Backend (presentation + application + infrastructure)
 
     Container_Boundary(api, "Backend") {
-        Component(routers, "Routers", "FastAPI APIRouter", "embalses, regiones, senda-volumen, fuente-datos, carbon, dns, modelos")
-        Component(usecases, "Casos de uso", "application/use_cases", "ObtenerResumenNacional, ListarEmbalses, ObtenerDetalleEmbalse, GenerarPrediccion, ObtenerSendaVolumen, ObtenerFuenteDatos, SeriesAgregadas (total nacional y regiones), SincronizarDatos; modelo de carbón (5), DNS (8) y modelos analíticos (ficha y resultados)")
+        Component(routers, "Routers", "FastAPI APIRouter", "embalses, regiones, senda-volumen, fuente-datos, carbon, dns, modelos, admin (actualización, con sesión)")
+        Component(usecases, "Casos de uso", "application/use_cases", "ObtenerResumenNacional, ListarEmbalses, ObtenerDetalleEmbalse, GenerarPrediccion, ObtenerSendaVolumen, ObtenerFuenteDatos, SeriesAgregadas (total nacional y regiones), SincronizarDatos; modelo de carbón (5), DNS (8), modelos analíticos (ficha, resultados y escenarios del visor) y actualización de tableros (sesión, revisión y aplicación de archivos)")
         Component(domainsvc, "Servicios de dominio", "domain/services", "CalculoHidricoService, AutonomiaService, análisis DNS (ventanas, filtros, patrones) — reglas puras")
         Component(ports, "Puertos", "domain/repositories, application/ports/output", "EmbalseRepository, MedicionRepository, MetadatosRepository, ProyeccionSendaRepository, ModeloCarbonRepository, ModeloDnsRepository, ResultadoModeloRepository, FichaModeloRepository, ForecastingPort, FuenteMedicionesPort")
         Component(duckdbrepo, "Adaptadores DuckDB", "infrastructure/persistence", "Implementan los puertos de repositorio (embalses, carbón, DNS y resultados de modelos)")
@@ -499,13 +499,16 @@ plataforma-embalses/
 │   ├── domain/                  # Entidades, value objects, servicios (cálculo hídrico, autonomía, interpolación diaria, análisis DNS), interfaces de repositorio; entidades de los modelos de carbón, DNS y modelos analíticos
 │   ├── application/              # DTOs, puertos, casos de uso (incl. SincronizarDatos)
 │   ├── infrastructure/
-│   │   ├── persistence/          # DuckDB (schema.sql, conexión thread-safe, repositorios)
+│   │   ├── persistence/          # DuckDB (schema.sql, conexión thread-safe, repositorios), Postgres (postgres_connection, migrar_a_postgres) y repositorios de seguridad (schema_seguridad.sql)
+│   │   ├── seguridad/            # Contraseñas (scrypt) y CLI crear_usuario del módulo de actualización
+│   │   ├── archivos/             # Validador de archivos subidos (contenido real, macros, bombas de compresión), descompresión .gz y área temporal privada
+│   │   ├── actualizacion/        # Catálogo de tableros actualizables y sus adaptadores (reutilizan los lectores de los importadores)
 │   │   ├── fuentes/              # Clientes HTTP (SIMEM, XM) y adaptador SimemXmFuenteMediciones
 │   │   ├── data_generation/      # Fuente sintética opcional (catálogo + generador)
 │   │   ├── ingesta/              # CLI de sincronización e importadores: proyección de Outputs, modelo de carbón, modelo DNS y resultados de gas/optimización/apagón (lectores en resultados_modelos/)
 │   │   ├── fichas/               # Fichas documentadas de gas, optimización y apagón (redactadas a partir de sus documentos)
 │   │   └── ml/                   # Adaptador de pronóstico Holt-Winters (respaldo)
-│   ├── presentation/api/         # FastAPI: main, dependencies (composition root), routers, arranque_vercel
+│   ├── presentation/api/         # FastAPI: main, dependencies (composition root), routers (incl. admin_router: módulo de actualización), arranque_vercel
 │   ├── index.py, vercel.json     # Punto de entrada y configuración del despliegue en Vercel
 │   ├── tests/                    # Pruebas (pytest)
 │   └── requirements*.txt
@@ -521,16 +524,17 @@ plataforma-embalses/
 │   │   ├── dns/                    # Tablero DNS: FiltrosDns, KpisDns, SerieDnsChart, ZonasDnsPanel, PatronesDnsChart, CausasDnsPanel, CambiosReporteDnsPanel, ModeloDnsPanel, ayudasDns.tsx
 │   │   ├── modelos/                # Tableros de gas y optimización (y respaldo del apagón): TableroModelo, EstadoModeloCard, FichaPanel, ResultadosPanel, SerieModeloChart, GraficoModeloChart, TablaModeloCard, SinResultadosCard
 │   │   ├── apagon/                 # Visor interactivo del riesgo de apagón: TableroApagon, GemeloApagon, PanelControles, ControlDeslizador, GraficosEscenario, TablaMensualEscenario, ayudasApagon.tsx
+│   │   ├── actualizacion/          # Módulo de actualización: ModuloActualizacion, FormularioAcceso, PanelActualizacion, SelectorArchivo, InformeCarga, Bitacora
 │   │   ├── carbon/                 # Tablero de carbón: FiltrosCarbon, KpisCarbon, SerieCarbonChart, TrimestresChart, InventarioChart, ComparacionXmChart, ValidacionCarbonPanel, SupuestosCarbon, ayudasCarbon.tsx
 │   │   └── ui/                     # Card, Campo (filtro con ⓘ), Skeleton, InfoButton (botón ⓘ)
 │   ├── scripts/capturas-guia.mjs # Regenera las capturas de embalses de la guía (Playwright + API local)
 │   ├── e2e/                      # Pruebas de extremo a extremo (Playwright)
 │   ├── tests/                    # Pruebas (Vitest + Testing Library): utils, api, hooks, components, app, mocks, fixtures
 │   └── lib/
-│       ├── api/                    # client.ts, types.ts (espejo de los DTOs del backend)
+│       ├── api/                    # client.ts, types.ts (espejo de los DTOs del backend), admin.ts (cliente del módulo de actualización: cookie + CSRF)
 │       ├── hooks/                  # useAsyncResource, useResumenNacional, useEmbalseDetalle, usePrediccion, useSendaVolumen, useFuenteDatos, useCarbon, useDns, useModelos
 │       ├── tableros.ts             # Registro de tableros del panel (agregar uno = una entrada)
-│       └── utils/                  # formatters.ts, dates.ts, carbon.ts (unidades, semáforo, series), dns.ts, modelos.ts
+│       └── utils/                  # formatters.ts, dates.ts, carbon.ts (unidades, semáforo, series), dns.ts, modelos.ts, gemelo.ts (visor de apagón), archivos.ts (tamaños y compresión de uploads)
 ├── scripts/                       # desplegar-vercel.sh (publica la API en Vercel)
 ├── data/                          # hidrologia.duckdb (generado por la sincronización, no versionado)
 └── README.md
