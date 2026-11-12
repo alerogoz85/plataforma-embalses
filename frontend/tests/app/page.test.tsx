@@ -182,6 +182,32 @@ describe("DashboardPage tendencia y filtros activos", () => {
   });
 });
 
+describe("DashboardPage rango rapido", () => {
+  it("por defecto el atajo vigente es 6 meses (180 dias)", async () => {
+    await pagina();
+    expect(screen.getByRole("radio", { name: "6 meses" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("radio", { name: "30 días" })).toHaveAttribute("aria-checked", "false");
+  });
+
+  it("un atajo fija Desde y Hasta y vuelve a pedir la serie con ese rango", async () => {
+    const { llamadas } = await pagina();
+    await userEvent.click(screen.getByRole("radio", { name: "30 días" }));
+    await waitFor(() => {
+      const detalle = llamadas.filter((u) => u.pathname === "/api/v1/embalses/TOTAL").at(-1)!;
+      expect(detalle.searchParams.get("fecha_inicio")).toBe(fechaHaceDias(30));
+      expect(detalle.searchParams.get("fecha_fin")).toBe(hoyISO());
+    });
+    expect(screen.getByRole("radio", { name: "30 días" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByLabelText("Desde")).toHaveValue(fechaHaceDias(30));
+  });
+
+  it("si las fechas se escriben a mano ningun atajo queda marcado", async () => {
+    await pagina();
+    fireEvent.change(screen.getByLabelText("Desde"), { target: { value: "2026-08-01" } });
+    await waitFor(() => expect(screen.getAllByRole("radio").every((r) => r.getAttribute("aria-checked") === "false")).toBe(true));
+  });
+});
+
 describe("DashboardPage filtro de region", () => {
   it("vuelve a pedir el resumen filtrado y actualiza la tabla", async () => {
     const { llamadas } = await pagina();

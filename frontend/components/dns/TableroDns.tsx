@@ -4,7 +4,7 @@ import { useMemo } from "react";
 
 import { CambiosReporteDnsPanel } from "@/components/dns/CambiosReporteDnsPanel";
 import { CausasDnsPanel } from "@/components/dns/CausasDnsPanel";
-import { ESQUEMA_DNS, FiltrosDnsPanel, type FiltrosDnsEstado } from "@/components/dns/FiltrosDns";
+import { ESQUEMA_DNS, FiltrosDnsPanel, filtrosActivosDns, type FiltrosDnsEstado } from "@/components/dns/FiltrosDns";
 import { KpisDns } from "@/components/dns/KpisDns";
 import { ModeloDnsPanel } from "@/components/dns/ModeloDnsPanel";
 import { PatronesDnsChart } from "@/components/dns/PatronesDnsChart";
@@ -12,6 +12,7 @@ import { SerieDnsChart } from "@/components/dns/SerieDnsChart";
 import { ZonasDnsPanel } from "@/components/dns/ZonasDnsPanel";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
+import { BarraFiltrosActivos } from "@/components/ui/BarraFiltrosActivos";
 import type { FiltrosDnsApi } from "@/lib/api/client";
 import type { ZonaDns } from "@/lib/api/types";
 import {
@@ -103,6 +104,7 @@ export function TableroDns() {
           </div>
         )}
         <FiltrosDnsPanel filtros={filtros} catalogo={c} onCambiar={setFiltros} />
+        <BarraFiltrosActivos filtros={filtrosActivosDns(filtros, c, setFiltros)} />
 
         <KpisDns resumen={resumen} />
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, CardHeader } from "@/components/ui/Card";
+import { EstadoVacio } from "@/components/ui/EstadoVacio";
 import type { TablaModelo } from "@/lib/api/types";
 import { formatearNumero } from "@/lib/utils/formatters";
 import { SEMAFOROS } from "@/lib/utils/modelos";
@@ -39,8 +40,8 @@ export function TablaModeloCard({ tabla, filas = tabla.filas }: { tabla: TablaMo
           <tbody>
             {filas.length === 0 ? (
               <tr>
-                <td colSpan={tabla.columnas.length} className="py-6 text-center text-foreground-muted">
-                  Sin filas.
+                <td colSpan={tabla.columnas.length} className="py-4">
+                  <EstadoVacio titulo="Sin filas." descripcion="Ninguna fila cumple los filtros aplicados." />
                 </td>
               </tr>
             ) : (

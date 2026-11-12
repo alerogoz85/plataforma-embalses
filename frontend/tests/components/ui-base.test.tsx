@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { BarraCelda } from "@/components/ui/BarraCelda";
+import { BarraFiltrosActivos } from "@/components/ui/BarraFiltrosActivos";
+import { RangosRapidos } from "@/components/ui/RangosRapidos";
 import { ChipFiltro } from "@/components/ui/ChipFiltro";
 import { EstadoVacio } from "@/components/ui/EstadoVacio";
 import { Sparkline } from "@/components/ui/Sparkline";
@@ -83,5 +85,55 @@ describe("BarraCelda", () => {
     render(<BarraCelda valor={null} etiqueta="x" />);
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
     expect(screen.getByText("—")).toBeInTheDocument();
+  });
+});
+
+describe("BarraFiltrosActivos", () => {
+  it("sin filtros activos no dibuja nada", () => {
+    const { container } = render(<BarraFiltrosActivos filtros={[]} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("muestra un chip por filtro y cada uno se quita por separado", async () => {
+    const quitarA = vi.fn();
+    const quitarB = vi.fn();
+    render(
+      <BarraFiltrosActivos
+        filtros={[
+          { id: "a", etiqueta: "Región Centro", onQuitar: quitarA },
+          { id: "b", etiqueta: "Origen Programada", onQuitar: quitarB },
+        ]}
+      />,
+    );
+    expect(screen.getByRole("group", { name: "Filtros activos" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Quitar filtro: Origen Programada" }));
+    expect(quitarB).toHaveBeenCalledOnce();
+    expect(quitarA).not.toHaveBeenCalled();
+  });
+});
+
+describe("RangosRapidos", () => {
+  const opciones = [
+    { valor: 30, etiqueta: "30 días" },
+    { valor: 90, etiqueta: "90 días" },
+  ] as const;
+
+  it("marca como activa solo la opcion vigente", () => {
+    render(<RangosRapidos etiqueta="Rango" opciones={opciones} valor={90} onCambiar={() => {}} />);
+    expect(screen.getByRole("radiogroup", { name: "Rango" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "90 días" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("radio", { name: "30 días" })).toHaveAttribute("aria-checked", "false");
+  });
+
+  it("sin coincidencia no marca ninguna", () => {
+    render(<RangosRapidos etiqueta="Rango" opciones={opciones} valor={null} onCambiar={() => {}} />);
+    expect(screen.getAllByRole("radio").every((r) => r.getAttribute("aria-checked") === "false")).toBe(true);
+  });
+
+  it("un clic entrega el valor de la opcion", async () => {
+    const cambiar = vi.fn();
+    render(<RangosRapidos etiqueta="Rango" opciones={opciones} valor={90} onCambiar={cambiar} />);
+    await userEvent.click(screen.getByRole("radio", { name: "30 días" }));
+    expect(cambiar).toHaveBeenCalledWith(30);
   });
 });

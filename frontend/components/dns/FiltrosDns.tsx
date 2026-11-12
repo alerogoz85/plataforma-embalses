@@ -1,6 +1,7 @@
 "use client";
 
 import { Campo } from "@/components/ui/Campo";
+import type { FiltroActivo } from "@/components/ui/BarraFiltrosActivos";
 import type { EsquemaUrl } from "@/lib/hooks/useEstadoUrl";
 import { codigo, enLista } from "@/lib/utils/url";
 import {
@@ -110,4 +111,22 @@ export function FiltrosDnsPanel({ filtros, catalogo, onCambiar }: FiltrosDnsPane
       </div>
     </div>
   );
+}
+
+/** Chips de los filtros que no estan en su valor por defecto. Quitar la region quita tambien la subarea (pertenece a ella). */
+export function filtrosActivosDns(
+  filtros: FiltrosDnsEstado,
+  catalogo: CatalogoDns | null,
+  onCambiar: (filtros: FiltrosDnsEstado) => void,
+): FiltroActivo[] {
+  const activos: FiltroActivo[] = [];
+  if (filtros.periodo !== FILTROS_DNS_POR_DEFECTO.periodo)
+    activos.push({ id: "periodo", etiqueta: `Período: ${etiquetaPeriodo(filtros.periodo)}`, onQuitar: () => onCambiar({ ...filtros, periodo: FILTROS_DNS_POR_DEFECTO.periodo }) });
+  if (filtros.region) activos.push({ id: "region", etiqueta: `Región ${filtros.region}`, onQuitar: () => onCambiar({ ...filtros, region: null, subarea: null }) });
+  if (filtros.subarea) {
+    const nombre = catalogo?.subareas.find((s) => s.codigo === filtros.subarea)?.nombre ?? filtros.subarea;
+    activos.push({ id: "subarea", etiqueta: `Subárea ${nombre}`, onQuitar: () => onCambiar({ ...filtros, subarea: null }) });
+  }
+  if (filtros.origen) activos.push({ id: "origen", etiqueta: `Origen ${ETIQUETA_ORIGEN[filtros.origen]}`, onQuitar: () => onCambiar({ ...filtros, origen: null }) });
+  return activos;
 }

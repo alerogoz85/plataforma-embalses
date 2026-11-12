@@ -1,7 +1,7 @@
 "use client";
 
 import { ComparacionXmChart } from "@/components/carbon/ComparacionXmChart";
-import { ESQUEMA_CARBON, FiltrosCarbonPanel } from "@/components/carbon/FiltrosCarbon";
+import { ESQUEMA_CARBON, FiltrosCarbonPanel, filtrosActivosCarbon } from "@/components/carbon/FiltrosCarbon";
 import { InventarioChart } from "@/components/carbon/InventarioChart";
 import { KpisCarbon } from "@/components/carbon/KpisCarbon";
 import { SerieCarbonChart } from "@/components/carbon/SerieCarbonChart";
@@ -10,6 +10,7 @@ import { TrimestresChart } from "@/components/carbon/TrimestresChart";
 import { ValidacionCarbonPanel } from "@/components/carbon/ValidacionCarbonPanel";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
+import { BarraFiltrosActivos } from "@/components/ui/BarraFiltrosActivos";
 import { useResumenCarbon } from "@/lib/hooks/useCarbon";
 import { useEstadoUrl } from "@/lib/hooks/useEstadoUrl";
 import { etiquetaMesCarbon } from "@/lib/utils/carbon";
@@ -38,6 +39,7 @@ export function TableroCarbon() {
 
       <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-5 px-4 py-6 sm:px-6">
         <FiltrosCarbonPanel filtros={filtros} onCambiar={actualizar} />
+        <BarraFiltrosActivos filtros={filtrosActivosCarbon(filtros, actualizar)} />
 
         <KpisCarbon resumen={resumen} unidad={filtros.unidad} dias={filtros.dias} />
 

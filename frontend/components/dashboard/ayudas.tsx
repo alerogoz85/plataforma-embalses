@@ -39,6 +39,16 @@ export const AYUDAS = {
       </p>
     ),
   },
+  filtroRangoRapido: {
+    titulo: "Rango rápido",
+    contenido: (
+      <p>
+        Atajos para el rango de fechas del gráfico principal: los últimos 30 o 90 días, 6 meses o 1 año hasta hoy. Fijan «Desde»
+        y «Hasta» de un clic; si escribes las fechas a mano, ningún atajo queda marcado. Igual que las fechas, no afecta a las tarjetas,
+        la distribución regional ni la tabla.
+      </p>
+    ),
+  },
   filtroHasta: {
     titulo: "Fecha final",
     contenido: (

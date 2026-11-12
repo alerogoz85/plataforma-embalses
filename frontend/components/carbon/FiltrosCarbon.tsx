@@ -1,6 +1,7 @@
 "use client";
 
 import { Campo } from "@/components/ui/Campo";
+import type { FiltroActivo } from "@/components/ui/BarraFiltrosActivos";
 import type { EsquemaUrl } from "@/lib/hooks/useEstadoUrl";
 import { enLista } from "@/lib/utils/url";
 import {
@@ -108,4 +109,16 @@ export function FiltrosCarbonPanel({ filtros, onCambiar }: FiltrosCarbonPanelPro
       </div>
     </div>
   );
+}
+
+/** Chips de los filtros que no estan en su valor por defecto; quitar uno lo devuelve a su defecto sin tocar los demas. */
+export function filtrosActivosCarbon(filtros: FiltrosCarbon, onCambiar: (filtros: FiltrosCarbon) => void): FiltroActivo[] {
+  const defecto = FILTROS_CARBON_POR_DEFECTO;
+  const quitar = <K extends keyof FiltrosCarbon>(campo: K) => () => onCambiar({ ...filtros, [campo]: defecto[campo] });
+  const activos: FiltroActivo[] = [];
+  if (filtros.historia !== defecto.historia) activos.push({ id: "historia", etiqueta: `Historia: ${etiquetaHistoria(filtros.historia)}`, onQuitar: quitar("historia") });
+  if (filtros.horizonte !== defecto.horizonte) activos.push({ id: "horizonte", etiqueta: `Horizonte: ${filtros.horizonte === 1 ? "1 mes" : `${filtros.horizonte} meses`}`, onQuitar: quitar("horizonte") });
+  if (filtros.unidad !== defecto.unidad) activos.push({ id: "unidad", etiqueta: `Unidad: ${ETIQUETA_UNIDAD[filtros.unidad]}`, onQuitar: quitar("unidad") });
+  if (filtros.dias !== defecto.dias) activos.push({ id: "dias", etiqueta: `Inventario: ${filtros.dias} días`, onQuitar: quitar("dias") });
+  return activos;
 }

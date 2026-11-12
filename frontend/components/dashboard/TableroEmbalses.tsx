@@ -12,7 +12,7 @@ import { RegionBarChart } from "@/components/dashboard/RegionBarChart";
 import { SendaVolumenPanel } from "@/components/dashboard/SendaVolumenPanel";
 import { EmbalsesTable } from "@/components/dashboard/EmbalsesTable";
 import { AYUDAS } from "@/components/dashboard/ayudas";
-import { ChipFiltro } from "@/components/ui/ChipFiltro";
+import { BarraFiltrosActivos } from "@/components/ui/BarraFiltrosActivos";
 import { SkeletonKpiCard } from "@/components/ui/Skeleton";
 import { useEmbalseDetalle } from "@/lib/hooks/useEmbalseDetalle";
 import { useFuenteDatos } from "@/lib/hooks/useFuenteDatos";
@@ -152,13 +152,12 @@ export function TableroEmbalses() {
           embalsesDisponibles={embalses}
         />
 
-        {(region || embalseActual) && (
-          <div className="-mt-2 flex flex-wrap items-center gap-2" role="group" aria-label="Filtros activos">
-            <span className="text-xs text-foreground-muted">Filtros activos:</span>
-            {region && <ChipFiltro etiqueta={`Región ${region}`} onQuitar={() => cambiarRegion(null)} />}
-            {embalseActual && <ChipFiltro etiqueta={`Embalse ${embalseActual.nombre}`} onQuitar={() => setEmbalseId(null)} />}
-          </div>
-        )}
+        <BarraFiltrosActivos
+          filtros={[
+            ...(region ? [{ id: "region", etiqueta: `Región ${region}`, onQuitar: () => cambiarRegion(null) }] : []),
+            ...(embalseActual ? [{ id: "embalse", etiqueta: `Embalse ${embalseActual.nombre}`, onQuitar: () => setEmbalseId(null) }] : []),
+          ]}
+        />
 
         {resumen.error && (
           <div
