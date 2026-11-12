@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import type { EmbalseResumen } from "@/lib/api/types";
 import { urlReporte } from "@/lib/api/client";
 import {
+  COLOR_VAR_RIESGO,
   formatearNumeroOpcional,
   formatearPorcentaje,
   formatearPorcentajeOpcional,
@@ -13,10 +14,12 @@ import {
 import { Card, CardHeader } from "@/components/ui/Card";
 import { SkeletonTableRow } from "@/components/ui/Skeleton";
 import { useEstadoUrl, type EsquemaUrl } from "@/lib/hooks/useEstadoUrl";
-import { enLista, textoLibre } from "@/lib/utils/url";
+import { enLista, enteroEntre, textoLibre } from "@/lib/utils/url";
 import { InfoButton } from "@/components/ui/InfoButton";
 import { AYUDAS } from "./ayudas";
 import { RiskBadge } from "@/components/dashboard/RiskBadge";
+import { BarraCelda } from "@/components/ui/BarraCelda";
+import { EstadoVacio } from "@/components/ui/EstadoVacio";
 
 type ColumnaOrdenable =
   | "nombre"
@@ -39,11 +42,24 @@ const COLUMNAS: { clave: ColumnaOrdenable; etiqueta: string; numerica?: boolean;
   { clave: "dias_autonomia", etiqueta: "Autonomía (días)", numerica: true, ayuda: AYUDAS.colAutonomia },
 ];
 
-/** Búsqueda y orden de la tabla, en la URL: `?q=guavio&orden=nombre&dir=desc` (por defecto, sin búsqueda y por % Vol. útil ascendente). */
-const ESQUEMA_TABLA: EsquemaUrl<{ busqueda: string; clave: ColumnaOrdenable; dir: "asc" | "desc" }> = {
+const TAMANOS_PAGINA = [10, 25, 50] as const;
+
+/**
+ * Búsqueda, orden y página de la tabla, en la URL: `?q=guavio&orden=nombre&dir=desc&pag=2&tam=10`
+ * (por defecto, sin búsqueda, por % Vol. útil ascendente, página 1 de 25 filas).
+ */
+const ESQUEMA_TABLA: EsquemaUrl<{
+  busqueda: string;
+  clave: ColumnaOrdenable;
+  dir: "asc" | "desc";
+  pagina: number;
+  tam: number;
+}> = {
   busqueda: { param: "q", defecto: () => "", leer: textoLibre(60) },
   clave: { param: "orden", defecto: () => "pct_volumen_util", leer: (c) => COLUMNAS.find((x) => x.clave === c)?.clave },
   dir: { param: "dir", defecto: () => "asc", leer: enLista(["asc", "desc"] as const) },
+  pagina: { param: "pag", defecto: () => 1, leer: enteroEntre(1, 9999) },
+  tam: { param: "tam", defecto: () => 25, leer: enLista(TAMANOS_PAGINA) },
 };
 
 export function EmbalsesTable({
@@ -57,9 +73,10 @@ export function EmbalsesTable({
   onSeleccionar: (embalseId: string) => void;
   embalseSeleccionado: string | null;
 }) {
-  const [{ busqueda, clave, dir }, { actualizar }] = useEstadoUrl(ESQUEMA_TABLA);
+  const [{ busqueda, clave, dir, pagina, tam }, { actualizar }] = useEstadoUrl(ESQUEMA_TABLA);
   const orden = useMemo(() => ({ clave, direccion: dir === "asc" ? (1 as const) : (-1 as const) }), [clave, dir]);
-  const setBusqueda = (q: string) => actualizar({ busqueda: q });
+  // Buscar u ordenar cambia que filas hay: se vuelve a la primera pagina.
+  const setBusqueda = (q: string) => actualizar({ busqueda: q, pagina: 1 });
 
   const filas = useMemo(() => {
     const filtradas = embalses.filter((e) =>
@@ -75,9 +92,15 @@ export function EmbalsesTable({
     });
   }, [embalses, busqueda, orden]);
 
+  const totalPaginas = Math.max(1, Math.ceil(filas.length / tam));
+  // Si los filtros dejan menos filas que la pagina pedida, se muestra la ultima en vez de una vacia.
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const inicio = (paginaActual - 1) * tam;
+  const visibles = filas.slice(inicio, inicio + tam);
+
   function alternarOrden(nueva: ColumnaOrdenable) {
-    if (nueva === clave) actualizar({ dir: dir === "asc" ? "desc" : "asc" });
-    else actualizar({ clave: nueva, dir: "asc" });
+    if (nueva === clave) actualizar({ dir: dir === "asc" ? "desc" : "asc", pagina: 1 });
+    else actualizar({ clave: nueva, dir: "asc", pagina: 1 });
   }
 
   return (
@@ -129,13 +152,17 @@ export function EmbalsesTable({
 
             {!cargando && filas.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-foreground-muted">
-                  No hay embalses que coincidan con los filtros aplicados.
+                <td colSpan={9} className="px-4 py-6">
+                  <EstadoVacio
+                    titulo="No hay embalses que coincidan con los filtros aplicados."
+                    descripcion="Prueba con otra búsqueda o quita algún filtro."
+                    accion={busqueda ? { texto: "Borrar la búsqueda", onClick: () => setBusqueda("") } : undefined}
+                  />
                 </td>
               </tr>
             )}
 
-            {filas.map((embalse) => (
+            {visibles.map((embalse) => (
               <tr
                 key={embalse.id}
                 onClick={() => onSeleccionar(embalse.id)}
@@ -158,8 +185,13 @@ export function EmbalsesTable({
                 </td>
                 <td className="px-4 py-2.5 text-foreground-muted">{embalse.region}</td>
                 <td className="px-4 py-2.5 tabular-nums">
-                  <div className="flex items-center gap-2">
-                    <span className="tabular-nums">{formatearPorcentaje(embalse.pct_volumen_util)}</span>
+                  <div className="flex items-center gap-3">
+                    <BarraCelda
+                      valor={embalse.pct_volumen_util}
+                      etiqueta={`% Volumen útil de ${embalse.nombre}`}
+                      color={COLOR_VAR_RIESGO[embalse.nivel_riesgo].texto}
+                      formato={formatearPorcentaje}
+                    />
                     <RiskBadge nivel={embalse.nivel_riesgo} tamano="sm" />
                   </div>
                 </td>
@@ -201,6 +233,49 @@ export function EmbalsesTable({
           </tbody>
         </table>
       </div>
+
+      {filas.length > TAMANOS_PAGINA[0] && (
+        <nav aria-label="Paginación de la tabla" className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-3 text-xs text-foreground-muted">
+          <span>
+            Mostrando {inicio + 1}–{inicio + visibles.length} de {filas.length}
+          </span>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-1.5">
+              Filas por página
+              <select
+                value={tam}
+                onChange={(e) => actualizar({ tam: Number(e.target.value), pagina: 1 })}
+                className="rounded-md border border-border-strong bg-background px-1.5 py-1 text-xs text-foreground"
+              >
+                {TAMANOS_PAGINA.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <span aria-live="polite">
+              Página {paginaActual} de {totalPaginas}
+            </span>
+            <button
+              type="button"
+              onClick={() => actualizar({ pagina: paginaActual - 1 })}
+              disabled={paginaActual <= 1}
+              className="rounded-md border border-border-strong px-2.5 py-1 font-semibold text-foreground transition-colors hover:bg-border/40 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Anterior
+            </button>
+            <button
+              type="button"
+              onClick={() => actualizar({ pagina: paginaActual + 1 })}
+              disabled={paginaActual >= totalPaginas}
+              className="rounded-md border border-border-strong px-2.5 py-1 font-semibold text-foreground transition-colors hover:bg-border/40 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Siguiente
+            </button>
+          </div>
+        </nav>
+      )}
     </Card>
   );
 }

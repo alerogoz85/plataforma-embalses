@@ -12,7 +12,9 @@ import { RegionBarChart } from "@/components/dashboard/RegionBarChart";
 import { SendaVolumenPanel } from "@/components/dashboard/SendaVolumenPanel";
 import { EmbalsesTable } from "@/components/dashboard/EmbalsesTable";
 import { AYUDAS } from "@/components/dashboard/ayudas";
+import { ChipFiltro } from "@/components/ui/ChipFiltro";
 import { SkeletonKpiCard } from "@/components/ui/Skeleton";
+import { useEmbalseDetalle } from "@/lib/hooks/useEmbalseDetalle";
 import { useFuenteDatos } from "@/lib/hooks/useFuenteDatos";
 import { useResumenNacional } from "@/lib/hooks/useResumenNacional";
 import {
@@ -57,6 +59,8 @@ function kpisDeEmbalse(e: EmbalseResumen): KpiVista {
   };
 }
 
+const PUNTOS_TENDENCIA = 30;
+
 type KpiVista = Omit<KpiNacional, "fecha_corte" | "capacidad_guardada_gwh"> & {
   capacidad_guardada_gwh: number | null;
 };
@@ -100,6 +104,21 @@ export function TableroEmbalses() {
       : ID_TOTAL_NACIONAL;
   const ambitoNombre = embalseActual ? embalseActual.nombre : region ? `Región ${region}` : "Total nacional";
 
+  // Tendencia de las tarjetas: los ultimos 30 puntos de la misma serie que dibuja el grafico principal.
+  const detalleAmbito = useEmbalseDetalle(ambitoId, { fechaInicio, fechaFin });
+  const tendenciaVolumen = useMemo(
+    () => (detalleAmbito.datos?.serie_historica ?? []).slice(-PUNTOS_TENDENCIA).map((p) => p.pct_volumen_util),
+    [detalleAmbito.datos],
+  );
+  const tendenciaAportes = useMemo(
+    () =>
+      (detalleAmbito.datos?.serie_historica ?? [])
+        .slice(-PUNTOS_TENDENCIA)
+        .map((p) => p.aportes_pct_media)
+        .filter((v): v is number => v !== null),
+    [detalleAmbito.datos],
+  );
+
   const kpis = resumen.datos ? (embalseActual ? kpisDeEmbalse(embalseActual) : resumen.datos.kpis) : null;
   const regiones = resumen.datos?.regiones ?? [];
   const regionesVisibles = embalseActual ? regiones.filter((r) => r.region === embalseActual.region) : regiones;
@@ -133,6 +152,14 @@ export function TableroEmbalses() {
           embalsesDisponibles={embalses}
         />
 
+        {(region || embalseActual) && (
+          <div className="-mt-2 flex flex-wrap items-center gap-2" role="group" aria-label="Filtros activos">
+            <span className="text-xs text-foreground-muted">Filtros activos:</span>
+            {region && <ChipFiltro etiqueta={`Región ${region}`} onQuitar={() => cambiarRegion(null)} />}
+            {embalseActual && <ChipFiltro etiqueta={`Embalse ${embalseActual.nombre}`} onQuitar={() => setEmbalseId(null)} />}
+          </div>
+        )}
+
         {resumen.error && (
           <div
             className="rounded-2xl border p-4 text-sm"
@@ -157,6 +184,7 @@ export function TableroEmbalses() {
                 }}
                 icono={ICONO_GOTA}
                 acento="var(--color-marca)"
+                tendencia={tendenciaVolumen}
                 ayuda={AYUDAS.pctVolumenUtilNacional}
               />
               <KpiCard
@@ -164,6 +192,7 @@ export function TableroEmbalses() {
                 valor={formatearPorcentajeOpcional(kpis.aportes_pct_media_nacional)}
                 icono={ICONO_LLUVIA}
                 acento="var(--chart-aportes)"
+                tendencia={tendenciaAportes}
                 ayuda={AYUDAS.aportes}
               />
               <KpiCard
@@ -187,7 +216,12 @@ export function TableroEmbalses() {
               fechaFin={fechaFin}
             />
           </div>
-          <RegionBarChart regiones={regionesVisibles} cargando={resumen.cargando} />
+          <RegionBarChart
+            regiones={regionesVisibles}
+            cargando={resumen.cargando}
+            regionSeleccionada={region}
+            onSeleccionar={cambiarRegion}
+          />
         </section>
 
         <section>

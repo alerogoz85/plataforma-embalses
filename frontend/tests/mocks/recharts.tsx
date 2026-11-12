@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Children, isValidElement, type ReactNode } from "react";
 
 /**
  * jsdom no calcula tamanos, asi que Recharts no dibuja. Estos dobles exponen
@@ -13,7 +13,8 @@ function contenedor(nombre: string) {
   return function Grafico({ data, children }: Props) {
     return (
       <div data-testid={nombre} data-points={JSON.stringify(data)}>
-        {children}
+        {/* <defs>, <linearGradient>… son SVG: en este doble (div) solo estorbarian, se omiten. */}
+        {Children.toArray(children).filter((hijo) => !(isValidElement(hijo) && typeof hijo.type === "string"))}
       </div>
     );
   };
@@ -37,7 +38,9 @@ export const Bar = ({ dataKey, children }: Props) => (
   </div>
 );
 
-export const Cell = ({ fill }: Props) => <div data-testid="cell" data-fill={String(fill)} />;
+export const Cell = ({ fill, fillOpacity, onClick }: Props) => (
+  <div data-testid="cell" data-fill={String(fill)} data-opacity={String(fillOpacity ?? 1)} onClick={onClick as (() => void) | undefined} />
+);
 
 export const YAxis = ({ domain, dataKey }: Props) => {
   const limite = Array.isArray(domain) ? domain[1] : undefined;

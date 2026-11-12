@@ -847,7 +847,7 @@ repositorios en memoria; DuckDB se prueba aparte). La descarga real de SIMEM/XM
 se verificó manualmente (carga completa e incremental) y contra el agregado
 oficial de XM, pero no en las pruebas automáticas, que no usan red.
 
-### Frontend — 501 pruebas (Vitest + React Testing Library + jsdom)
+### Frontend — 516 pruebas (Vitest + React Testing Library + jsdom)
 
 Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 ([`tests/mocks/fetch.ts`](frontend/tests/mocks/fetch.ts)) con datos de ejemplo
@@ -863,11 +863,11 @@ Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 | `components/ui-base.test.tsx` | 10 | Componentes base del rediseño: `Sparkline` (serie, valores no numéricos, menos de dos puntos, descripción accesible), `EstadoVacio` (rol de estado y acción), `ChipFiltro` (quitar con nombre accesible) y `BarraCelda` (progressbar, acota entre 0 y el máximo, formato propio, sin valor) |
 | `components/tarjetas.test.tsx` | 18 | KpiCard, RiskBadge y SistemaRiesgoCard (color del delta, niveles de riesgo, singular/plural de los embalses monitoreados, ayuda) |
 | `components/FiltersPanel.test.tsx` | 11 | Seis regiones (incl. Caldas), embalses según región, callbacks (`null`, no cadena vacía), botón «Restablecer filtros», límites de fechas, ayudas |
-| `components/EmbalsesTable.test.tsx` | 22 | Orden (asc/desc, texto, nulos), búsqueda, "—" por dato no publicado, cero real, insignia "Agregado", selección de fila, enlaces de reporte, esqueletos |
-| `components/graficos.test.tsx` | 23 | Regiones (orden, color por riesgo, eje sobre 100%) y gráfico principal (punto puente histórico→proyección, huecos `null`, series, horizonte 1/3/6/12, errores parciales, banda y subtítulo según sea Outputs u Holt-Winters) |
+| `components/EmbalsesTable.test.tsx` | 29 | Orden (asc/desc, texto, nulos), búsqueda, "—" por dato no publicado, cero real, insignia "Agregado", selección de fila, enlaces de reporte, esqueletos, **barra de progreso del %V. útil, paginación (25 por defecto, 10/25/50, vuelve a la primera al buscar u ordenar, página fuera de rango) y aviso de «sin coincidencias» con borrar búsqueda** |
+| `components/graficos.test.tsx` | 26 | Regiones (orden, color por riesgo, eje sobre 100%, **clic para filtrar y atenuar las demás**) y gráfico principal (punto puente histórico→proyección, huecos `null`, series, horizonte 1/3/6/12, errores parciales, banda y subtítulo según sea Outputs u Holt-Winters) |
 | `components/SendaVolumenPanel.test.tsx` | 32 | Semáforo del mínimo proyectado en los umbrales exactos, datos del gráfico, tabla de validación, sin selector propio (sigue el ámbito de los filtros), estados de carga y error; proyección de Outputs (banda P10–P90, nota en lugar de la tabla, aviso si la corrida publica menos meses de los pedidos); horizontes 1/3/6/12 |
 | `components/ThemeToggle.test.tsx` | 6 | Preferencia guardada vs. del sistema, clase `dark`, sincronía entre botones |
-| `app/page.test.tsx` | 23 | Página completa con la API simulada: KPIs, procedencia real/no real, filtros por defecto en «Todos» con el total nacional, rango de 180 días, **filtros globales**: elegir un embalse o una región filtra tarjetas, gráfico principal, distribución regional, senda y tabla; al cambiar de región el embalse vuelve a «Todos»; las fechas solo mueven el histórico diario; restablecer filtros; error de API |
+| `app/page.test.tsx` | 28 | Página completa con la API simulada: KPIs, procedencia real/no real, filtros por defecto en «Todos» con el total nacional, rango de 180 días, **minigráficos de tendencia y chips de filtros activos**, **filtros globales**: elegir un embalse o una región filtra tarjetas, gráfico principal, distribución regional, senda y tabla; al cambiar de región el embalse vuelve a «Todos»; las fechas solo mueven el histórico diario; restablecer filtros; error de API |
 | `components/Header.test.tsx` | 7 | Accesos «Tableros» (vuelve al panel, ausente en el propio panel) e «Información» (`/informacion` en pestaña nueva), orden junto al botón de tema, título/subtítulo personalizables y fecha de corte |
 | `rutas/estadoEnUrl.test.tsx` | 20 | **Filtros en la URL** en embalses, carbón, DNS y modelos: la dirección abre la vista ya filtrada y consulta la API con ella, cada cambio escribe la URL (solo lo no-defecto), restablecer la limpia, valores inválidos o inexistentes se ignoran, región→subárea, clic en una zona |
 | `hooks/useEstadoUrl.test.tsx`, `utils/url.test.ts`, `utils/rutas.test.ts` | 10 + 16 + 18 | Lectura/escritura del estado en la URL (composición de cambios, `replaceState` sin apilar historial), lectores validados, rutas, alias, anclas de la guía y redirecciones de `next.config` |

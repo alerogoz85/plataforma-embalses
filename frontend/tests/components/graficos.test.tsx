@@ -29,6 +29,27 @@ describe("RegionBarChart", () => {
     expect(colores).toEqual(["var(--riesgo-critico)", "var(--riesgo-estable)", "var(--riesgo-normal)"]);
   });
 
+  it("sin funcion de seleccion las barras no son clicables", () => {
+    render(<RegionBarChart regiones={REGIONES_EJEMPLO} cargando={false} />);
+    expect(screen.getAllByTestId("cell").every((c) => c.dataset.opacity === "1")).toBe(true);
+  });
+
+  it("un clic en una barra elige la region y otro sobre la misma la quita", async () => {
+    const elegir = vi.fn();
+    const { rerender } = render(<RegionBarChart regiones={REGIONES_EJEMPLO} cargando={false} onSeleccionar={elegir} />);
+    await userEvent.click(screen.getAllByTestId("cell")[1]); // orden: Caldas, Centro, Oriente
+    expect(elegir).toHaveBeenLastCalledWith("Centro");
+
+    rerender(<RegionBarChart regiones={REGIONES_EJEMPLO} cargando={false} onSeleccionar={elegir} regionSeleccionada="Centro" />);
+    await userEvent.click(screen.getAllByTestId("cell")[1]);
+    expect(elegir).toHaveBeenLastCalledWith(null);
+  });
+
+  it("con una region elegida atenua las demas barras", () => {
+    render(<RegionBarChart regiones={REGIONES_EJEMPLO} cargando={false} onSeleccionar={() => {}} regionSeleccionada="Centro" />);
+    expect(screen.getAllByTestId("cell").map((c) => c.dataset.opacity)).toEqual(["0.35", "1", "0.35"]);
+  });
+
   it("el eje se ajusta si una region supera el 100% (no recorta barras)", () => {
     render(<RegionBarChart regiones={REGIONES_EJEMPLO} cargando={false} />);
     const eje = screen.getByTestId("x-axis");
@@ -141,7 +162,9 @@ describe("MainChart", () => {
     ]);
     expect(lineas.map((l) => l.dataset.dashed)).toEqual(["false", "false", "true"]);
     const areas = screen.getAllByTestId("area");
-    expect(areas.map((a) => a.dataset.stack)).toEqual(["banda", "banda"]);
+    // Las dos de la banda del pronostico (apiladas) y el degradado bajo la curva del % volumen util.
+    expect(areas.map((a) => a.dataset.stack)).toEqual(["banda", "banda", ""]);
+    expect(areas.map((a) => a.dataset.key)).toEqual(["bandaBase", "bandaRango", "pctVolumenUtil"]);
   });
 
   it("muestra el metodo y el nivel de confianza del pronostico", async () => {

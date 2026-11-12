@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { EmbalsesTable } from "@/components/dashboard/EmbalsesTable";
 import { EMBALSES_EJEMPLO, crearEmbalse } from "../fixtures";
+import { fijarUrl } from "../mocks/navigation";
 
 function montar(props: Partial<React.ComponentProps<typeof EmbalsesTable>> = {}) {
   const onSeleccionar = vi.fn();
@@ -92,6 +93,64 @@ describe("EmbalsesTable busqueda", () => {
     await userEvent.type(screen.getByPlaceholderText(/Buscar embalse/), "zzz");
     expect(screen.getByText(/No hay embalses que coincidan/)).toBeInTheDocument();
     expect(screen.getByText("0 de 4 registros")).toBeInTheDocument();
+  });
+});
+
+describe("EmbalsesTable barra y paginacion", () => {
+  const muchos = (n: number) =>
+    Array.from({ length: n }, (_, i) => crearEmbalse({ id: `E${i}`, nombre: `Embalse ${String(i).padStart(2, "0")}`, pct_volumen_util: i }));
+
+  it("dibuja una barra de progreso con el %V. util de cada embalse", () => {
+    montar();
+    const barra = screen.getByRole("progressbar", { name: "% Volumen útil de Muna" });
+    expect(barra).toHaveAttribute("aria-valuenow");
+    expect(screen.getAllByRole("progressbar")).toHaveLength(4);
+  });
+
+  it("con pocas filas no muestra la paginacion", () => {
+    montar();
+    expect(screen.queryByRole("navigation", { name: "Paginación de la tabla" })).not.toBeInTheDocument();
+  });
+
+  it("pagina de 25 en 25 por defecto y navega entre paginas", async () => {
+    montar({ embalses: muchos(30) });
+    expect(nombres()).toHaveLength(25);
+    expect(screen.getByText("Mostrando 1–25 de 30")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Anterior" })).toBeDisabled();
+
+    await userEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+    expect(nombres()).toHaveLength(5);
+    expect(screen.getByText("Mostrando 26–30 de 30")).toBeInTheDocument();
+    expect(screen.getByText("Página 2 de 2")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Siguiente" })).toBeDisabled();
+  });
+
+  it("cambiar las filas por pagina vuelve a la primera pagina", async () => {
+    montar({ embalses: muchos(30) });
+    await userEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+    await userEvent.selectOptions(screen.getByLabelText("Filas por página"), "10");
+    expect(nombres()).toHaveLength(10);
+    expect(screen.getByText("Página 1 de 3")).toBeInTheDocument();
+  });
+
+  it("buscar o reordenar vuelve a la primera pagina", async () => {
+    montar({ embalses: muchos(30) });
+    await userEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+    await userEvent.click(encabezado(/Embalse/));
+    expect(screen.getByText("Página 1 de 2")).toBeInTheDocument();
+  });
+
+  it("si los filtros dejan menos paginas que la pedida muestra la ultima", () => {
+    fijarUrl("/?pag=9");
+    montar({ embalses: muchos(30) });
+    expect(screen.getByText("Página 2 de 2")).toBeInTheDocument();
+  });
+
+  it("sin coincidencias ofrece borrar la busqueda", async () => {
+    montar();
+    await userEvent.type(screen.getByPlaceholderText(/Buscar embalse/), "zzz");
+    await userEvent.click(screen.getByRole("button", { name: "Borrar la búsqueda" }));
+    expect(nombres()).toHaveLength(4);
   });
 });
 

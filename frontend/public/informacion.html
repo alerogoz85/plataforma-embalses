@@ -201,7 +201,7 @@ svg text{font-family:var(--f-body)}
     <div class="fact"><b>24</b><span>embalses del SIN</span></div>
     <div class="fact"><b>76,7 %</b><span>volumen útil nacional al 25-oct-2026</span></div>
     <div class="fact"><b>35,4 %</b><span>mínimo nacional proyectado (mar-2027)</span></div>
-    <div class="fact"><b>1.291</b><span>pruebas automatizadas</span></div>
+    <div class="fact"><b>1.306</b><span>pruebas automatizadas</span></div>
   </div>
   <div class="cta"><a class="btn pri" href="#cargue">Modelo de cargue e integración</a><a class="btn" href="#mapa">Ir al manual de usuario</a><a class="btn" href="/">← Volver a los tableros</a></div>
 </header>
@@ -485,8 +485,8 @@ flowchart TD
 
 <section class="sec" id="pruebas" data-g="t" data-t="Calidad y pruebas"><div class="eyebrow" style="--c:var(--azul)">Módulo técnico · 8</div>
 <h2>Calidad y pruebas</h2>
-<p class="lead">1.291 pruebas automatizadas (749 de backend, 501 unitarias de frontend y 41 de extremo a extremo con navegador real), sin red ni base externa, en cada pull request. Se comprobó que detectan fallos introduciendo regresiones a propósito.</p>
-<div class="grid2"><div class="card"><h4>Backend · 749 (pytest)</h4><div id="bt"></div></div><div class="card"><h4>Frontend · 501 (Vitest) + 41 e2e</h4><div id="ft"></div></div></div>
+<p class="lead">1.306 pruebas automatizadas (749 de backend, 516 unitarias de frontend y 41 de extremo a extremo con navegador real), sin red ni base externa, en cada pull request. Se comprobó que detectan fallos introduciendo regresiones a propósito.</p>
+<div class="grid2"><div class="card"><h4>Backend · 749 (pytest)</h4><div id="bt"></div></div><div class="card"><h4>Frontend · 516 (Vitest) + 41 e2e</h4><div id="ft"></div></div></div>
 </section>
 
 <!-- ===================== MANUAL ===================== -->
@@ -515,7 +515,7 @@ flowchart TD
 <div class="tw"><table><thead><tr><th>Filtro</th><th>Qué cambia</th><th>Qué no cambia</th></tr></thead><tbody>
 <tr><td>Desde / Hasta</td><td>El tramo histórico diario del gráfico principal (por defecto 180 días)</td><td>Las tarjetas, la distribución regional y la tabla (siempre el último corte) y la senda (toda la historia mensual); la proyección parte del último dato</td></tr>
 </tbody></table></div>
-<ul><li><b>Al abrir la página</b> los filtros están en «Todas las regiones» y «Todos los embalses»: el gráfico principal y la senda muestran el total nacional.</li><li>Al cambiar de región, el embalse vuelve a «Todos los embalses» y todo muestra el agregado de esa región.</li><li>«Todos los embalses» muestra el total nacional o, con región, el agregado de esa región; elegir un embalse lo reduce todo a ese embalse.</li><li>Un clic en una fila de la tabla elige ese embalse. La tabla queda con una sola fila: elige «Todos los embalses» o pulsa Restablecer para volver.</li><li>“Desde” no puede pasar de “Hasta”, y viceversa.</li><li><b>Restablecer filtros</b> devuelve región y embalse a “Todos” y las fechas a 180 días.</li></ul>
+<ul><li><b>Al abrir la página</b> los filtros están en «Todas las regiones» y «Todos los embalses»: el gráfico principal y la senda muestran el total nacional.</li><li>Al cambiar de región, el embalse vuelve a «Todos los embalses» y todo muestra el agregado de esa región.</li><li>«Todos los embalses» muestra el total nacional o, con región, el agregado de esa región; elegir un embalse lo reduce todo a ese embalse.</li><li>Un clic en una fila de la tabla elige ese embalse. La tabla queda con una sola fila: elige «Todos los embalses» o pulsa Restablecer para volver.</li><li>“Desde” no puede pasar de “Hasta”, y viceversa.</li><li>Los filtros activos de región y embalse se muestran como <b>chips</b> («Filtros activos») sobre las tarjetas: un clic en la × de un chip lo quita sin tocar los demás.</li><li><b>Restablecer filtros</b> devuelve región y embalse a “Todos” y las fechas a 180 días.</li></ul>
 <h3>Estados que conviene ver</h3>
 <div class="gal"><figure><img data-i="filtros-todos" alt="Filtros con Todas las regiones y Todos los embalses"><figcaption>Todas las regiones + Todos los embalses: el gráfico pasa al total nacional.</figcaption></figure>
 <figure><img data-i="region-centro" alt="Región Centro con Todos los embalses"><figcaption>Región Centro + Todos los embalses: tarjetas, gráficos, senda y tabla recalculan para esa región.</figcaption></figure></div>
@@ -531,6 +531,7 @@ flowchart TD
 <tr><td>Capacidad guardada</td><td>Energía almacenada hoy en el volumen útil</td><td class="num">13.548 GWh</td></tr>
 <tr><td>Riesgo del sistema</td><td>Insignia del nivel de riesgo (Normal, Estable, Alerta temprana, Situación delicada o Crítico; ver la sección 5) y número de embalses monitoreados</td><td>Estable · 24 embalses</td></tr>
 </tbody></table></div>
+<p>Las tarjetas de %V. útil y de aportes llevan un <b>minigráfico de tendencia</b> con los últimos 30 días del rango elegido (sin ejes: el valor exacto es el número de la tarjeta). El gráfico principal dibuja el %V. útil como área con degradado bajo la curva.</p>
 <div class="note"><b>Siguen los filtros:</b><div>Con una región, las tarjetas recalculan solo con sus embalses y el título pasa a «% Volumen útil · Región Centro». Con un embalse muestran sus propios valores y el recuadro de riesgo dice «1 embalse monitoreado». Si el embalse no publica un dato (por ejemplo, aportes de Muna), la tarjeta muestra «—».</div></div>
 <p>Un guion “—” significa que XM no publicó el dato; nunca es un cero.</p>
 </section>
@@ -553,7 +554,7 @@ flowchart TD
 <h2>Distribución regional del %V. útil</h2>
 <p class="lead">Barras horizontales de menor a mayor. Cada barra promedia los embalses de la región ponderados por energía.</p>
 <div class="shot" data-shot="region"></div>
-<ul><li>El color sigue el riesgo: verde normal, cian estable, ámbar alerta temprana, naranja situación delicada y rojo crítico. Al corte del 25-oct-2026, Oriente está en Normal; Antioquia, Caribe, Caldas y Centro en Estable; y Valle en Situación delicada.</li><li>Al pasar el cursor por una barra aparece su valor. Con una región elegida solo se muestra esa región, y con un embalse elegido, solo la región a la que pertenece.</li></ul>
+<ul><li>El color sigue el riesgo: verde normal, cian estable, ámbar alerta temprana, naranja situación delicada y rojo crítico. Al corte del 25-oct-2026, Oriente está en Normal; Antioquia, Caribe, Caldas y Centro en Estable; y Valle en Situación delicada.</li><li>Al pasar el cursor por una barra aparece su valor. Con una región elegida solo se muestra esa región, y con un embalse elegido, solo la región a la que pertenece.</li><li><b>Un clic en una barra filtra todo el tablero</b> por esa región (aparece el chip «Región …» sobre las tarjetas y las demás barras se atenúan). Otro clic sobre la misma barra, o la × del chip, quita el filtro.</li></ul>
 <div class="tw"><table><thead><tr><th>Región</th><th>%V. útil</th><th>Aportes (% media)</th><th>Energía útil (GWh)</th><th>Embalses</th></tr></thead><tbody>
 <tr><td>Valle</td><td class="num">58,3 %</td><td class="num">94,9 %</td><td class="num">457</td><td>3</td></tr><tr><td>Centro</td><td class="num">72,2 %</td><td class="num">78,4 %</td><td class="num">4.590</td><td>6</td></tr><tr><td>Caldas</td><td class="num">73,3 %</td><td class="num">38,7 %</td><td class="num">186</td><td>1</td></tr><tr><td>Caribe</td><td class="num">74,9 %</td><td class="num">58,8 %</td><td class="num">105</td><td>1</td></tr><tr><td>Antioquia</td><td class="num">76,5 %</td><td class="num">54,0 %</td><td class="num">4.809</td><td>10</td></tr><tr><td>Oriente</td><td class="num">88,5 %</td><td class="num">62,6 %</td><td class="num">3.400</td><td>3</td></tr>
 </tbody></table></div>
@@ -590,7 +591,7 @@ flowchart TD
 <tr><td>Autonomía (días)</td><td>Estimación de días hasta agotar el volumen útil; “—” si los aportes superan las salidas; engañosa en embalses en cadena como Punchiná</td></tr>
 <tr><td>Reporte</td><td>CSV y JSON con la serie diaria de los últimos 180 días</td></tr>
 </tbody></table></div>
-<ul><li><b>Ordenar:</b> clic en un encabezado; otro clic invierte. Arranca por % Vol. útil de menor a mayor.</li><li><b>Buscar:</b> por nombre o región mientras escribes.</li><li><b>Seleccionar:</b> clic en una fila la resalta y cambia el gráfico principal. Los enlaces CSV/JSON no cambian la selección.</li></ul>
+<ul><li><b>Ordenar:</b> clic en un encabezado; otro clic invierte. Arranca por % Vol. útil de menor a mayor.</li><li><b>Buscar:</b> por nombre o región mientras escribes.</li><li><b>Seleccionar:</b> clic en una fila la resalta y cambia el gráfico principal. Los enlaces CSV/JSON no cambian la selección.</li><li><b>Barra de %V. útil:</b> cada fila dibuja una barra del %V. útil con el color de su nivel de riesgo, junto al número y a la insignia del nivel.</li><li><b>Paginación:</b> con más de 10 filas aparece «Mostrando 1–25 de N», el selector «Filas por página» (10, 25 o 50) y los botones Anterior y Siguiente. Buscar, ordenar o cambiar el tamaño vuelve a la primera página, y la página queda en la dirección (<code>pag</code> y <code>tam</code>).</li><li>Si ninguna fila coincide aparece un aviso con el botón «Borrar la búsqueda».</li></ul>
 <pre class="code"><button class="cp" data-cp>Copiar</button>fecha,pct_volumen_util,energia_util_gwh,aportes_m3s,aportes_pct_media,vertimientos_m3s,turbinado_m3s</pre>
 <p>Archivo <code>&lt;CODIGO&gt;_reporte.csv</code> (por ejemplo <code>PENOL_reporte.csv</code>). Una celda vacía es un dato no publicado, nunca un cero. Para otro rango: <code>GET /api/v1/embalses/{id}/reporte?formato=csv&amp;fecha_inicio=…&amp;fecha_fin=…</code>.</p>
 </section>

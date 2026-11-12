@@ -140,6 +140,48 @@ describe("DashboardPage seleccion de embalse", () => {
   });
 });
 
+describe("DashboardPage tendencia y filtros activos", () => {
+  it("las tarjetas de volumen y aportes traen su minigrafico de tendencia", async () => {
+    await pagina();
+    await waitFor(() => expect(within(tarjeta("% Volumen útil nacional")).getByRole("img", { name: /Tendencia de % Volumen útil nacional/ })).toBeInTheDocument());
+    expect(within(tarjeta("Aportes (% media histórica)")).getByRole("img", { name: /Tendencia de Aportes/ })).toBeInTheDocument();
+    expect(within(tarjeta("Capacidad guardada")).queryByRole("img")).not.toBeInTheDocument();
+  });
+
+  it("sin filtros no hay chips", async () => {
+    await pagina();
+    expect(screen.queryByRole("group", { name: "Filtros activos" })).not.toBeInTheDocument();
+  });
+
+  it("elegir una region muestra su chip y quitarlo vuelve al total nacional", async () => {
+    await pagina();
+    await userEvent.selectOptions(selectorRegion(), "Centro");
+    const chip = await screen.findByRole("button", { name: "Quitar filtro: Región Centro" });
+    expect(screen.getByRole("group", { name: "Filtros activos" })).toContainElement(chip);
+
+    await userEvent.click(chip);
+    await waitFor(() => expect(tituloGrafico()).toHaveTextContent("Total nacional"));
+    expect(screen.queryByRole("group", { name: "Filtros activos" })).not.toBeInTheDocument();
+  });
+
+  it("un clic en una barra de region filtra todo el tablero", async () => {
+    await pagina();
+    const celdas = screen.getAllByTestId("cell");
+    expect(celdas.length).toBeGreaterThan(0);
+    await userEvent.click(celdas[0]);
+    await waitFor(() => expect(selectorRegion()).not.toHaveValue(""));
+    expect(await screen.findByRole("group", { name: "Filtros activos" })).toBeInTheDocument();
+  });
+
+  it("elegir un embalse muestra su chip y quitarlo deja la region", async () => {
+    await pagina();
+    await userEvent.selectOptions(selectorEmbalse(), "GUAVIO");
+    const chip = await screen.findByRole("button", { name: "Quitar filtro: Embalse Guavio" });
+    await userEvent.click(chip);
+    await waitFor(() => expect(selectorEmbalse()).toHaveValue(""));
+  });
+});
+
 describe("DashboardPage filtro de region", () => {
   it("vuelve a pedir el resumen filtrado y actualiza la tabla", async () => {
     const { llamadas } = await pagina();

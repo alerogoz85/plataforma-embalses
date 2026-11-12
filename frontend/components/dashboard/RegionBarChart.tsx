@@ -11,9 +11,14 @@ import { SkeletonChart } from "@/components/ui/Skeleton";
 export function RegionBarChart({
   regiones,
   cargando,
+  regionSeleccionada = null,
+  onSeleccionar,
 }: {
   regiones: RegionResumen[];
   cargando: boolean;
+  regionSeleccionada?: string | null;
+  /** Con esta funcion las barras filtran el tablero: un clic elige la region y otro sobre la misma la quita. */
+  onSeleccionar?: (region: string | null) => void;
 }) {
   if (cargando && regiones.length === 0) return <SkeletonChart />;
 
@@ -24,7 +29,11 @@ export function RegionBarChart({
       <CardHeader
         ayuda={AYUDAS.distribucionRegional}
         title="Distribución regional del %V. útil"
-        subtitle="Subsistemas hidrológicos ordenados de menor a mayor"
+        subtitle={
+          onSeleccionar
+            ? "Subsistemas de menor a mayor · haz clic en una barra para filtrar el tablero"
+            : "Subsistemas hidrológicos ordenados de menor a mayor"
+        }
       />
       <div className="h-72 w-full px-2 pb-4 pt-4 sm:px-4">
         <ResponsiveContainer width="100%" height="100%">
@@ -50,7 +59,13 @@ export function RegionBarChart({
             />
             <Bar dataKey="pct_volumen_util" radius={[0, 8, 8, 0]} barSize={22} isAnimationActive={false}>
               {datos.map((region) => (
-                <Cell key={region.region} fill={COLOR_VAR_RIESGO[region.nivel_riesgo].texto} />
+                <Cell
+                  key={region.region}
+                  fill={COLOR_VAR_RIESGO[region.nivel_riesgo].texto}
+                  fillOpacity={regionSeleccionada && regionSeleccionada !== region.region ? 0.35 : 1}
+                  cursor={onSeleccionar ? "pointer" : undefined}
+                  onClick={onSeleccionar ? () => onSeleccionar(regionSeleccionada === region.region ? null : region.region) : undefined}
+                />
               ))}
             </Bar>
           </BarChart>

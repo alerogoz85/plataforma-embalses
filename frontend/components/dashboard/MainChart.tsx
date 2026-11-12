@@ -148,6 +148,12 @@ export function MainChart({
       <div className="h-80 w-full px-2 pb-4 pt-4 sm:px-4">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={datos} margin={{ top: 4, right: 8, left: 4, bottom: 0 }}>
+            <defs>
+              <linearGradient id="degradado-volumen" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--chart-volumen)" stopOpacity={0.28} />
+                <stop offset="100%" stopColor="var(--chart-volumen)" stopOpacity={0} />
+              </linearGradient>
+            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
             <XAxis
               dataKey="fechaLabel"
@@ -187,6 +193,14 @@ export function MainChart({
               stroke="none"
               fill="var(--chart-banda)"
               name={esOutputs ? "Escenarios P10–P90 (ENSO)" : "Intervalo de confianza 95%"}
+              isAnimationActive={false}
+            />
+            <Area
+              type="monotone"
+              dataKey="pctVolumenUtil"
+              stroke="none"
+              fill="url(#degradado-volumen)"
+              legendType="none"
               isAnimationActive={false}
             />
             <Line

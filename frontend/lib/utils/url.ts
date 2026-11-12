@@ -34,3 +34,12 @@ export function textoLibre(maximo = 60): (crudo: string) => string | undefined {
     return limpio || undefined;
   };
 }
+
+/** Entero entre `minimo` y `maximo` (paginas, tamanos): lo que no es un entero de ese rango se ignora. */
+export function enteroEntre(minimo: number, maximo: number): (crudo: string) => number | undefined {
+  return (crudo) => {
+    if (!/^\d{1,6}$/.test(crudo)) return undefined;
+    const n = Number(crudo);
+    return n >= minimo && n <= maximo ? n : undefined;
+  };
+}
