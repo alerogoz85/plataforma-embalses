@@ -95,8 +95,9 @@ describe("DNS: los filtros viven en la URL", () => {
     const { llamadas } = apiDns();
     render(<DnsPage />);
     await screen.findByText(/Variables que más pesan/);
+    // La region invalida se descarta cuando llega el catalogo y entonces se vuelve a pedir: se espera esa ultima consulta.
+    await waitFor(() => expect(ultima(llamadas, "resumen").search).toBe("?periodo_meses=36"));
     expect(screen.getByRole("combobox", { name: "Región" })).toHaveValue("");
-    expect(ultima(llamadas, "resumen").search).toBe("?periodo_meses=36");
   });
 
   it("una subarea de otra region que la elegida se descarta", async () => {

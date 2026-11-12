@@ -126,6 +126,23 @@ describe("Tablero de carbon termico (pagina)", () => {
     expect(screen.getByRole("combobox", { name: "Días de inventario" })).toHaveValue("45");
   });
 
+  it("sin cambios no hay chips; cada filtro distinto del defecto aparece como chip y se quita solo", async () => {
+    api();
+    render(<CarbonPage />);
+    await screen.findByText(/Cumple 1 de 2/);
+    expect(screen.queryByRole("group", { name: "Filtros activos" })).not.toBeInTheDocument();
+
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Horizonte" }), "3");
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Unidad" }), "kt");
+    expect(await screen.findByRole("button", { name: "Quitar filtro: Horizonte: 3 meses" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Quitar filtro: Unidad: kt/día" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Quitar filtro: Unidad: kt/día" }));
+    expect(screen.getByRole("combobox", { name: "Unidad" })).toHaveValue("gbtu");
+    expect(screen.getByRole("combobox", { name: "Horizonte" })).toHaveValue("3");
+    expect(screen.queryByRole("button", { name: /Quitar filtro: Unidad/ })).not.toBeInTheDocument();
+  });
+
   it("solo ofrece las opciones que la API acepta", async () => {
     api();
     render(<CarbonPage />);

@@ -1,6 +1,9 @@
 "use client";
 
 import { Campo } from "@/components/ui/Campo";
+import { InfoButton } from "@/components/ui/InfoButton";
+import { RangosRapidos } from "@/components/ui/RangosRapidos";
+import { fechaHaceDias, hoyISO } from "@/lib/utils/dates";
 import { AYUDAS } from "./ayudas";
 import type { EmbalseResumen } from "@/lib/api/types";
 import { REGIONES } from "@/lib/api/types";
@@ -18,6 +21,14 @@ interface FiltersPanelProps {
   embalsesDisponibles: EmbalseResumen[];
 }
 
+/** Atajos del rango de fechas: los ultimos N dias hasta hoy. */
+const RANGOS_DIAS = [
+  { valor: 30, etiqueta: "30 días" },
+  { valor: 90, etiqueta: "90 días" },
+  { valor: 180, etiqueta: "6 meses" },
+  { valor: 365, etiqueta: "1 año" },
+] as const;
+
 export function FiltersPanel({
   regionSeleccionada,
   onCambiarRegion,
@@ -33,6 +44,13 @@ export function FiltersPanel({
   const opcionesEmbalse = regionSeleccionada
     ? embalsesDisponibles.filter((e) => e.region === regionSeleccionada)
     : embalsesDisponibles;
+
+  // El atajo vigente es el que coincide con el rango actual; fechas escritas a mano no marcan ninguno.
+  const rangoVigente = fechaFin === hoyISO() ? (RANGOS_DIAS.find((r) => fechaInicio === fechaHaceDias(r.valor))?.valor ?? null) : null;
+  function elegirRango(dias: number) {
+    onCambiarFechaInicio(fechaHaceDias(dias));
+    onCambiarFechaFin(hoyISO());
+  }
 
   return (
     <div className="grid grid-cols-1 gap-x-5 gap-y-4 rounded-2xl border border-border bg-background-elevated p-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -86,7 +104,12 @@ export function FiltersPanel({
         />
       </Campo>
 
-      <div className="flex justify-end sm:col-span-2 lg:col-span-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 sm:col-span-2 lg:col-span-4">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-foreground-muted">Rango rápido</span>
+          <RangosRapidos etiqueta="Rango rápido" opciones={RANGOS_DIAS} valor={rangoVigente} onCambiar={elegirRango} />
+          <InfoButton titulo={AYUDAS.filtroRangoRapido.titulo}>{AYUDAS.filtroRangoRapido.contenido}</InfoButton>
+        </div>
         <button
           type="button"
           onClick={onRestablecer}

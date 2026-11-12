@@ -88,6 +88,24 @@ describe("Tablero DNS (pagina)", () => {
     expect(await screen.findByText("Sin eventos EDAC en el período")).toBeInTheDocument();
   });
 
+  it("los filtros activos se ven como chips y quitar la region quita tambien la subarea", async () => {
+    api();
+    render(<DnsPage />);
+    await esperarCarga();
+    expect(screen.queryByRole("group", { name: "Filtros activos" })).not.toBeInTheDocument();
+
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Región" }), "Norte");
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Subárea" }), "Are0002");
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: "Origen" }), "programada");
+    const grupo = await screen.findByRole("group", { name: "Filtros activos" });
+    expect(within(grupo).getAllByRole("button")).toHaveLength(3);
+
+    await userEvent.click(within(grupo).getByRole("button", { name: "Quitar filtro: Región Norte" }));
+    expect(screen.getByRole("combobox", { name: "Región" })).toHaveValue("");
+    expect(screen.getByRole("combobox", { name: "Subárea" })).toHaveValue("");
+    expect(screen.getByRole("combobox", { name: "Origen" })).toHaveValue("programada");
+  });
+
   it("solo ofrece las opciones que la API acepta", async () => {
     api();
     render(<DnsPage />);
