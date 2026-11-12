@@ -1,4 +1,4 @@
-import { Area, AreaChart, ResponsiveContainer } from "recharts";
+import { Area, AreaChart, ResponsiveContainer, YAxis } from "recharts";
 
 interface SparklineProps {
   datos: readonly number[];
@@ -19,6 +19,8 @@ export function Sparkline({ datos, etiqueta, color = "var(--color-marca)", class
     <div className={className} role="img" aria-label={`${etiqueta}: de ${primero} a ${ultimo}`}>
       <ResponsiveContainer>
         <AreaChart data={puntos} margin={{ top: 2, right: 0, bottom: 2, left: 0 }}>
+          {/* Sin el cero como base: la tendencia ocupa todo el alto aunque la variacion sea de pocos puntos. */}
+          <YAxis hide domain={["dataMin", "dataMax"]} />
           <Area dataKey="v" stroke={color} strokeWidth={2} fill={color} fillOpacity={0.14} dot={false} isAnimationActive={false} />
         </AreaChart>
       </ResponsiveContainer>
