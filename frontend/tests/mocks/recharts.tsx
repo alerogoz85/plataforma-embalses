@@ -21,6 +21,7 @@ function contenedor(nombre: string) {
 
 export const ComposedChart = contenedor("composed-chart");
 export const BarChart = contenedor("bar-chart");
+export const AreaChart = contenedor("area-chart");
 
 export const Line = ({ dataKey, name, strokeDasharray }: Props) => (
   <div data-testid="line" data-key={String(dataKey)} data-name={String(name)} data-dashed={String(Boolean(strokeDasharray))} />
