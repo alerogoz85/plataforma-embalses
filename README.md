@@ -537,7 +537,7 @@ plataforma-embalses/
 │   │   ├── apagon/                 # Visor interactivo del riesgo de apagón: TableroApagon, GemeloApagon, PanelControles, ControlDeslizador, GraficosEscenario, TablaMensualEscenario, ayudasApagon.tsx
 │   │   ├── actualizacion/          # Módulo de actualización: ModuloActualizacion, FormularioAcceso, PanelActualizacion, SelectorArchivo, InformeCarga, Bitacora
 │   │   ├── carbon/                 # Tablero de carbón: FiltrosCarbon, KpisCarbon, SerieCarbonChart, TrimestresChart, InventarioChart, ComparacionXmChart, ValidacionCarbonPanel, SupuestosCarbon, ayudasCarbon.tsx
-│   │   └── ui/                     # Card, Campo (filtro con ⓘ), Skeleton, InfoButton (botón ⓘ)
+│   │   └── ui/                     # Card, Campo (filtro con ⓘ), Skeleton, InfoButton (botón ⓘ), Sparkline, EstadoVacio, ChipFiltro y BarraCelda (base del rediseño visual)
 │   ├── scripts/capturas-guia.mjs # Regenera las capturas de embalses de la guía (Playwright + API local)
 │   ├── e2e/                      # Pruebas de extremo a extremo (Playwright)
 │   ├── tests/                    # Pruebas (Vitest + Testing Library): utils, api, hooks, components, app, mocks, fixtures
@@ -847,7 +847,7 @@ repositorios en memoria; DuckDB se prueba aparte). La descarga real de SIMEM/XM
 se verificó manualmente (carga completa e incremental) y contra el agregado
 oficial de XM, pero no en las pruebas automáticas, que no usan red.
 
-### Frontend — 491 pruebas (Vitest + React Testing Library + jsdom)
+### Frontend — 501 pruebas (Vitest + React Testing Library + jsdom)
 
 Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 ([`tests/mocks/fetch.ts`](frontend/tests/mocks/fetch.ts)) con datos de ejemplo
@@ -860,6 +860,7 @@ Cada prueba corre sin red ni backend: `fetch` se simula por ruta
 | `api/client.test.ts` | 20 | Construcción de URLs y query strings (parámetros repetibles, vacíos omitidos), `urlReporte`, cancelación, errores (`detalle` de dominio y `detail` de FastAPI, fallos de red) y URL base según el entorno (local vs. `/` en producción) |
 | `hooks/useAsyncResource.test.tsx` | 10 | Estados cargando/datos/error, cancelación al desmontar y al cambiar dependencias, gana la última respuesta, sin peticiones repetidas |
 | `components/InfoButton.test.tsx` | 13 | Botón ⓘ: aria, mostrar al pasar el cursor/enfocar y ocultar al salir, clic táctil, Escape, fuera, scroll, resize, no propaga el clic, un solo panel, posición dentro de la pantalla |
+| `components/ui-base.test.tsx` | 10 | Componentes base del rediseño: `Sparkline` (serie, valores no numéricos, menos de dos puntos, descripción accesible), `EstadoVacio` (rol de estado y acción), `ChipFiltro` (quitar con nombre accesible) y `BarraCelda` (progressbar, acota entre 0 y el máximo, formato propio, sin valor) |
 | `components/tarjetas.test.tsx` | 18 | KpiCard, RiskBadge y SistemaRiesgoCard (color del delta, niveles de riesgo, singular/plural de los embalses monitoreados, ayuda) |
 | `components/FiltersPanel.test.tsx` | 11 | Seis regiones (incl. Caldas), embalses según región, callbacks (`null`, no cadena vacía), botón «Restablecer filtros», límites de fechas, ayudas |
 | `components/EmbalsesTable.test.tsx` | 22 | Orden (asc/desc, texto, nulos), búsqueda, "—" por dato no publicado, cero real, insignia "Agregado", selección de fila, enlaces de reporte, esqueletos |
@@ -921,7 +922,9 @@ Las pruebas encontraron **tres defectos reales**, ya corregidos:
 - **Identidad visual del sector**: la paleta y las tipografías siguen las de
   minenergia.gov.co (sistema GOV.CO): azul `#3366CC`/`#004884`, amarillo
   institucional `#EDB600`, verde `#068460`, Nunito Sans (texto) y Montserrat
-  (títulos). Todo vive en tokens CSS de `frontend/app/globals.css`. El color de
+  (títulos). Todo vive en tokens CSS de `frontend/app/globals.css` (incluye las series de apoyo
+  `--chart-serie-3` y `--chart-neutro`, las sombras `--sombra-reposo/elevada` y la clase
+  `.tarjeta-elevable`, que respeta `prefers-reduced-motion`). El color de
   marca (`--color-marca`, azul) está separado del semáforo de estado
   (`--riesgo-normal/estable/alerta-temprana/delicada/critico`) para que cada color
   signifique siempre lo mismo. El encabezado lleva la franja GOV.CO y el logo del

@@ -39,6 +39,12 @@
   --chart-aportes: #edb600;
   --chart-prediccion: #004884;
   --chart-banda: #3366cc33;
+  /* Series de apoyo: se distinguen tambien por trazo o forma, no solo por color. */
+  --chart-serie-3: #0b8fb0;
+  --chart-neutro: #9aa7bd;
+
+  --sombra-reposo: 0 1px 2px rgb(16 24 40 / 6%);
+  --sombra-elevada: 0 6px 16px rgb(16 24 40 / 8%);
 }
 
 :root.dark {
@@ -76,6 +82,11 @@
   --chart-aportes: #edb600;
   --chart-prediccion: #9dbeff;
   --chart-banda: #6699ff2b;
+  --chart-serie-3: #4fd0ea;
+  --chart-neutro: #7f8fab;
+
+  --sombra-reposo: 0 1px 2px rgb(0 0 0 / 30%);
+  --sombra-elevada: 0 6px 16px rgb(0 0 0 / 40%);
 }
 
 @theme inline {
@@ -124,6 +135,20 @@ h1, h2, h3 {
 ::-webkit-scrollbar-thumb {
   background: var(--border-strong);
   border-radius: 9999px;
+}
+
+/* Tarjeta que se eleva al pasar el cursor; sin movimiento si la persona pidio menos animacion. */
+.tarjeta-elevable {
+  box-shadow: var(--sombra-reposo);
+  transition: box-shadow 200ms ease, transform 200ms ease;
+}
+.tarjeta-elevable:hover {
+  box-shadow: var(--sombra-elevada);
+  transform: translateY(-1px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tarjeta-elevable { transition: none; }
+  .tarjeta-elevable:hover { transform: none; }
 }
 
 @keyframes shimmer {
