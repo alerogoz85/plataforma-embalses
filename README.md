@@ -614,11 +614,17 @@ Se importa con (API detenida; necesita `openpyxl`, incluido en `requirements-dev
 python -m infrastructure.ingesta.importar_modelo_carbon --carpeta "../../Modelo de carbón térmico"
 ```
 
-La carpeta debe traer `resultados/proyeccion_carbon.xlsx`, `resultados/evaluacion/evaluacion_modelo.xlsx`
-y `datos/base/base_mensual_nacional.parquet`. El importador **valida todo antes de escribir**,
+El proyecto del modelo se organiza en `Datos/`, `Documentos/` y `Scripts/`. El importador lee de `Datos/`:
+`Datos/resultados/proyeccion_carbon.xlsx`, `Datos/resultados/evaluacion/evaluacion_modelo.xlsx` y
+`Datos/base/base_mensual_nacional.parquet`. También acepta la organización anterior (`resultados/` y
+`datos/base/` directamente en la carpeta); si conviven las dos, **gana `Datos/`**. El importador **valida todo antes de escribir**,
 reemplaza la corrida anterior en una sola transacción (si algo falla no queda a medias) y no se
 borra con `--reiniciar`. Sin importar el modelo, `/api/v1/carbon/*` responde 404 con la instrucción.
 Luego hay que volver a publicar la API (`scripts/desplegar-vercel.sh`).
+
+Qué más trae la carpeta del modelo y **no** carga el tablero: `Datos/resultados/mockup_visor.png` (referencia del visor completo, con
+secciones de factores ENOS e hidrología, histórico por combustible y plantas/regiones), `Datos/sinergox/`, `Datos/noaa/`, `Datos/xm/` y los
+guiones `Scripts/01…08`. El tablero actual muestra las secciones de resumen, proyección, inventario, comparación con XM y confiabilidad.
 
 #### Demanda no atendida (DNS) y modelos de gas, optimización y apagón
 
@@ -797,9 +803,9 @@ gh pr create --fill                # abrir el pull request
 gh pr merge --squash --delete-branch   # cuando los checks estén en verde
 ```
 
-### Backend — 747 pruebas (+9 con Postgres) (pytest)
+### Backend — 749 pruebas (+9 con Postgres) (pytest)
 
-747 pruebas con pytest, sin red ni base de datos externa (otras 9, contra un Postgres real, se omiten salvo que se defina `TEST_DATABASE_URL`) (repositorios,
+749 pruebas con pytest, sin red ni base de datos externa (otras 9, contra un Postgres real, se omiten salvo que se defina `TEST_DATABASE_URL`) (repositorios,
 fuente y pronóstico en memoria —ver [`tests/fakes.py`](backend/tests/fakes.py)—, y
 DuckDB sobre archivos temporales). Las pruebas HTTP usan `TestClient` de FastAPI
 (requiere `httpx`, incluido en `requirements-dev.txt`):
@@ -815,7 +821,7 @@ DuckDB sobre archivos temporales). Las pruebas HTTP usan `TestClient` de FastAPI
 | `test_holt_winters_estacional.py` | 7 | Ciclo anual, fallback con <24 meses, pasos de fecha, acotamiento 0–100 |
 | `test_fuente_simem_xm.py` | 26 | Conversión de unidades (m³→Mm³, m³/día→m³/s, kWh→GWh), mapeo río→embalse, agregado Bogotá y `AGREGADO_SIN`, datos faltantes como `None`, imputación del peso, región desconocida, cliente XM en bloques de 30 días, errores de red |
 | `test_api_http.py` | 74 | Contrato HTTP sobre la app real con los casos de uso reales y repositorios en memoria: los 9 endpoints, códigos 404/405/422 y su `detalle`, filtros y validación de parámetros, `null` en datos no publicados, CSV/JSON descargable (celdas vacías, no ceros), la ruta `/resumen` frente a `/{id}`, forma del JSON de la senda (origen de la proyección y horizonte efectivo), OpenAPI y CORS (origen permitido, otros rechazados, preflight solo GET) |
-| `test_modelo_carbon.py` | 42 | Modelo de carbón: `Banda` P10≤P50≤P90, validación del paquete (vacíos, claves repetidas, poder calorífico), casos de uso (pico dentro del horizonte, uso del techo, probabilidad, inventario = consumo × días, trimestres parciales, horizontes/historias/días fuera de lista), lectura y validación de los archivos del modelo, repositorio DuckDB (ida y vuelta, reemplazo transaccional con rollback, `--reiniciar` no lo borra) |
+| `test_modelo_carbon.py` | 44 | Modelo de carbón: `Banda` P10≤P50≤P90, validación del paquete (vacíos, claves repetidas, poder calorífico), casos de uso (pico dentro del horizonte, uso del techo, probabilidad, inventario = consumo × días, trimestres parciales, horizontes/historias/días fuera de lista), lectura y validación de los archivos del modelo (organización `Datos/` vigente y la anterior, y cuál gana si conviven), repositorio DuckDB (ida y vuelta, reemplazo transaccional con rollback, `--reiniciar` no lo borra) |
 | `test_api_carbon.py` | 47 | Contrato HTTP de los 5 endpoints `/carbon/*`: forma del JSON, valores por defecto, 404 «modelo no cargado», 422 con la lista de valores permitidos por cada parámetro, solo GET (405 en el resto), OpenAPI |
 | `test_modelo_dns.py` | 69 | Modelo DNS: entidades y validaciones, ventana del período y comparación con el período previo, filtros (región, subárea, origen), patrones sin «hora desconocida», causas, casos de uso, lectura de los CSV del modelo y repositorio DuckDB (ida y vuelta, rollback, `--reiniciar`) |
 | `test_api_dns.py` | 64 | Contrato HTTP de los 8 endpoints `/dns/*`: formas del JSON, 404 sin corrida, 422 por período/origen/región/subárea inválidos o con caracteres peligrosos, solo GET |
