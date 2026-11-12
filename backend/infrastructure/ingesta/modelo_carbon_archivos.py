@@ -2,10 +2,13 @@
 
 El modelo vive en su propio proyecto (`Modelo de carbon termico`) y entrega:
 
-* `resultados/proyeccion_carbon.xlsx`: proyeccion mensual, trimestres, inventario,
+* `Datos/resultados/proyeccion_carbon.xlsx`: proyeccion mensual, trimestres, inventario,
   comparacion con XM, validacion por episodios y supuestos.
-* `resultados/evaluacion/evaluacion_modelo.xlsx`: veredicto de validez y error por horizonte.
-* `datos/base/base_mensual_nacional.parquet`: historico mensual del consumo de carbon.
+* `Datos/resultados/evaluacion/evaluacion_modelo.xlsx`: veredicto de validez y error por horizonte.
+* `Datos/base/base_mensual_nacional.parquet`: historico mensual del consumo de carbon.
+
+El proyecto se reorganizo en `Datos/`, `Documentos/` y `Scripts/`; tambien se acepta la organizacion
+anterior (`resultados/` y `datos/base/` directamente en la carpeta). Si conviven, gana `Datos/`.
 
 Este modulo solo lee y convierte (fracciones 0-1 a porcentaje); no escribe en la base.
 Cualquier inconsistencia (hoja o columna ausente, valor no numerico, banda desordenada)
@@ -37,7 +40,8 @@ from domain.value_objects.banda import Banda
 
 RUTA_PROYECCION = Path("resultados") / "proyeccion_carbon.xlsx"
 RUTA_EVALUACION = Path("resultados") / "evaluacion" / "evaluacion_modelo.xlsx"
-RUTA_BASE_NACIONAL = Path("datos") / "base" / "base_mensual_nacional.parquet"
+RUTA_BASE_NACIONAL = Path("base") / "base_mensual_nacional.parquet"
+CARPETA_DATOS = "Datos"
 SUPUESTO_PODER_CALORIFICO = "Poder calorífico [MBTU/t]"
 
 Fila = dict[str, Any]
@@ -178,10 +182,19 @@ def _historico(ruta: Path) -> list[HistoricoCarbonMensual]:
     return salida
 
 
+def _ubicar(carpeta: Path, relativa: Path) -> Path:
+    """Ruta del archivo en la organizacion vigente (`Datos/...`) o, si no existe, en la anterior (`datos/...`/raiz)."""
+    nueva = carpeta / CARPETA_DATOS / relativa
+    if nueva.is_file():
+        return nueva
+    anterior = carpeta / (Path("datos") / relativa if relativa.parts[0] == "base" else relativa)
+    return anterior if anterior.is_file() else nueva
+
+
 # ------------------------------------------------------------------ punto de entrada
 def leer_modelo_carbon(carpeta: Path) -> PaqueteModeloCarbon:
     """Lee la corrida completa del modelo desde la carpeta de su proyecto."""
-    ruta_proyeccion, ruta_evaluacion = carpeta / RUTA_PROYECCION, carpeta / RUTA_EVALUACION
+    ruta_proyeccion, ruta_evaluacion = _ubicar(carpeta, RUTA_PROYECCION), _ubicar(carpeta, RUTA_EVALUACION)
     for ruta in (ruta_proyeccion, ruta_evaluacion):
         if not ruta.is_file():
             raise ArchivoModeloCarbonInvalidoError(f"No existe {ruta}")
@@ -265,7 +278,7 @@ def leer_modelo_carbon(carpeta: Path) -> PaqueteModeloCarbon:
     try:
         return PaqueteModeloCarbon(
             origen=origen, poder_calorifico_mbtu_t=poder_calorifico,
-            historico=_historico(carpeta / RUTA_BASE_NACIONAL), proyeccion=proyeccion, trimestres=trimestres,
+            historico=_historico(_ubicar(carpeta, RUTA_BASE_NACIONAL)), proyeccion=proyeccion, trimestres=trimestres,
             inventario=inventario, comparacion_xm=comparacion, errores_horizonte=errores, episodios=episodios,
             veredicto=veredicto, supuestos=supuestos,
         )

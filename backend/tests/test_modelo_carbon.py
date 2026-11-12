@@ -90,10 +90,15 @@ def _escribir_hoja(libro, nombre, columnas, filas):
         hoja.append([fila.get(c) for c in columnas])
 
 
-def escribir_modelo(carpeta: Path, proyeccion=None, sin_hoja=None, sin_columna=None, poder="26.27"):
-    """Crea en `carpeta` los tres archivos minimos que entrega el modelo."""
-    (carpeta / "resultados" / "evaluacion").mkdir(parents=True)
-    (carpeta / "datos" / "base").mkdir(parents=True)
+def escribir_modelo(carpeta: Path, proyeccion=None, sin_hoja=None, sin_columna=None, poder="26.27", organizacion="anterior"):
+    """Crea en `carpeta` los tres archivos minimos que entrega el modelo.
+
+    `organizacion`: "anterior" (`resultados/` y `datos/base/` en la raiz) o "nueva" (todo bajo `Datos/`).
+    """
+    raiz = carpeta / "Datos" if organizacion == "nueva" else carpeta
+    carpeta_base = raiz / ("base" if organizacion == "nueva" else "datos/base")
+    (raiz / "resultados" / "evaluacion").mkdir(parents=True)
+    carpeta_base.mkdir(parents=True)
     hojas = {
         "proyeccion_mensual": (COLUMNAS_PROYECCION, proyeccion if proyeccion is not None else [_fila_proyeccion()]),
         "trimestres": (["trimestre", "meses_incluidos", "carbon_mt_p10", "carbon_mt_p50", "carbon_mt_p90"],
@@ -121,7 +126,7 @@ def escribir_modelo(carpeta: Path, proyeccion=None, sin_hoja=None, sin_columna=N
         if sin_columna and sin_columna[0] == nombre:
             columnas = [c for c in columnas if c != sin_columna[1]]
         _escribir_hoja(libro, nombre, columnas, filas)
-    libro.save(carpeta / "resultados" / "proyeccion_carbon.xlsx")
+    libro.save(raiz / "resultados" / "proyeccion_carbon.xlsx")
 
     evaluacion = openpyxl.Workbook()
     evaluacion.remove(evaluacion.active)
@@ -131,7 +136,7 @@ def escribir_modelo(carpeta: Path, proyeccion=None, sin_hoja=None, sin_columna=N
     _escribir_hoja(evaluacion, "error_por_horizonte",
                    ["horizonte", "n", "mae_modelo", "mae_persistencia", "mae_estacional", "mae_climatologia", "sesgo_modelo"],
                    [dict(horizonte=1, n=65, mae_modelo=45.8, mae_persistencia=47.3, mae_estacional=112.3, mae_climatologia=87.2, sesgo_modelo=-3.9)])
-    evaluacion.save(carpeta / "resultados" / "evaluacion" / "evaluacion_modelo.xlsx")
+    evaluacion.save(raiz / "resultados" / "evaluacion" / "evaluacion_modelo.xlsx")
 
     conexion = duckdb.connect()
     conexion.execute(
@@ -145,7 +150,7 @@ def escribir_modelo(carpeta: Path, proyeccion=None, sin_hoja=None, sin_columna=N
         "(DATE '2005-01-01', 53.6, NULL, NULL, NULL, 0.62, 'Sinergox', true, 31), "
         "(DATE '2005-02-01', NULL, NULL, NULL, NULL, 0.5, 'Sinergox', true, 28)"
     )
-    conexion.execute("COPY t TO '" + str(carpeta / "datos" / "base" / "base_mensual_nacional.parquet") + "' (FORMAT PARQUET)")
+    conexion.execute("COPY t TO '" + str(carpeta_base / "base_mensual_nacional.parquet") + "' (FORMAT PARQUET)")
     conexion.close()
     return carpeta
 
@@ -160,6 +165,20 @@ class TestLecturaDeArchivos:
         assert m.observado_parcial_gbtu_dia == 213.0
         assert paquete.poder_calorifico_mbtu_t == 26.27
         assert "20000 simulaciones" in paquete.origen
+
+    def test_lee_la_organizacion_nueva_del_proyecto_bajo_datos(self, tmp_path):
+        nueva = leer_modelo_carbon(escribir_modelo(tmp_path / "nueva", organizacion="nueva"))
+        anterior = leer_modelo_carbon(escribir_modelo(tmp_path / "anterior"))
+        assert nueva == anterior and len(nueva.proyeccion) == 1
+
+    def test_si_conviven_las_dos_organizaciones_gana_datos(self, tmp_path):
+        escribir_modelo(tmp_path, organizacion="nueva", poder="26.27")
+        raiz = tmp_path / "Datos"
+        # Una corrida vieja y distinta en la raiz (sin evaluacion valida) no debe leerse.
+        (tmp_path / "resultados").mkdir()
+        (tmp_path / "resultados" / "proyeccion_carbon.xlsx").write_bytes(b"corrupto")
+        assert leer_modelo_carbon(tmp_path).poder_calorifico_mbtu_t == 26.27
+        assert raiz.is_dir()
 
     def test_el_historico_ordena_por_fecha_y_omite_meses_sin_consumo(self, tmp_path):
         historico = leer_modelo_carbon(escribir_modelo(tmp_path)).historico
